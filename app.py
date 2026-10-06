@@ -40,9 +40,9 @@ GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "").strip()
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "").strip()
 
 # STABLE MODELS 
-GEMINI_MODEL = "gemini-3.6"  
+GEMINI_MODEL = "gemini-2.5-flash-lite"  
 GROQ_MODEL = "gpt-oss-120b"      
-OPENROUTER_MODEL = "cognitivecomputations/dolphin-mixtral-8x7b" 
+OPENROUTER_MODEL = "gryphe/mythomax-l2-13b:free" 
 
 FONT_REGULAR_URL = "https://raw.githubusercontent.com/dejavu-fonts/dejavu-fonts-ttf/master/ttf/DejaVuSans.ttf"
 FONT_BOLD_URL = "https://raw.githubusercontent.com/dejavu-fonts/dejavu-fonts-ttf/master/ttf/DejaVuSans-Bold.ttf"
@@ -182,12 +182,17 @@ def get_live_group_title(chat_id, fallback="Group"):
 
 def get_universal_ai_response(system_instruction, user_prompt, is_secret_mode):
     
-    # 🌟 IF SECRET MODE "015xps" IS ON -> USE ONLY OPENROUTER (DOLPHIN UNCENSORED)
+    # 🌟 IF SECRET MODE "015xps" IS ON -> USE ONLY OPENROUTER (MYTHOMAX UNCENSORED FREE)
     if is_secret_mode:
         if OPENROUTER_API_KEY:
             try:
                 url = "https://openrouter.ai/api/v1/chat/completions"
-                headers = {"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json"}
+                headers = {
+                    "Authorization": f"Bearer {OPENROUTER_API_KEY}", 
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://siya-ai.com", # OpenRouter requires this for free models
+                    "X-Title": "SiyaBot"
+                }
                 payload = {
                     "model": OPENROUTER_MODEL,
                     "messages": [
@@ -196,12 +201,12 @@ def get_universal_ai_response(system_instruction, user_prompt, is_secret_mode):
                     ],
                     "temperature": 0.95, "max_tokens": 350
                 }
-                res = requests.post(url, headers=headers, json=payload, timeout=10)
+                res = requests.post(url, headers=headers, json=payload, timeout=12)
                 if res.ok:
                     ans = res.json().get("choices", [])[0].get("message", {}).get("content", "").strip()
                     if ans: return ans
             except Exception: pass
-        return "Darling... OpenRouter API me network issue aa raha hai ya limit khatam ho gayi. Check API key."
+        return "Darling... Uncensored API me thoda network issue hai. Try again."
 
     # 😡 IF NORMAL MODE -> USE GEMINI FIRST, THEN GROQ
     else:
