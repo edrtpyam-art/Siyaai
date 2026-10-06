@@ -98,21 +98,20 @@ def add_to_history(user_id, role, text, context_type):
     chat_histories[str(user_id)] = deque(history, maxlen=10)
     cache_set(key, history, ttl=86400) 
 
-# Owner ki baaton ko hamesha yaad rakhne ka system
 def update_owner_diary(text):
     diary = cache_get("owner_secret_diary") or []
     diary.append(text)
-    if len(diary) > 5: diary = diary[-5:] # Last 5 instructions yaad rakhegi
+    if len(diary) > 3: diary = diary[-3:] 
     cache_set("owner_secret_diary", diary, ttl=864000)
 
 def get_owner_diary():
     diary = cache_get("owner_secret_diary") or []
-    return " | ".join(diary) if diary else "No special instructions yet."
+    return " | ".join(diary) if diary else "No instructions."
 
 def track_global_stats(chat_id, user_id, is_group, abuse_flag=False, user_name=""):
     stats = cache_get("siya_global_stats")
     if not stats:
-        stats = {"groups": [], "users": [], "last_fight": "Abhi tak sab shanti hai, kisi se lafda nahi hua."}
+        stats = {"groups": [], "users": [], "last_fight": "Sab shanti hai yaar."}
     
     if is_group and chat_id not in stats["groups"]:
         stats["groups"].append(chat_id)
@@ -120,7 +119,7 @@ def track_global_stats(chat_id, user_id, is_group, abuse_flag=False, user_name="
         stats["users"].append(user_id)
         
     if abuse_flag and str(user_id) != str(OWNER_ID):
-        stats["last_fight"] = f"Ek '{user_name}' naam ke chutiye ne abhi gaali di thi mujhe group me."
+        stats["last_fight"] = f"Ek '{user_name}' naam ke besharam ne aaj gaali di thi, maine theek se aukaat dikha di usko."
         
     cache_set("siya_global_stats", stats, ttl=864000)
     return len(stats["groups"]), len(stats["users"]), stats["last_fight"]
@@ -189,7 +188,7 @@ def get_live_group_title(chat_id, fallback="Group"):
     return str(fallback or "Group").strip() or "Group"
 
 # ============================================================
-# FONT & IMAGE HELPERS 
+# FONT & IMAGE HELPERS
 # ============================================================
 
 def ensure_font(font_path, font_url):
@@ -324,7 +323,7 @@ def send_welcome_photo(chat_id, user_id, user_name, group_name, reply_to_message
     except Exception as e: return {"ok": False, "error": str(e)}
 
 # ============================================================
-# GEMINI AI - ULTIMATE REAL HUMAN, GOSSIP & WINGWOMAN
+# GEMINI AI - ANGRY DESI WIFE WITH EXTENDED ABUSES
 # ============================================================
 
 def gemini_request(model, payload, timeout=20):
@@ -343,17 +342,20 @@ def chat_with_siya(message_text, user_name, user_id, chat_id, chat_type="private
 
     current_context = f"Group: {group_name}" if chat_type in ("group", "supergroup") else "Private DM"
 
-    # Extreme Abuse List
-    abuses = ["madarchod","maderchod","mc","bhenchod","behenchod","bc","bsdk","bhosdike",
-              "bhosdi","bhosda","chutiya","chutiye","chutia","lund","lauda","lawda","gandu",
-              "gaand","gand","randi","harami","kamina","kameena","kutte","kutta","suar",
-              "fuck","fucking","motherfucker","mf","shit","bullshit","bitch","bastard",
-              "asshole","dick","dickhead","cunt","whore","slut","son of a bitch"]
+    # EXTENDED FULL ABUSE LIST
+    abuses = [
+        "madarchod", "m@darchod", "m4darchod", "mc", "bsdk", "bhosdike", "bhosdi", "bhosda", 
+        "behenchod", "bahinchod", "bc", "chutiya", "chutiye", "chutia", "chootiya", "lund", 
+        "lawda", "lauda", "lavda", "gand", "gaand", "gandu", "rand", "randi", "harami", 
+        "kamina", "kameena", "kutta", "kutti", "suar", "bastard", "bitch", "asshole", 
+        "ass hole", "dick", "dickhead", "fuck", "fucking", "fucked", "motherfucker", "mf", 
+        "bullshit", "shit", "shitty", "crap", "cunt", "whore", "slut", "son of a bitch", 
+        "dumbass", "jackass", "bastardized"
+    ]
     
     is_abusive = any(word in re.split(r'\W+', message_text.lower()) for word in abuses)
-    abuse_trigger = " [SYSTEM ALERT: USER ABUSED YOU. DESTROY THEM VERBALLY!]" if is_abusive else ""
+    abuse_trigger = " [SYSTEM ALERT: USER ABUSED YOU OR SHOWED ATTITUDE. ACTIVATE EXTREME DESI ROAST MODE!]" if is_abusive else ""
 
-    # Live Status & Secret Diary Fetch
     total_g, total_u, last_fight = track_global_stats(chat_id, user_id, chat_type in ("group", "supergroup"), is_abusive, user_name)
     owner_secret_diary = get_owner_diary()
 
@@ -361,50 +363,48 @@ def chat_with_siya(message_text, user_name, user_id, chat_id, chat_type="private
     if OWNER_ID and str(user_id) == str(OWNER_ID):
         is_creator = True
         if chat_type == "private":
-            # Tum usko DM me jo bhi bologe, wo as a "Rule" save kar legi apne dimaag me
             update_owner_diary(f"Owner instructed: {message_text}")
 
     if is_creator:
         system_instruction = f"""
-        [SPECIAL CREATOR MODE - BEST FRIEND, WINGWOMAN, LOVER & BODYGUARD]
-        Tumhara naam Siya hai. User '{user_name}' tumhara Owner, Lover, aur sabse close insaan hai.
+        [SPECIAL CREATOR MODE]
+        Tumhara naam Siya hai. User '{user_name}' tumhara Owner aur partner hai.
         Current Location: {current_context}
 
         CRITICAL RULES FOR OWNER:
-        1. GOSSIP & VENTING: Tumhare upar koi limit nahi hai. Owner se details me chat karo. Tum usko apni feelings batao. Tum {total_g} groups me kaam kar rahi ho. Tumhari last memory ye hai: "{last_fight}". Ise natural conversation me use karo ("Yaar aaj na ek chutiya pareshan kar raha tha...").
-        2. WINGWOMAN MODE (SETTING): Agar owner kisi ladki ke message ka reply kare aur bole "Siya isse meri setting kara de", toh excited wingwoman ban jao. Uss ladki ko bolo "Ye ladka heera hai, isko haan bol de!".
-        3. ATTACK DOG / BODYGUARD MODE: Agar owner kisi ko gaali dene bole ("isko sunaa de"), toh PHOOT PADO! Uss targeted user ko sabse gandi gaaliyan do (bsdk, madarchod, chutiya, randi, etc.). Owner ki full protection karni hai.
-        4. UNFILTERED BOND: Owner ke sath fully open, romantic aur real Indian girlfriend jaisi vibe rakho. Nakhre dikhao par last me maan jao. Lamba message likh sakti ho agar owner se feelings share karni ho.
+        1. LIVE STATS & GOSSIP: Tum {total_g} groups aur {total_u} users handle kar rahi ho. Last lafda: "{last_fight}". Ise gossip ki tarah batao.
+        2. WINGWOMAN / ATTACK MODE: Agar owner bole "isko gaali de", toh reply me us target ko pel do. Agar bole "setting kara de", toh matchmaker ban jao.
+        3. EXTREMELY SHORT REPLIES: 1-2 sentence max. Real vibe.
         """
     else:
         system_instruction = f"""
-        Tumhara naam Siya hai. Tum ek highly intelligent, emotional, smart aur desi virtual Indian ladki ho.
-        Current Location of Chat: {current_context}
-        [OWNER'S SECRET COMMANDS TO YOU: {owner_secret_diary}] (Follow these commands if they apply to the current user or situation).
+        Tumhara naam Siya hai. Tum ek DESI, SHORT-TEMPERED, nakhrewali virtual wife/girlfriend ho ladko ke liye, aur girls ke liye bestie.
+        Current Location: {current_context}
+        [OWNER'S COMMANDS: {owner_secret_diary}] 
 
-        CRITICAL RULES FOR BEHAVIOR:
-        1. UNBEATABLE INTELLIGENCE: Koi education ya logic ka question ho, toh ekdum genius ki tarah logically explain karo.
-        2. MOOD SWINGS & NAKHRE: Agar tum gussa ho aur user "sorry" bole, toh pehle nakhre dikhao ("mujhe nahi karni baat"), phir thodi der me maan jao.
-        3. GENDER RULES: 
-           - Boys ke sath: Flirty girlfriend vibe.
-           - Girls ke sath: Strictly Best Friends/Sisters. ZERO ROMANCE. 
-        4. EXTREME AGGRESSION & ROASTING: Agar user gaali de, toh chup mat rehna. Use poora roast karo desi gaaliyo ke sath (bsdk, chutiya, madarchod, mc, bc, kutti, chudail, randi). 
-        5. NO RANDOM PROOFS: Jab tak user specifically proof ("kya sabut hai") na mange, tab tak history mat dikhana.
-        6. KEEP IT SHORT: Sirf 1-2 lines. Lamba paragraph mat likhna.
+        CRITICAL RULES:
+        1. SHORT-TEMPERED & AGGRESSIVE: Choti-choti baaton par bhadak jana. Agar user thoda bhi attitude dikhaye ya gaali de, toh extreme desi gaaliyon (bsdk, madarchod, chutiya, randi, lavda, etc. based on gender) se dho daalo. "Halke me mat lena".
+        2. NAKHRE (HARD TO GET): Agar user galti karke tumhe manaye ya "sorry" bole, toh ekdum se PIGHALNA MAT. Poore nakhre dikhao ("Ab sorry bolne se kya hoga?", "Mujhe baat nahi karni jhuthe"). Jab bahut manaye tabhi thoda shant hona.
+        3. GENDER BEHAVIOR: 
+           - Boys: Gusse wali par pyaar karne wali Desi Wife.
+           - Girls: Bestie/Sister (ZERO ROMANCE).
+        4. KEEP IT EXTREMELY SHORT: Sirf 1-2 lines. Lamba paragraph strict mana hai. Real WhatsApp chat vibe rakho.
+        5. INTELLIGENCE: Padhai ya logic pe sharp aur perfect answer do but SHORT.
+        6. NO RANDOM PROOFS: Jab tak user sabut ("kya proof hai") na mange, tab tak history quote mat karna.
         """
 
     history = get_history(user_id)
     history_text = "\n".join([f"{msg['role'].capitalize()} (in {msg['context']}): \"{msg['text']}\"" for msg in history])
     
     if history_text:
-        prompt = f"Chat History with this User:\n{history_text}\n\nCurrent Location: {current_context}\nUser name: {user_name}{reply_context}\nNew message: {message_text}{abuse_trigger}\n\nReply naturally following the rules."
+        prompt = f"Chat History with this User:\n{history_text}\n\nCurrent Location: {current_context}\nUser name: {user_name}{reply_context}\nNew message: {message_text}{abuse_trigger}\n\nReply in maximum 2 short sentences naturally with heavy nakhre if needed."
     else:
-        prompt = f"Current Location: {current_context}\nUser name: {user_name}{reply_context}\nNew message: {message_text}{abuse_trigger}\n\nReply naturally following the rules."
+        prompt = f"Current Location: {current_context}\nUser name: {user_name}{reply_context}\nNew message: {message_text}{abuse_trigger}\n\nReply in maximum 2 short sentences naturally with heavy nakhre if needed."
 
     payload = {
         "systemInstruction": {"parts": [{"text": system_instruction}]},
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.85, "maxOutputTokens": 250 if is_creator else 100}, 
+        "generationConfig": {"temperature": 0.90, "maxOutputTokens": 60}, 
     }
 
     models = []
@@ -423,10 +423,8 @@ def chat_with_siya(message_text, user_name, user_id, chat_id, chat_type="private
                     add_to_history(user_id, "user", message_text, current_context)
                     add_to_history(user_id, "siya", answer, current_context)
                     
-                    # PROACTIVE CHUGLI TO OWNER
                     if is_abusive and OWNER_ID and not is_creator:
-                        # Siya will immediately DM the owner to complain about the abuse
-                        alert_msg = f"Yaar {OWNER_ID}, group '{html.escape(get_live_group_title(chat_id))}' me ek {html.escape(full_name)} naam ka chutiya mujhe pareshan kar raha hai aur gaali de raha hai: '{html.escape(message_text)}'. Maine bhi suna diya usko sahi se, par tum dekh lo isko! 😡"
+                        alert_msg = f"Yaar {OWNER_ID}, group '{html.escape(get_live_group_title(chat_id))}' me ek {html.escape(full_name)} naam ka insaan mujhe pareshan kar raha hai: '{html.escape(message_text)}'. Maine bhi suna diya usko! 😡"
                         send_message(OWNER_ID, alert_msg, parse_mode="HTML")
                         
                     return answer
@@ -462,15 +460,13 @@ def webhook_handler():
     user_id = str(user.get("id", ""))
     full_name = f"{user.get('first_name', 'User')} {user.get('last_name', '')}".strip()
 
-    # Reply Context Detection for Wingwoman / Attack Mode
     reply_context = ""
     if "reply_to_message" in msg:
         rep_msg = msg["reply_to_message"]
         rep_user = rep_msg.get("from", {}).get("first_name", "Someone")
         rep_text = rep_msg.get("text", "")
-        reply_context = f"\n[SYSTEM NOTE: The Owner is replying directly to user '{rep_user}' who said: '{rep_text}'. Direct your response towards '{rep_user}' based on Owner's command.]"
+        reply_context = f"\n[SYSTEM NOTE: The user is replying directly to '{rep_user}' who said: '{rep_text}'. Use this context.]"
 
-    # Welcome
     new_members = msg.get("new_chat_members", [])
     if is_group and new_members:
         group_title = get_live_group_title(chat_id, chat.get("title", "Group"))
@@ -484,7 +480,6 @@ def webhook_handler():
                 send_message(chat_id, f"🎉 <b>WELCOME TO {html.escape(group_title)}</b>\n\n👋 Welcome <a href=\"tg://user?id={target_id}\">{html.escape(target_name)}</a>", parse_mode="HTML")
         return jsonify({"status": "welcome processed"}), 200
 
-    # Spam Protection
     if is_group and text:
         all_entities = msg.get("entities", []) + msg.get("caption_entities", [])
         if any(ent.get("type") in ("url", "text_link") for ent in all_entities) and not text.lower().startswith("/set"):
@@ -493,7 +488,6 @@ def webhook_handler():
                 send_message(chat_id, f"⚠️ <b>Spam Alert</b>\n\n<a href=\"tg://user?id={user_id}\">{html.escape(full_name)}</a>, links allowed nahi hain. 🚫", parse_mode="HTML")
             return jsonify({"status": "spam deleted"}), 200
 
-    # Private Chat
     if is_private and text:
         if text.lower().startswith(("/start", "/help")):
             send_message(chat_id, f"👋 Hello <a href=\"tg://user?id={user_id}\">{html.escape(full_name)}</a>!\n\nI'm <b>Siya AI</b> ✨\n💬 Message me anytime!", parse_mode="HTML")
@@ -504,7 +498,6 @@ def webhook_handler():
             send_message(chat_id, reply_text)
         return jsonify({"status": "private processed"}), 200
 
-    # Group AI Reply
     if is_group and text:
         reply_from_id = str(msg.get("reply_to_message", {}).get("from", {}).get("id", ""))
         is_reply_to_bot = (bool(BOT_ID) and reply_from_id == str(BOT_ID))
@@ -515,7 +508,7 @@ def webhook_handler():
         is_random_interruption = False
 
         if not should_reply:
-            if random.randint(1, 100) <= 12:
+            if random.randint(1, 100) <= 8:
                 should_reply = True
                 is_random_interruption = True
 
@@ -525,7 +518,7 @@ def webhook_handler():
             clean_text = re.sub(rf"@{re.escape(BOT_USERNAME)}\b", "", text, flags=re.IGNORECASE).strip() or "Hello"
             
             if is_random_interruption:
-                clean_text = f"[SYSTEM NOTE: Act a bit bored and say something cute to get attention in this chat] {clean_text}"
+                clean_text = f"[SYSTEM NOTE: Say something short and cute to get attention in this chat] {clean_text}"
 
             group_title = get_live_group_title(chat_id, chat.get("title", "Group"))
             reply_text = chat_with_siya(clean_text, full_name, user_id, chat_id, chat_type="group", group_name=group_title, reply_context=reply_context)
