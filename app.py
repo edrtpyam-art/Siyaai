@@ -40,8 +40,8 @@ GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "").strip()
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "").strip()
 
 # STABLE MODELS 
-GEMINI_MODEL = "gemini-1.5-flash"  # Gemini ka default fast model
-GROQ_MODEL = "llama3-8b-8192"      # Groq ka default fast model
+GEMINI_MODEL = "gemini-3.8"  # Gemini ka default fast model
+GROQ_MODEL = "gpt-oss-120b"      # Groq ka default fast model
 OPENROUTER_MODEL = "cognitivecomputations/dolphin-mixtral-8x7b" # Uncensored Adult Model
 
 FONT_REGULAR_URL = "https://raw.githubusercontent.com/dejavu-fonts/dejavu-fonts-ttf/master/ttf/DejaVuSans.ttf"
