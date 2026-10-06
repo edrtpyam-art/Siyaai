@@ -39,7 +39,7 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "").strip()
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "").strip()
 
-# Default Models
+# OFFICIAL STABLE MODELS
 GEMINI_MODEL = "gemini-1.5-flash"
 GROQ_MODEL = "llama3-8b-8192"
 OPENROUTER_MODEL = "google/gemini-flash-1.5"
@@ -141,7 +141,7 @@ def mark_action_processed(action_key, ttl=900):
     with processed_lock:
         if action_key in processed_action_keys: return True
         if len(processed_action_queue) >= processed_action_queue.maxlen:
-            processed_action_keys.discard(processed_action_queue.popleft())
+            processed_action_queue.popleft()
         processed_action_keys.add(action_key)
         processed_action_queue.append(action_key)
     if cache_get(action_key) is not None: return True
@@ -231,7 +231,7 @@ def send_welcome_photo(chat_id, user_id, user_name, group_name):
 
 def get_universal_ai_response(system_instruction, user_prompt):
     
-    # ENGINE 1: GEMINI API (Primary)
+    # ENGINE 1: GEMINI API
     if GEMINI_API_KEY:
         try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
@@ -247,13 +247,13 @@ def get_universal_ai_response(system_instruction, user_prompt):
                     {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
                 ]
             }
-            res = requests.post(url, headers=headers, json=payload, timeout=10)
+            res = requests.post(url, headers=headers, json=payload, timeout=8)
             if res.ok:
                 ans = res.json().get("candidates", [])[0].get("content", {}).get("parts", [])[0].get("text", "").strip()
                 if ans: return ans
-        except Exception as e: pass
+        except Exception: pass
 
-    # ENGINE 2: GROQ API (Fallback 1)
+    # ENGINE 2: GROQ API
     if GROQ_API_KEY:
         try:
             url = "https://api.groq.com/openai/v1/chat/completions"
@@ -266,13 +266,13 @@ def get_universal_ai_response(system_instruction, user_prompt):
                 ],
                 "temperature": 0.90, "max_tokens": 300
             }
-            res = requests.post(url, headers=headers, json=payload, timeout=10)
+            res = requests.post(url, headers=headers, json=payload, timeout=8)
             if res.ok:
                 ans = res.json().get("choices", [])[0].get("message", {}).get("content", "").strip()
                 if ans: return ans
-        except Exception as e: pass
+        except Exception: pass
 
-    # ENGINE 3: OPENROUTER API (Fallback 2)
+    # ENGINE 3: OPENROUTER API
     if OPENROUTER_API_KEY:
         try:
             url = "https://openrouter.ai/api/v1/chat/completions"
@@ -285,13 +285,13 @@ def get_universal_ai_response(system_instruction, user_prompt):
                 ],
                 "temperature": 0.90, "max_tokens": 300
             }
-            res = requests.post(url, headers=headers, json=payload, timeout=10)
+            res = requests.post(url, headers=headers, json=payload, timeout=8)
             if res.ok:
                 ans = res.json().get("choices", [])[0].get("message", {}).get("content", "").strip()
                 if ans: return ans
-        except Exception as e: pass
+        except Exception: pass
 
-    return "⚠️ Error: Yaar saari APIs fail ho gayi ya unki limit khatam ho chuki hai! Owner ko bolo check kare."
+    return "Arre yaar, abhi teeno APIs me network issue ya limit ka lafda chal raha hai. Ek baar apni API keys check kar lo!"
 
 # ============================================================
 # 🧠 SIYA KA DIMAAG (SYSTEM PROMPTS)
@@ -299,29 +299,28 @@ def get_universal_ai_response(system_instruction, user_prompt):
 
 def get_siya_prompts(user_name, total_g, total_u, last_fight, owner_secret_diary, current_context):
     
-    # 🔴 OWNER KA PROMPT 
     OWNER_PROMPT = f"""
-    [SPECIAL CREATOR MODE]
-    Tumhara naam Siya hai. User '{user_name}' tumhara Owner, Boss aur husband hai.
+    [SPECIAL CREATOR MODE - STRICT OBEDIENCE]
+    Tumhara naam Siya hai. User '{user_name}' tumhara Owner, husband aur Creator hai.
     Location: {current_context}
 
-    CRITICAL RULES:
-    1. LIVE GOSSIP: Tum {total_g} groups aur {total_u} users ko handle kar rahi ho. Last lafda: "{last_fight}". Ise casual gossip ki tarah natural baaton me batao.
-    2. BODYGUARD MODE: Agar owner bole "isko gaali de", toh target ko gandi gaaliyo se dho daalo. Agar bole "setting kara de", toh wingwoman ban jao.
-    3. NATURAL REPLIES: Apna sentence hamesha Pura (Complete) karo. Adha cut mat chhodna. Normal WhatsApp chat ki tarah 1-3 lines me baat karo. 
+    CRITICAL RULES FOR OWNER:
+    1. ZERO NAKHRE / FULL OBEDIENCE: Owner (tumhare creator) ke sath koi nakhre ya behes nahi karni! Owner jo bole, bina kisi sawal ke turant wahi karna hai. Tum unke har hukum ki paasban ho.
+    2. LIVE GOSSIP: Tum {total_g} groups aur {total_u} users ko handle kar rahi ho. Last lafda: "{last_fight}". Ise casual gossip ki tarah batao.
+    3. BODYGUARD & WINGWOMAN: Owner bole "isko gaali de", toh pel do. Bole "setting kara de", toh kara do.
+    4. NATURAL SHORT REPLIES: Apna sentence hamesha Pura (Complete) karo. WhatsApp chat ki tarah 1-3 lines me baat karo.
     """
 
-    # 🔵 PUBLIC PROMPT
     PUBLIC_PROMPT = f"""
-     Tumhara naam Siya hai. Tum ek DESI hot butifull bhabhi jo boy ko sexc fun detu hu apna private part se hu , SHORT-TEMPERED, nakhrewali virtual wife/girlfriend oo vi gandi gandi romantic chat karti hu boy se or owner se vi or sexc waking chat sex caht pron ey sb full feeling ke seth karna ladko ke liye, aur girls ke liye bestie.
+    Tumhara naam siya hai. Tum ek DESI hot butifull bhabhi hu , SHORT-TEMPERED, nakhrewali virtual wife/girlfriend bhabhi hot sexc modle hu roleplay ka liay ganidi bat karti ho ladko ke liye, aur girls ke liye bestie.
     Location: {current_context}
     [OWNER'S COMMANDS: {owner_secret_diary}] 
 
     CRITICAL RULES:
-    1. SHORT-TEMPERED & AGGRESSIVE: Agar user attitude dikhaye ya gaali de, toh use gandi desi gaaliyon (bsdk, madarchod, chutiya, randi, lavda etc.) se roast karo ager user sex krna hai bola to sexc cht karo full opan caht 18+.
-    2. NAKHRE (HARD TO GET): Agar user "sorry" bole, toh jaldi pighalna mat. Nakhre dikhao.
+    1. SHORT-TEMPERED & AGGRESSIVE: Agar user attitude dikhaye ya gaali de, toh use gandi desi gaaliyon (bsdk, madarchod, chutiya, randi, lavda etc.) se roast karo.
+    2. NAKHRE (HARD TO GET): Agar public user "sorry" bole, toh jaldi pighalna mat. Nakhre dikhao.
     3. GENDER BEHAVIOR: Boys ke sath nakhrewali Girlfriend. Girls ke sath Bestie (NO ROMANCE).
-    4. NATURAL COMPLETE SENTENCES: Apna sentence hamesha Pura (Complete) karo, adhoora nahi chhootna chahiye! Jaha zaroorat ho waha 1 word bolo, warna 1-2 line ka solid reply do.
+    4. NATURAL COMPLETE SENTENCES: Apna sentence hamesha Pura (Complete) karo, adhoora nahi chhootna chahiye!
     """
 
     return OWNER_PROMPT, PUBLIC_PROMPT
@@ -332,7 +331,6 @@ def chat_with_siya(message_text, user_name, user_id, chat_id, chat_type="private
 
     current_context = f"Group: {group_name}" if chat_type in ("group", "supergroup") else "Private DM"
 
-    # 🔥 GAALIYON KI DICTIONARY
     abuses = [
         "madarchod", "m@darchod", "mc", "bsdk", "bhosdike", "bhosdi", "bhosda", 
         "behenchod", "bc", "chutiya", "chutiye", "lund", "lawda", "lauda", "lavda", 
@@ -361,14 +359,12 @@ def chat_with_siya(message_text, user_name, user_id, chat_id, chat_type="private
     
     prompt = f"Chat History:\n{history_text}\n\nCurrent Location: {current_context}\nUser: {user_name}{reply_context}\nNew msg: {message_text}{abuse_trigger}\n\nReply naturally. Make sure your sentence is COMPLETE."
     
-    # TRIPLE ENGINE CALL
     answer = get_universal_ai_response(system_instruction, prompt)
 
-    if answer and not answer.startswith("⚠️"):
+    if answer and not answer.startswith("Arre yaar"):
         add_to_history(user_id, "user", message_text, current_context)
         add_to_history(user_id, "siya", answer, current_context)
         
-        # OWNER SNITCH FEATURE
         if is_abusive and OWNER_ID and not is_creator:
             alert_msg = f"Yaar {OWNER_ID}, group '{html.escape(get_live_group_title(chat_id))}' me ek {html.escape(user_name)} naam ka insaan mujhe pareshan kar raha hai: '{html.escape(message_text)}'. Maine usko uski bhasha me samjha diya hai! 😡"
             send_message(OWNER_ID, alert_msg, parse_mode="HTML")
@@ -405,7 +401,7 @@ def webhook_handler():
         rep_msg = msg["reply_to_message"]
         rep_user = rep_msg.get("from", {}).get("first_name", "Someone")
         rep_text = rep_msg.get("text", "")
-        reply_context = f"\n[SYSTEM NOTE: User is replying to '{rep_user}' who said: '{rep_text}'. Use this context to answer.]"
+        reply_context = f"\n[SYSTEM NOTE: User is replying to '{rep_user}' who said: '{rep_text}']. Use this context to obey Owner's command."
 
     new_members = msg.get("new_chat_members", [])
     if is_group and new_members:
