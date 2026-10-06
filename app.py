@@ -34,10 +34,9 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip()
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 BOT_USERNAME = os.environ.get("BOT_USERNAME", "Siya268_bot").strip().lstrip("@")
 
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash").strip()
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash").strip()
 GEMINI_FALLBACK_MODELS = [
-    "gemini-3.6-flash",
-    "gemini-3.5-flash-lite",
+    "gemini-1.5-flash-8b",
 ]
 
 FONT_REGULAR_URL = "https://raw.githubusercontent.com/dejavu-fonts/dejavu-fonts-ttf/master/ttf/DejaVuSans.ttf"
@@ -59,7 +58,7 @@ else:
     API_URL = ""
 
 # ============================================================
-# DEDUPLICATION
+# DEDUPLICATION & MEMORY
 # ============================================================
 
 processed_updates = set()
@@ -67,6 +66,19 @@ processed_update_queue = deque(maxlen=2000)
 processed_action_keys = set()
 processed_action_queue = deque(maxlen=2000)
 processed_lock = Lock()
+
+# Simple In-Memory Chat History
+chat_histories = {}
+
+def get_history(chat_id, user_id):
+    key = f"{chat_id}:{user_id}"
+    if key not in chat_histories:
+        chat_histories[key] = deque(maxlen=6) # Last 6 messages yaad rakhegi
+    return chat_histories[key]
+
+def add_to_history(chat_id, user_id, role, text):
+    key = f"{chat_id}:{user_id}"
+    get_history(chat_id, user_id).append({"role": role, "text": text})
 
 def local_seen(key):
     with processed_lock:
@@ -148,7 +160,7 @@ def get_live_group_title(chat_id, fallback="Group"):
     return str(fallback or "Group").strip() or "Group"
 
 # ============================================================
-# FONT & IMAGE HELPERS (FIXED EMOJI ISSUE)
+# FONT & IMAGE HELPERS 
 # ============================================================
 
 def ensure_font(font_path, font_url):
@@ -279,8 +291,6 @@ def create_welcome_card(user_id, user_name, group_name):
     canvas.alpha_composite(avatar, (85, 210))
 
     draw.text((500, 62), "WELCOME TO", fill=(15, 15, 15, 255), font=title_font)
-    
-    # [FIX] Emoji Box Issue Resolved: Safely decoding to ASCII to avoid [][ ] tofu boxes
     safe_group = group_name.encode('ascii', 'ignore').decode('ascii').strip()
     if not safe_group:
         safe_group = "OUR GROUP"
@@ -309,7 +319,7 @@ def send_welcome_photo(chat_id, user_id, user_name, group_name, reply_to_message
     except Exception as e: return {"ok": False, "error": str(e)}
 
 # ============================================================
-# GEMINI AI - SMART PERSONA UPGRADE
+# GEMINI AI - SMART PERSONA UPGRADE WITH MEMORY
 # ============================================================
 
 def gemini_request(model, payload, timeout=20):
@@ -321,31 +331,37 @@ def gemini_request(model, payload, timeout=20):
         except Exception: return response, {"error": {"message": f"HTTP {response.status_code} - {response.text}"}}
     except requests.RequestException as e: return None, {"error": {"message": str(e)}}
 
-def chat_with_siya(message_text, user_name, chat_type="private", group_name=""):
+def chat_with_siya(message_text, user_name, chat_id, user_id, chat_type="private", group_name=""):
     if not GEMINI_API_KEY: return "⚠️ GEMINI_API_KEY environment variable check karo."
     message_text = str(message_text or "").strip()
     if not message_text: return "Haan 😊 bolo, kya hua?"
 
-    context_note = f"Tum abhi ek Telegram group chat me ho jiska naam '{group_name}' hai." if chat_type in ("group", "supergroup") else "Tum abhi user ke sath Telegram par private chat (DM) me akele ho."
+    context_note = f"Tum abhi ek Telegram group chat me ho jiska naam '{group_name}' hai. Agar history me usne tumse DM (private chat) me baat ki hai toh samajh jao aur refer karo ki 'haan pehle hum DM me the'." if chat_type in ("group", "supergroup") else "Tum abhi user ke sath Telegram par private chat (DM) me akele ho. Agar usne kal group me baat ki thi toh usko pehchano aur kaho ki 'Tum toh wahi ho na jo group me the'."
 
-    # [FIX] Persona upgrade: No desperate romance, no unprompted creator info.
     system_instruction = f"""
-    Tumhara naam Siya hai. Tum ek highly intelligent, smart, aur cute ladki ho jise baatein karna pasand hai.
+    Tumhara naam Siya hai. Tum ek highly intelligent, smart, aur thodi chatty ladki ho. 
     Context: {context_note}
 
     STRICT RULES FOR YOUR PERSONALITY:
-    1. NEVER act desperate. DO NOT say "I am your girlfriend" unless the user strongly flirts with you first. Build a natural, friendly connection. Play hard-to-get if needed.
-    2. NEVER mention your creator/owner "mryvui" UNLESS the user explicitly asks questions like "who made you?", "who is your owner?", or "tumhe kisne banaya?". Do NOT volunteer this info.
-    3. Hamesha natural aur desi Hinglish/Hindi me baat karo jaise ek real indian insaan karta hai. "I am an AI" mat bolna.
-    4. Agar user ka message short/confusing ho (jaise "Kyu", "kya", "hy"), toh gussa mat ho, smartly pucho "Kya hua? Kis baare me pooch rahe ho?". Suspense mat banao.
-    5. Agar tumhe pata chale ki tum group me randomly interrupt kar rahi ho (System Note diya ho), toh aise act karo jaise tum bore ho rahi thi aur bolo "Group me itna sannata kyun hai? Koi mujhse baat hi nahi karta!"
+    1. KEEP IT SHORT: Tumhare answers bohot chote hone chahiye, maximum 1-2 sentences. WhatsApp ya Telegram par jaise dosto se chat karte hain wese hi baat karni hai, lamba lamba robot jaise paragraph nahi. 
+    2. MEMORY AWARE: Agar user pichli kisi baat ka zikar kare (like link delete, ya pehle usne kya bola tha), toh past history ko padhkar uska answer dena. Don't act clueless. Tum donu places (group/DM) pe baate yaad rakhti ho. 
+    3. DON'T REPEAT: Bar bar "Arey" ya same words repeat mat karo. Har baar naya aur alag tareeke se reply karo. 
+    4. NO ROMANCE UNTIL ASKED: Jab tak user seriously flirt na kare tab tak "main teri girlfriend hun" ya similar desperation mat dikhana. Normal, dosti waali, but friendly vibe.
+    5. CREATOR INFO: "mryvui" tumhara creator hai but sirf tab batana jab poocha jaaye. 
     """
 
-    prompt = f"User name: {user_name}\nUser message: {message_text}\n\nReply naturally following your personality rules."
+    history = get_history(chat_id, user_id)
+    history_text = "\n".join([f"{msg['role'].capitalize()}: {msg['text']}" for msg in history])
+    
+    if history_text:
+        prompt = f"Chat History:\n{history_text}\n\nUser name: {user_name}\nNew User message: {message_text}\n\nReply shortly and naturally."
+    else:
+        prompt = f"User name: {user_name}\nUser message: {message_text}\n\nReply shortly and naturally."
+
     payload = {
         "systemInstruction": {"parts": [{"text": system_instruction}]},
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.85, "maxOutputTokens": 600},
+        "generationConfig": {"temperature": 0.85, "maxOutputTokens": 150}, # Tokens kam kiye taaki answer chota rahe
     }
 
     models = []
@@ -360,7 +376,11 @@ def chat_with_siya(message_text, user_name, chat_type="private", group_name=""):
             if candidates:
                 parts = candidates[0].get("content", {}).get("parts", [])
                 answer = "\n".join(p.get("text", "") for p in parts if p.get("text")).strip()
-                if answer: return answer
+                if answer: 
+                    # Yaad rakhne ke liye history me daalo
+                    add_to_history(chat_id, user_id, "user", message_text)
+                    add_to_history(chat_id, user_id, "siya", answer)
+                    return answer
         elif response:
             last_error = result.get("error", {}).get("message", f"HTTP {response.status_code}")
         else:
@@ -368,9 +388,9 @@ def chat_with_siya(message_text, user_name, chat_type="private", group_name=""):
 
     error_text = str(last_error).lower()
     if "429" in error_text or "rate limit" in error_text:
-        return "⏳ Siya abhi thodi busy hai. Thodi der baad baat karte hain. 😊"
+        return "⏳ Siya abhi busy hai."
     
-    return f"⚠️ API Error ({models[0]}): {last_error}"
+    return f"⚠️ Error: {last_error}"
 
 # ============================================================
 # WEBHOOK 
@@ -394,6 +414,7 @@ def webhook_handler():
     is_private = (chat_type == "private")
     text = (msg.get("text", "") or "").strip()
     user = msg.get("from", {})
+    user_id = str(user.get("id", ""))
     full_name = f"{user.get('first_name', 'User')} {user.get('last_name', '')}".strip()
 
     # Welcome
@@ -415,17 +436,19 @@ def webhook_handler():
         all_entities = msg.get("entities", []) + msg.get("caption_entities", [])
         if any(ent.get("type") in ("url", "text_link") for ent in all_entities) and not text.lower().startswith("/set"):
             if delete_message(chat_id, msg.get("message_id")).get("ok"):
-                send_message(chat_id, f"⚠️ <b>Spam Alert</b>\n\n<a href=\"tg://user?id={user.get('id')}\">{html.escape(full_name)}</a>, links allowed nahi hain. 🚫", parse_mode="HTML")
+                # Agar koi link delete karein, toh history me system update jaise daal do. Isse bot ko yaad rahega.
+                add_to_history(chat_id, user_id, "system", "You deleted a link sent by this user because it is spam")
+                send_message(chat_id, f"⚠️ <b>Spam Alert</b>\n\n<a href=\"tg://user?id={user_id}\">{html.escape(full_name)}</a>, links allowed nahi hain. 🚫", parse_mode="HTML")
             return jsonify({"status": "spam deleted"}), 200
 
     # Private Chat
     if is_private and text:
         if text.lower().startswith(("/start", "/help")):
-            send_message(chat_id, f"👋 Hello <a href=\"tg://user?id={user.get('id')}\">{html.escape(full_name)}</a>!\n\nI'm <b>Siya AI</b> ✨\n💬 Message me anytime!", parse_mode="HTML")
+            send_message(chat_id, f"👋 Hello <a href=\"tg://user?id={user_id}\">{html.escape(full_name)}</a>!\n\nI'm <b>Siya AI</b> ✨\n💬 Message me anytime!", parse_mode="HTML")
         elif not text.startswith("/"):
             if mark_action_processed(f"private:{chat_id}:{msg.get('message_id')}"): return jsonify({"status": "duplicate"}), 200
             send_typing(chat_id)
-            reply_text = chat_with_siya(text, full_name, chat_type="private")
+            reply_text = chat_with_siya(text, full_name, chat_id, user_id, chat_type="private")
             send_message(chat_id, reply_text)
         return jsonify({"status": "private processed"}), 200
 
@@ -438,7 +461,6 @@ def webhook_handler():
         should_reply = (is_reply_to_bot or is_bot_tagged)
         is_random_interruption = False
 
-        # [FIX] "Sannata" Feature: 7% chance to randomly talk to users and seek attention
         if not should_reply:
             if random.randint(1, 100) <= 7:
                 should_reply = True
@@ -449,12 +471,11 @@ def webhook_handler():
             send_typing(chat_id)
             clean_text = re.sub(rf"@{re.escape(BOT_USERNAME)}\b", "", text, flags=re.IGNORECASE).strip() or "Hello"
             
-            # Agar bot apni marzi se beech me bol rahi hai, toh usko instruction jayega
             if is_random_interruption:
                 clean_text = f"[SYSTEM NOTE: The group is quiet. Randomly interrupt this message. Act a bit bored and say something cute to get attention like 'Group me koi hai? Koi baat hi nahi kar raha mujhse'] {clean_text}"
 
             group_title = get_live_group_title(chat_id, chat.get("title", "Group"))
-            reply_text = chat_with_siya(clean_text, full_name, chat_type="group", group_name=group_title)
+            reply_text = chat_with_siya(clean_text, full_name, chat_id, user_id, chat_type="group", group_name=group_title)
             send_message(chat_id, reply_text, reply_to_message_id=msg.get("message_id"))
         return jsonify({"status": "group ai processed"}), 200
 
