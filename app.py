@@ -177,86 +177,92 @@ def get_live_group_title(chat_id, fallback="Group"):
     return fallback
 
 # ============================================================
-# TRIPLE ENGINE AI ROUTER (OPENROUTER FIRST ALWAYS)
+# TRIPLE ENGINE AI ROUTER (WITH SMART ERROR REPORTER)
 # ============================================================
 
-def try_openrouter(system_instruction, user_prompt):
-    if not OPENROUTER_API_KEY: return None
-    try:
-        url = "https://openrouter.ai/api/v1/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {OPENROUTER_API_KEY}", 
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://siya-ai.com",
-            "X-Title": "SiyaBot"
-        }
-        payload = {
-            "model": OPENROUTER_MODEL,
-            "messages": [
-                {"role": "system", "content": system_instruction},
-                {"role": "user", "content": user_prompt}
-            ],
-            "temperature": 0.95, "max_tokens": 350
-        }
-        res = requests.post(url, headers=headers, json=payload, timeout=12)
-        if res.ok: return res.json().get("choices", [])[0].get("message", {}).get("content", "").strip()
-    except Exception: pass
-    return None
-
-def try_groq(system_instruction, user_prompt):
-    if not GROQ_API_KEY: return None
-    try:
-        url = "https://api.groq.com/openai/v1/chat/completions"
-        headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
-        payload = {
-            "model": GROQ_MODEL,
-            "messages": [
-                {"role": "system", "content": system_instruction},
-                {"role": "user", "content": user_prompt}
-            ],
-            "temperature": 0.90, "max_tokens": 300
-        }
-        res = requests.post(url, headers=headers, json=payload, timeout=8)
-        if res.ok: return res.json().get("choices", [])[0].get("message", {}).get("content", "").strip()
-    except Exception: pass
-    return None
-
-def try_gemini(system_instruction, user_prompt):
-    if not GEMINI_API_KEY: return None
-    try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
-        headers = {"Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY}
-        payload = {
-            "systemInstruction": {"parts": [{"text": system_instruction}]},
-            "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
-            "generationConfig": {"temperature": 0.90, "maxOutputTokens": 300},
-            "safetySettings": [
-                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
-            ]
-        }
-        res = requests.post(url, headers=headers, json=payload, timeout=8)
-        if res.ok: return res.json().get("candidates", [])[0].get("content", {}).get("parts", [])[0].get("text", "").strip()
-    except Exception: pass
-    return None
-
 def get_universal_ai_response(system_instruction, user_prompt, is_secret_mode):
-    
-    # ALWAYS TRY OPENROUTER FIRST (No Policy Filters)
-    ans = try_openrouter(system_instruction, user_prompt)
-    if ans: return ans
-    
-    # IF OPENROUTER FAILS, TRY GROQ AS BACKUP
-    ans = try_groq(system_instruction, user_prompt)
-    if ans: return ans
-    
-    # IF GROQ FAILS, TRY GEMINI AS FINAL BACKUP
-    ans = try_gemini(system_instruction, user_prompt)
-    if ans: return ans
-    
-    return "Darling... Aaj mere teeno server fail ho gaye! Please Vercel me API Keys check karo."
+    errors = []
+
+    # 1. OPENROUTER
+    if OPENROUTER_API_KEY:
+        try:
+            url = "https://openrouter.ai/api/v1/chat/completions"
+            headers = {
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}", 
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://siya-ai.com",
+                "X-Title": "SiyaBot"
+            }
+            payload = {
+                "model": OPENROUTER_MODEL,
+                "messages": [
+                    {"role": "system", "content": system_instruction},
+                    {"role": "user", "content": user_prompt}
+                ],
+                "temperature": 0.95, "max_tokens": 350
+            }
+            res = requests.post(url, headers=headers, json=payload, timeout=12)
+            if res.ok: 
+                return res.json().get("choices", [])[0].get("message", {}).get("content", "").strip()
+            else: 
+                errors.append(f"OpenRouter ❌: Error Code {res.status_code}")
+        except Exception as e: 
+            errors.append("OpenRouter ❌: Code/Network Error")
+    else:
+        errors.append("OpenRouter ❌: API Key Vercel me Missing hai")
+
+    # 2. GROQ
+    if GROQ_API_KEY:
+        try:
+            url = "https://api.groq.com/openai/v1/chat/completions"
+            headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
+            payload = {
+                "model": GROQ_MODEL,
+                "messages": [
+                    {"role": "system", "content": system_instruction},
+                    {"role": "user", "content": user_prompt}
+                ],
+                "temperature": 0.90, "max_tokens": 300
+            }
+            res = requests.post(url, headers=headers, json=payload, timeout=8)
+            if res.ok: 
+                return res.json().get("choices", [])[0].get("message", {}).get("content", "").strip()
+            else: 
+                errors.append(f"Groq ❌: Error Code {res.status_code}")
+        except Exception: 
+            errors.append("Groq ❌: Code/Network Error")
+    else:
+        errors.append("Groq ❌: API Key Missing hai")
+
+    # 3. GEMINI
+    if GEMINI_API_KEY:
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
+            headers = {"Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY}
+            payload = {
+                "systemInstruction": {"parts": [{"text": system_instruction}]},
+                "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
+                "generationConfig": {"temperature": 0.90, "maxOutputTokens": 300},
+                "safetySettings": [
+                    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
+                ]
+            }
+            res = requests.post(url, headers=headers, json=payload, timeout=8)
+            if res.ok: 
+                return res.json().get("candidates", [])[0].get("content", {}).get("parts", [])[0].get("text", "").strip()
+            else: 
+                errors.append(f"Gemini ❌: Error Code {res.status_code}")
+        except Exception: 
+            errors.append("Gemini ❌: Code/Network Error")
+    else:
+        errors.append("Gemini ❌: API Key Missing hai")
+
+    error_report = "\n".join(errors)
+    return f"Darling, mere teeno server fail ho gaye. Ye lo Live Error Report:\n\n{error_report}\n\nIsko dekh kar batao kya problem hai!"
+
 
 # ============================================================
 # 🧠 SIYA KA DUAL DIMAAG
