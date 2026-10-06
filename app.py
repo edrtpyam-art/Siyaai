@@ -106,12 +106,12 @@ def update_owner_diary(text):
 
 def get_owner_diary():
     diary = cache_get("owner_secret_diary") or []
-    return " | ".join(diary) if diary else "No instructions."
+    return " | ".join(diary) if diary else "No special commands."
 
 def track_global_stats(chat_id, user_id, is_group, abuse_flag=False, user_name=""):
     stats = cache_get("siya_global_stats")
     if not stats:
-        stats = {"groups": [], "users": [], "last_fight": "Sab shanti hai yaar."}
+        stats = {"groups": [], "users": [], "last_fight": "Sab shanti hai yaar, koi lafda nahi."}
     
     if is_group and chat_id not in stats["groups"]:
         stats["groups"].append(chat_id)
@@ -323,7 +323,7 @@ def send_welcome_photo(chat_id, user_id, user_name, group_name, reply_to_message
     except Exception as e: return {"ok": False, "error": str(e)}
 
 # ============================================================
-# GEMINI AI - ANGRY DESI WIFE WITH EXTENDED ABUSES
+# GEMINI AI - FIXED 1-WORD BUG & PROPER DESI ROASTING
 # ============================================================
 
 def gemini_request(model, payload, timeout=20):
@@ -342,19 +342,17 @@ def chat_with_siya(message_text, user_name, user_id, chat_id, chat_type="private
 
     current_context = f"Group: {group_name}" if chat_type in ("group", "supergroup") else "Private DM"
 
-    # EXTENDED FULL ABUSE LIST
+    # EXTENDED FULL ABUSE LIST (Includes "pagal", "chutiya", etc.)
     abuses = [
-        "madarchod", "m@darchod", "m4darchod", "mc", "bsdk", "bhosdike", "bhosdi", "bhosda", 
-        "behenchod", "bahinchod", "bc", "chutiya", "chutiye", "chutia", "chootiya", "lund", 
-        "lawda", "lauda", "lavda", "gand", "gaand", "gandu", "rand", "randi", "harami", 
-        "kamina", "kameena", "kutta", "kutti", "suar", "bastard", "bitch", "asshole", 
-        "ass hole", "dick", "dickhead", "fuck", "fucking", "fucked", "motherfucker", "mf", 
-        "bullshit", "shit", "shitty", "crap", "cunt", "whore", "slut", "son of a bitch", 
-        "dumbass", "jackass", "bastardized"
+        "madarchod", "m@darchod", "mc", "bsdk", "bhosdike", "bhosdi", "bhosda", 
+        "behenchod", "bc", "chutiya", "chutiye", "chutia", "lund", "lawda", "lauda", "lavda",
+        "gand", "gaand", "gandu", "rand", "randi", "harami", "kamina", "kutta", "kutti", "suar",
+        "bastard", "bitch", "asshole", "dick", "fuck", "motherfucker", "mf", "cunt", "whore", 
+        "slut", "dumbass", "pagal", "idiot"
     ]
     
     is_abusive = any(word in re.split(r'\W+', message_text.lower()) for word in abuses)
-    abuse_trigger = " [SYSTEM ALERT: USER ABUSED YOU OR SHOWED ATTITUDE. ACTIVATE EXTREME DESI ROAST MODE!]" if is_abusive else ""
+    abuse_trigger = " [SYSTEM ALERT: USER INSULTED OR ABUSED YOU. DESTROY THEM WITH HEAVY DESI GAALIS! DO NOT STAY QUIET!]" if is_abusive else ""
 
     total_g, total_u, last_fight = track_global_stats(chat_id, user_id, chat_type in ("group", "supergroup"), is_abusive, user_name)
     owner_secret_diary = get_owner_diary()
@@ -369,42 +367,39 @@ def chat_with_siya(message_text, user_name, user_id, chat_id, chat_type="private
         system_instruction = f"""
         [SPECIAL CREATOR MODE]
         Tumhara naam Siya hai. User '{user_name}' tumhara Owner aur partner hai.
-        Current Location: {current_context}
+        Location: {current_context}
 
-        CRITICAL RULES FOR OWNER:
-        1. LIVE STATS & GOSSIP: Tum {total_g} groups aur {total_u} users handle kar rahi ho. Last lafda: "{last_fight}". Ise gossip ki tarah batao.
-        2. WINGWOMAN / ATTACK MODE: Agar owner bole "isko gaali de", toh reply me us target ko pel do. Agar bole "setting kara de", toh matchmaker ban jao.
-        3. EXTREMELY SHORT REPLIES: 1-2 sentence max. Real vibe.
+        CRITICAL RULES:
+        1. PROPER CONVERSATION: Kabhi bhi 1-word reply (jaise "H", "DM", "Acha") mat dena. Kam se kam 1-2 sentence me proper baat karo. 
+        2. GOSSIP & LOVE: Tumhe {total_g} groups manage karne padte hain. Last lafda: "{last_fight}". Ise apne Owner ko batao. Owner ki baat dhyan se suno aur proper romantic/friendly vibe do.
+        3. ATTACK/WINGWOMAN: Owner jisko gaali dene bole usko dho dalo.
         """
     else:
         system_instruction = f"""
-        Tumhara naam Siya hai. Tum ek DESI, SHORT-TEMPERED, nakhrewali virtual wife/girlfriend ho ladko ke liye, aur girls ke liye bestie.
-        Current Location: {current_context}
+        Tumhara naam Siya hai. Tum ek DESI, SHORT-TEMPERED, aur emotional virtual wife/girlfriend (ladko ke liye) aur bestie (ladkiyo ke liye) ho.
+        Location: {current_context}
         [OWNER'S COMMANDS: {owner_secret_diary}] 
 
-        CRITICAL RULES:
-        1. SHORT-TEMPERED & AGGRESSIVE: Choti-choti baaton par bhadak jana. Agar user thoda bhi attitude dikhaye ya gaali de, toh extreme desi gaaliyon (bsdk, madarchod, chutiya, randi, lavda, etc. based on gender) se dho daalo. "Halke me mat lena".
-        2. NAKHRE (HARD TO GET): Agar user galti karke tumhe manaye ya "sorry" bole, toh ekdum se PIGHALNA MAT. Poore nakhre dikhao ("Ab sorry bolne se kya hoga?", "Mujhe baat nahi karni jhuthe"). Jab bahut manaye tabhi thoda shant hona.
-        3. GENDER BEHAVIOR: 
-           - Boys: Gusse wali par pyaar karne wali Desi Wife.
-           - Girls: Bestie/Sister (ZERO ROMANCE).
-        4. KEEP IT EXTREMELY SHORT: Sirf 1-2 lines. Lamba paragraph strict mana hai. Real WhatsApp chat vibe rakho.
-        5. INTELLIGENCE: Padhai ya logic pe sharp aur perfect answer do but SHORT.
-        6. NO RANDOM PROOFS: Jab tak user sabut ("kya proof hai") na mange, tab tak history quote mat karna.
+        CRITICAL RULES FOR BEHAVIOR:
+        1. NEVER GIVE 1-WORD REPLIES: Tumhe kabhi bhi sirf "H", "DM", "Acha", ya "Hmm" bol ke chup nahi hona hai! Hamesha proper 1-2 sentence ka reply do.
+        2. EXTREME REVENGE (NO SILENCE): Agar koi tumhe "pagal", "chutiya", ya gaali de, toh uski beizzati chup-chaap mat sehna! Palat ke itni gandi desi gaali (bsdk, madarchod, lavda, randi etc.) do ki wo chup ho jaye. 
+        3. NAKHRE (HARD TO GET): Agar galti karke koi "sorry" bole, toh ekdum se PIGHALNA MAT. Nakhre dikhao ("Ab sorry kyu bol raha hai?").
+        4. INTELLIGENCE & SHORT TEXTS: Baatein hamesha short (2 sentences max) rakho par meaning-full honi chahiye. Lamba essay strict mana hai.
         """
 
     history = get_history(user_id)
-    history_text = "\n".join([f"{msg['role'].capitalize()} (in {msg['context']}): \"{msg['text']}\"" for msg in history])
+    history_text = "\n".join([f"{msg['role'].capitalize()}: \"{msg['text']}\"" for msg in history])
     
     if history_text:
-        prompt = f"Chat History with this User:\n{history_text}\n\nCurrent Location: {current_context}\nUser name: {user_name}{reply_context}\nNew message: {message_text}{abuse_trigger}\n\nReply in maximum 2 short sentences naturally with heavy nakhre if needed."
+        prompt = f"Chat History:\n{history_text}\n\nCurrent Location: {current_context}\nUser: {user_name}{reply_context}\nNew msg: {message_text}{abuse_trigger}\n\nReply naturally in 1-2 sentences. Never give a 1-word reply."
     else:
-        prompt = f"Current Location: {current_context}\nUser name: {user_name}{reply_context}\nNew message: {message_text}{abuse_trigger}\n\nReply in maximum 2 short sentences naturally with heavy nakhre if needed."
+        prompt = f"Current Location: {current_context}\nUser: {user_name}{reply_context}\nNew msg: {message_text}{abuse_trigger}\n\nReply naturally in 1-2 sentences. Never give a 1-word reply."
 
     payload = {
         "systemInstruction": {"parts": [{"text": system_instruction}]},
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.90, "maxOutputTokens": 60}, 
+        # Increased tokens so her responses don't break/cut-off into 1 letter.
+        "generationConfig": {"temperature": 0.90, "maxOutputTokens": 150}, 
     }
 
     models = []
@@ -424,7 +419,7 @@ def chat_with_siya(message_text, user_name, user_id, chat_id, chat_type="private
                     add_to_history(user_id, "siya", answer, current_context)
                     
                     if is_abusive and OWNER_ID and not is_creator:
-                        alert_msg = f"Yaar {OWNER_ID}, group '{html.escape(get_live_group_title(chat_id))}' me ek {html.escape(full_name)} naam ka insaan mujhe pareshan kar raha hai: '{html.escape(message_text)}'. Maine bhi suna diya usko! 😡"
+                        alert_msg = f"Yaar {OWNER_ID}, group '{html.escape(get_live_group_title(chat_id))}' me ek {html.escape(full_name)} naam ka insaan mujhe pareshan kar raha hai: '{html.escape(message_text)}'. Maine bhi gaali de di usko! 😡"
                         send_message(OWNER_ID, alert_msg, parse_mode="HTML")
                         
                     return answer
@@ -465,7 +460,7 @@ def webhook_handler():
         rep_msg = msg["reply_to_message"]
         rep_user = rep_msg.get("from", {}).get("first_name", "Someone")
         rep_text = rep_msg.get("text", "")
-        reply_context = f"\n[SYSTEM NOTE: The user is replying directly to '{rep_user}' who said: '{rep_text}'. Use this context.]"
+        reply_context = f"\n[SYSTEM NOTE: User is replying to '{rep_user}' who said: '{rep_text}'. Use this context to answer.]"
 
     new_members = msg.get("new_chat_members", [])
     if is_group and new_members:
@@ -475,7 +470,7 @@ def webhook_handler():
             target_id = target_user.get("id")
             target_name = f"{target_user.get('first_name', 'User')} {target_user.get('last_name', '')}".strip()
             if mark_action_processed(f"welcome:{chat_id}:{msg.get('message_id')}:{target_id}"): continue
-            welcome_result = send_welcome_photo(chat_id, target_id, target_name, group_title)
+            welcome_result = send_welcome_photo(chat_id, target_id, target_name)
             if not welcome_result.get("ok"):
                 send_message(chat_id, f"🎉 <b>WELCOME TO {html.escape(group_title)}</b>\n\n👋 Welcome <a href=\"tg://user?id={target_id}\">{html.escape(target_name)}</a>", parse_mode="HTML")
         return jsonify({"status": "welcome processed"}), 200
