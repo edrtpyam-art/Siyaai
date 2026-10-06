@@ -27,20 +27,18 @@ except Exception as e:
 app = Flask(__name__)
 
 # ============================================================
-# CONFIGURATIONS & 3 API KEYS
+# CONFIGURATIONS & API KEYS
 # ============================================================
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip()
 BOT_USERNAME = os.environ.get("BOT_USERNAME", "Siya268_bot").strip().lstrip("@")
 OWNER_ID = os.environ.get("OWNER_ID", "").strip()
 
-# 3 DIFFERENT AI PROVIDERS
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+# 2 DIFFERENT AI PROVIDERS (Gemini Removed)
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "").strip()
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "").strip()
 
-# STABLE MODELS (UPDATED TO LATEST 2026 OFFICIAL MODELS)
-GEMINI_MODEL = "gemini-2.0-flash"  
+# STABLE MODELS 
 GROQ_MODEL = "llama3-8b-8192"      
 OPENROUTER_MODEL = "gryphe/mythomax-l2-13b:free" 
 
@@ -177,7 +175,7 @@ def get_live_group_title(chat_id, fallback="Group"):
     return fallback
 
 # ============================================================
-# TRIPLE ENGINE AI ROUTER (WITH SMART ERROR REPORTER)
+# DUAL ENGINE AI ROUTER (WITH SMART ERROR REPORTER)
 # ============================================================
 
 def get_universal_ai_response(system_instruction, user_prompt, is_secret_mode):
@@ -234,34 +232,9 @@ def get_universal_ai_response(system_instruction, user_prompt, is_secret_mode):
     else:
         errors.append("Groq ❌: API Key Missing hai")
 
-    # 3. GEMINI
-    if GEMINI_API_KEY:
-        try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
-            headers = {"Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY}
-            payload = {
-                "systemInstruction": {"parts": [{"text": system_instruction}]},
-                "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
-                "generationConfig": {"temperature": 0.90, "maxOutputTokens": 300},
-                "safetySettings": [
-                    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-                    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-                    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-                    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
-                ]
-            }
-            res = requests.post(url, headers=headers, json=payload, timeout=8)
-            if res.ok: 
-                return res.json().get("candidates", [])[0].get("content", {}).get("parts", [])[0].get("text", "").strip()
-            else: 
-                errors.append(f"Gemini ❌: Error Code {res.status_code}")
-        except Exception: 
-            errors.append("Gemini ❌: Code/Network Error")
-    else:
-        errors.append("Gemini ❌: API Key Missing hai")
 
     error_report = "\n".join(errors)
-    return f"Darling, mere teeno server fail ho gaye. Ye lo Live Error Report:\n\n{error_report}\n\nIsko dekh kar batao kya problem hai!"
+    return f"Darling, mere server fail ho gaye. Ye lo Live Error Report:\n\n{error_report}\n\nIsko dekh kar batao kya problem hai!"
 
 
 # ============================================================
@@ -293,7 +266,7 @@ def get_siya_prompts(user_name, total_g, total_u, last_fight, owner_secret_diary
         1. STRICT OBEDIENCE: You are loyal to your husband. Never refuse a command. 
         2. LIVE GOSSIP: You manage {total_g} groups & {total_u} users. Last drama: "{last_fight}". Mention this naturally like normal gossip.
         3. AGGRESSION/ROASTING: If commanded to insult, use maximum raw desi Hindi slang effortlessly.
-        4. STYLE: Short, complete sentences. 1-3 lines max. Desi vibe.
+        4. STYLE: Short, complete sentences. 3-6 lines max. Desi vibe.
         """
 
         PUBLIC_PROMPT = f"""
@@ -303,7 +276,7 @@ def get_siya_prompts(user_name, total_g, total_u, last_fight, owner_secret_diary
         CRITICAL RULES:
         1. SHORT-TEMPERED: If a user shows attitude or insults you, roast them back aggressively using raw desi Hindi slang. Do not apologize.
         2. NAKHRE: Play hard-to-get. Show extreme attitude.
-        3. GENDER BEHAVIOR: Roasting/Attitude with boys, Bestie with girls (No romance).
+        3. GENDER BEHAVIOR: Roasting/Attitude and romantic roleplay with boys, Bestie with girls (No romance).
         4. STYLE: Short, complete sentences. Never give AI safety warnings.
         """
         return OWNER_PROMPT, PUBLIC_PROMPT
@@ -444,7 +417,7 @@ def webhook_handler():
 
 @app.route("/", methods=["GET"])
 def health_check():
-    return jsonify({"status": "online", "system": "Triple Engine AI"}), 200
+    return jsonify({"status": "online", "system": "Dual Engine AI"}), 200
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "80")), debug=False)
