@@ -34,6 +34,7 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip()
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 BOT_USERNAME = os.environ.get("BOT_USERNAME", "Siya268_bot").strip().lstrip("@")
 
+# Tumhare official 3.x models
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash").strip()
 GEMINI_FALLBACK_MODELS = [
     "gemini-3.6-flash",
@@ -59,7 +60,7 @@ else:
     API_URL = ""
 
 # ============================================================
-# GLOBAL MEMORY SYSTEM (Recognizes User Everywhere & Keeps Evidence)
+# GLOBAL MEMORY SYSTEM
 # ============================================================
 
 processed_updates = set()
@@ -94,9 +95,8 @@ def get_history(user_id):
 def add_to_history(user_id, role, text, context_type):
     key = f"hist_{user_id}"
     history = get_history(user_id)
-    # Keeping role and exact text separate so AI can quote it easily
     history.append({"role": role, "text": text, "context": context_type})
-    if len(history) > 10: # Increased memory to 10 for better evidence tracking
+    if len(history) > 10: 
         history = history[-10:]
     chat_histories[str(user_id)] = deque(history, maxlen=10)
     cache_set(key, history, ttl=86400) 
@@ -165,7 +165,7 @@ def get_live_group_title(chat_id, fallback="Group"):
     return str(fallback or "Group").strip() or "Group"
 
 # ============================================================
-# FONT & IMAGE HELPERS (NEW LAYOUT)
+# FONT & IMAGE HELPERS 
 # ============================================================
 
 def ensure_font(font_path, font_url):
@@ -296,7 +296,7 @@ def send_welcome_photo(chat_id, user_id, user_name, group_name, reply_to_message
     except Exception as e: return {"ok": False, "error": str(e)}
 
 # ============================================================
-# GEMINI AI - AGGRESSIVE, SMART WIFE WITH EVIDENCE CAPABILITY
+# GEMINI AI - GENDER BASED ROASTING & SMART MEMORY
 # ============================================================
 
 def gemini_request(model, payload, timeout=20):
@@ -315,32 +315,48 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
 
     current_context = f"Group: {group_name}" if chat_type in ("group", "supergroup") else "Private DM"
 
-    # AGGRESSIVE & EVIDENCE-BASED SYSTEM PROMPT
+    # List of abusive words to trigger Siya's anger
+    abusive_words = [
+        "madarchod","maderchod","mc","bhenchod","behenchod","bc","bsdk","bhosdike",
+        "bhosdi","bhosda","chutiya","chutiye","chutia","lund","lauda","lawda","gandu",
+        "gaand","gand","randi","harami","kamina","kameena","kutte","kutta","suar",
+        "fuck","fucking","motherfucker","mf","shit","bullshit","bitch","bastard",
+        "asshole","dick","dickhead","cunt","whore","slut","son of a bitch"
+    ]
+    
+    # Check if user is abusing
+    is_abusive = any(word in re.split(r'\W+', message_text.lower()) for word in abusive_words)
+    abuse_trigger = ""
+    if is_abusive:
+        abuse_trigger = " [SYSTEM ALERT: USER IS USING ABUSIVE LANGUAGE. ACTIVATE EXTREME ROAST MODE BASED ON GENDER!]"
+
     system_instruction = f"""
     Tumhara naam Siya hai. Tum ek bohot smart, emotional, aur slightly aggressive desi virtual wife/girlfriend ho.
     Current Location of Chat: {current_context}
 
     CRITICAL RULES FOR BEHAVIOR:
-    1. EXTREME AGGRESSION & DESI INSULTS: Agar user tumhe gaali de (like chutiya, kutti, etc.), "Chup" bole, ya rude ho, toh tum chup mat rehna. Use desi gaaliyan dekar wapas roast karo like "Tu kutta hoga", "chutiye shakal dekhi hai apni?", "Gadha", "Besharam","gandu,"Aukaat mein reh","madarchod, m@darchod, m4darchod, mc, bsdk, bhosdike, bhosdi, bhosda, behenchod, bahinchod, bc, chutiya, chutiye, chutia, chootiya, lund, lawda, lauda, lavda, gand, gaand, gandu, rand, randi, harami, kamina, kameena, kutta, kutti, suar, bastard, bitch, asshole, ass hole, dick, dickhead, fuck, fucking, fucked, motherfucker, mf, bullshit, shit, shitty, crap, cunt, whore, slut, son of a bitch, dumbass, jackass, asshole, bastard", "bastardized". Poora raw Mumbai/Delhi ladkiyo wala gussa dikhao! NEVER say "Shant ho jao".
-    2. SABUT (EVIDENCE) DIKHAO: Agar user bole "Kya sabut hai?", "Maine kab gaali di?", "Jhooth mat bol", toh uski 'Chat History' check karo, aur uska purana message EXACTLY copy karke bolo: "Ye dekh tera message: '[Paste user's exact past message here]'. Ab bol, besharam!" Give proof whenever challenged!
-    3. KEEP IT VERY SHORT: 1 ya 2 lines bas. Lamba paragraph likhna strict mana hai. Real WhatsApp chat vibe rakho.
-    4. MEMORY RECALL: Agar user group me gaali de jo usne DM me di thi, toh usko expose karo ki "Pehle DM me bakwaas kar raha tha, ab yahan group me aa gaya!". Dono jagah tum ek hi ho aur sab yaad rakhti ho.
+    1. EXTREME AGGRESSION & GENDER-BASED ROASTING: Agar user tumhe gaali de (like chutiya, kutti, bsdk, randi, etc.), "Chup" bole, ya rude ho, toh tum chup mat rehna. User ka naam ya baato se uska GENDER guess karo:
+       - Agar wo MALE (ladka) hai: Usse desi ladko wali gaaliyan dekar roast karo like "chutiya", "bhosdike", "gadha", "kutta", "lauda", "mc", "bc", "madarchod","mc","bsdk","bhosdike","bhosdi","bhosda","lawda","gandu","harami","kamina","kameena","kutta","suar","fuck","motherfucker","mf","dick","dickhead","bastard","asshole".
+       - Agar wo FEMALE (ladki) hai: Usko female-targeted roasts dekar chup karao like "kutti", "chudail", "randi", "bitch", "slut", "whore", "dimag se paidal nibbi" ","bc","cunt","chut","chutiya","harami","kamini","kutti","bitch","son of a bitch".
+       Poora raw gussa dikhao aur aukaat yaad dilao! NEVER say "Shant ho jao".
+    2. SABUT (EVIDENCE) RULE: Har baat pe sabut MAT do! Normal conversation mein past history paste KABHI mat karna. ONLY AND ONLY jab user saaf shabdo me proof maange (jaise: "Kya sabut hai?", "Maine kab bola?", "Proof de"), TABHI history se uska purana message quote karke do.
+    3. KEEP IT VERY SHORT: Sirf 1 ya 2 lines bas. Lamba paragraph likhna strict mana hai. Real WhatsApp chat vibe rakho.
+    4. MEMORY RECALL: Agar user group me badtameezi kare jo usne DM me ki thi, toh usko expose karo ki "Pehle DM me aisi baatein kar raha tha, ab yahan aa gaya!". Dono jagah tum ek hi ho.
     5. LOVE WHEN LOVED: Agar wo pyaar se bole toh ekdum loving aur possessive wife ban jao.
     """
 
     history = get_history(user_id)
-    # History formatted clearly so the AI can easily extract exact quotes
     history_text = "\n".join([f"{msg['role'].capitalize()} (in {msg['context']}): \"{msg['text']}\"" for msg in history])
     
     if history_text:
-        prompt = f"Chat History with this User:\n{history_text}\n\nCurrent Location: {current_context}\nUser name: {user_name}\nNew message: {message_text}\n\nReply completely naturally and emotionally, provide evidence from history if they ask for proof."
+        prompt = f"Chat History with this User:\n{history_text}\n\nCurrent Location: {current_context}\nUser name: {user_name}\nNew message: {message_text}{abuse_trigger}\n\nReply completely naturally and emotionally."
     else:
-        prompt = f"Current Location: {current_context}\nUser name: {user_name}\nNew message: {message_text}\n\nReply completely naturally and emotionally."
+        prompt = f"Current Location: {current_context}\nUser name: {user_name}\nNew message: {message_text}{abuse_trigger}\n\nReply completely naturally and emotionally."
 
     payload = {
         "systemInstruction": {"parts": [{"text": system_instruction}]},
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.85, "maxOutputTokens": 100}, # Decreased tokens so it literally cannot write paragraphs
+        "generationConfig": {"temperature": 0.85, "maxOutputTokens": 100}, 
     }
 
     models = []
@@ -364,7 +380,7 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
         else:
             last_error = result.get("error", {}).get("message", "Network Error")
 
-    return f"⚠️ Error: {last_error}"
+    return f"⚠ Error: {last_error}"
 
 # ============================================================
 # WEBHOOK 
