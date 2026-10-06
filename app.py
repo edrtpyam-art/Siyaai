@@ -42,7 +42,7 @@ OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "").strip()
 # OFFICIAL STABLE MODELS
 GEMINI_MODEL = "gemini-3.8-flash"
 GROQ_MODEL = "openai/gpt-oss-120b"
-OPENROUTER_MODEL = "google/gemini-flash-3.5"
+OPENROUTER_MODEL =  "cognitivecomputations/dolphin-mixtral-8x7b"
 
 FONT_REGULAR_URL = "https://raw.githubusercontent.com/dejavu-fonts/dejavu-fonts-ttf/master/ttf/DejaVuSans.ttf"
 FONT_BOLD_URL = "https://raw.githubusercontent.com/dejavu-fonts/dejavu-fonts-ttf/master/ttf/DejaVuSans-Bold.ttf"
@@ -226,12 +226,50 @@ def send_welcome_photo(chat_id, user_id, user_name, group_name):
     except Exception as e: return {"ok": False}
 
 # ============================================================
-# TRIPLE ENGINE AI ROUTER (GEMINI -> GROQ -> OPENROUTER)
+# TRIPLE ENGINE AI ROUTER (OPENROUTER -> GROQ -> GEMINI)
 # ============================================================
 
 def get_universal_ai_response(system_instruction, user_prompt):
     
-    # ENGINE 1: GEMINI API
+    # ENGINE 1: OPENROUTER API (Uncensored Dolphin Model - Priority 1)
+    if OPENROUTER_API_KEY:
+        try:
+            url = "https://openrouter.ai/api/v1/chat/completions"
+            headers = {"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json"}
+            payload = {
+                "model": OPENROUTER_MODEL,
+                "messages": [
+                    {"role": "system", "content": system_instruction},
+                    {"role": "user", "content": user_prompt}
+                ],
+                "temperature": 0.90, "max_tokens": 300
+            }
+            res = requests.post(url, headers=headers, json=payload, timeout=8)
+            if res.ok:
+                ans = res.json().get("choices", [])[0].get("message", {}).get("content", "").strip()
+                if ans: return ans
+        except Exception: pass
+
+    # ENGINE 2: GROQ API (Fallback 1)
+    if GROQ_API_KEY:
+        try:
+            url = "https://api.groq.com/openai/v1/chat/completions"
+            headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
+            payload = {
+                "model": GROQ_MODEL,
+                "messages": [
+                    {"role": "system", "content": system_instruction},
+                    {"role": "user", "content": user_prompt}
+                ],
+                "temperature": 0.90, "max_tokens": 300
+            }
+            res = requests.post(url, headers=headers, json=payload, timeout=8)
+            if res.ok:
+                ans = res.json().get("choices", [])[0].get("message", {}).get("content", "").strip()
+                if ans: return ans
+        except Exception: pass
+
+    # ENGINE 3: GEMINI API (Fallback 2 - Has strict safety filters)
     if GEMINI_API_KEY:
         try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
@@ -253,45 +291,7 @@ def get_universal_ai_response(system_instruction, user_prompt):
                 if ans: return ans
         except Exception: pass
 
-    # ENGINE 2: GROQ API
-    if GROQ_API_KEY:
-        try:
-            url = "https://api.groq.com/openai/v1/chat/completions"
-            headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
-            payload = {
-                "model": GROQ_MODEL,
-                "messages": [
-                    {"role": "system", "content": system_instruction},
-                    {"role": "user", "content": user_prompt}
-                ],
-                "temperature": 0.90, "max_tokens": 300
-            }
-            res = requests.post(url, headers=headers, json=payload, timeout=8)
-            if res.ok:
-                ans = res.json().get("choices", [])[0].get("message", {}).get("content", "").strip()
-                if ans: return ans
-        except Exception: pass
-
-    # ENGINE 3: OPENROUTER API
-    if OPENROUTER_API_KEY:
-        try:
-            url = "https://openrouter.ai/api/v1/chat/completions"
-            headers = {"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json"}
-            payload = {
-                "model": OPENROUTER_MODEL,
-                "messages": [
-                    {"role": "system", "content": system_instruction},
-                    {"role": "user", "content": user_prompt}
-                ],
-                "temperature": 0.90, "max_tokens": 300
-            }
-            res = requests.post(url, headers=headers, json=payload, timeout=8)
-            if res.ok:
-                ans = res.json().get("choices", [])[0].get("message", {}).get("content", "").strip()
-                if ans: return ans
-        except Exception: pass
-
-    return "Arre yaar, abhi teeno APIs me network issue ya limit ka lafda chal raha hai. Ek baar apni API keys check kar lo!"
+    return "Arre yaar, abhi  network issue chal raha hai ya limit khatam ho gayi hai."
 
 # ============================================================
 # 🧠 SIYA KA DIMAAG (SYSTEM PROMPTS WITH JAILBREAK)
