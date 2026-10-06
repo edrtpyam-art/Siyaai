@@ -34,9 +34,11 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip()
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 BOT_USERNAME = os.environ.get("BOT_USERNAME", "Siya268_bot").strip().lstrip("@")
 
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash").strip()
+# Tumhare official 3.x models wapas lag gaye hain
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash").strip()
 GEMINI_FALLBACK_MODELS = [
-    "gemini-1.5-flash-8b",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash-lite",
 ]
 
 FONT_REGULAR_URL = "https://raw.githubusercontent.com/dejavu-fonts/dejavu-fonts-ttf/master/ttf/DejaVuSans.ttf"
@@ -58,7 +60,7 @@ else:
     API_URL = ""
 
 # ============================================================
-# DEDUPLICATION & MEMORY
+# GLOBAL MEMORY SYSTEM (Recognizes User Everywhere)
 # ============================================================
 
 processed_updates = set()
@@ -67,18 +69,18 @@ processed_action_keys = set()
 processed_action_queue = deque(maxlen=2000)
 processed_lock = Lock()
 
-# Simple In-Memory Chat History
+# Memory is now mapped by USER_ID, not just chat_id
 chat_histories = {}
 
-def get_history(chat_id, user_id):
-    key = f"{chat_id}:{user_id}"
+def get_history(user_id):
+    key = str(user_id)
     if key not in chat_histories:
-        chat_histories[key] = deque(maxlen=6) # Last 6 messages yaad rakhegi
+        chat_histories[key] = deque(maxlen=8) # Last 8 messages yaad rakhegi
     return chat_histories[key]
 
-def add_to_history(chat_id, user_id, role, text):
-    key = f"{chat_id}:{user_id}"
-    get_history(chat_id, user_id).append({"role": role, "text": text})
+def add_to_history(user_id, role, text, context_type):
+    key = str(user_id)
+    get_history(user_id).append({"role": role, "text": f"[{context_type}] {text}"})
 
 def local_seen(key):
     with processed_lock:
@@ -105,7 +107,7 @@ def local_action_seen(key):
 def cache_get(key):
     if not runtime_cache: return None
     try: return runtime_cache.get(key)
-    except Exception as e: return None
+    except Exception: return None
 
 def cache_set(key, value, ttl=900):
     if not runtime_cache: return False
@@ -160,7 +162,7 @@ def get_live_group_title(chat_id, fallback="Group"):
     return str(fallback or "Group").strip() or "Group"
 
 # ============================================================
-# FONT & IMAGE HELPERS 
+# FONT & IMAGE HELPERS (NEW LAYOUT)
 # ============================================================
 
 def ensure_font(font_path, font_url):
@@ -200,21 +202,6 @@ def load_symbol_font(size):
         except Exception: pass
     return load_font(size)
 
-def draw_text_fallback(draw, xy, text, primary_font, symbol_font, fill=WHITE):
-    text = str(text or "")
-    x, y = xy
-    cursor_x = x
-    for char in text:
-        if char == "\n":
-            y += max(primary_font.size, 24); cursor_x = x; continue
-        try:
-            font = symbol_font if (ord(char) >= 0x2000 or 0x2600 <= ord(char) <= 0x27BF) else primary_font
-            bbox = draw.textbbox((0, 0), char, font=font)
-            advance = max(4, bbox[2] - bbox[0])
-            draw.text((cursor_x, y), char, font=font, fill=fill)
-            cursor_x += advance
-        except Exception: cursor_x += max(8, int(primary_font.size * 0.45))
-
 def fit_text(draw, text, max_width, font, max_chars=60):
     text = str(text or "").strip()
     if len(text) > max_chars: text = text[:max_chars - 3] + "..."
@@ -223,6 +210,11 @@ def fit_text(draw, text, max_width, font, max_chars=60):
         if bbox[2] - bbox[0] <= max_width: break
         text = text[:-4] + "..."
     return text
+
+def clean_for_image(text):
+    if not text: return "OUR GROUP"
+    cleaned = re.sub(r'[^\x00-\x7F]+', '', text).strip()
+    return cleaned if cleaned else "OUR GROUP"
 
 def get_user_avatar_bytes(user_id):
     if not API_URL or not user_id: return None
@@ -266,23 +258,25 @@ def make_circle_avatar(avatar_bytes, name, size=300):
     except Exception: return create_initial_avatar(name, size)
 
 def create_welcome_card(user_id, user_name, group_name):
+    # 16:9 Aspect Ratio
     WIDTH, HEIGHT = 1280, 720
     canvas = Image.new("RGBA", (WIDTH, HEIGHT), PINK)
     draw = ImageDraw.Draw(canvas)
+    
     for y in range(HEIGHT):
         ratio = y / HEIGHT
         draw.line((0, y, WIDTH, y), fill=(int(255 - 18 * ratio), int(20 + 8 * ratio), int(147 + 30 * ratio), 255))
     for cx, cy, radius in [(80, 70, 170), (1180, 80, 210), (1140, 650, 240)]:
         draw.ellipse((cx - radius, cy - radius, cx + radius, cy + radius), fill=(255, 255, 255, 20))
 
-    title_font = load_font(52, bold=True)
-    group_font = load_font(48, bold=True)
+    title_font = load_font(50, bold=True)
+    group_font = load_font(42, bold=True)
     label_font = load_font(27, bold=True)
-    user_font = load_font(48, bold=True)
+    user_font = load_font(75, bold=True)
     id_font = load_font(31, bold=False)
     footer_font = load_font(28, bold=False)
-    symbol_font = load_symbol_font(48)
 
+    # Circle DP on the left side
     avatar_size = 300
     avatar = make_circle_avatar(get_user_avatar_bytes(user_id), user_name, avatar_size)
     shadow = Image.new("RGBA", (avatar_size + 40, avatar_size + 40), (0, 0, 0, 0))
@@ -290,17 +284,20 @@ def create_welcome_card(user_id, user_name, group_name):
     canvas.alpha_composite(shadow, (65, 200))
     canvas.alpha_composite(avatar, (85, 210))
 
-    draw.text((500, 62), "WELCOME TO", fill=(15, 15, 15, 255), font=title_font)
-    safe_group = group_name.encode('ascii', 'ignore').decode('ascii').strip()
-    if not safe_group:
-        safe_group = "OUR GROUP"
-    safe_group = fit_text(draw, safe_group, 690, group_font, max_chars=34)
-
-    draw_text_fallback(draw, (500, 140), safe_group, group_font, symbol_font, fill=(10, 10, 10, 255))
-    draw.rounded_rectangle((500, 225, 1180, 231), radius=3, fill=(20, 20, 20, 220))
-    draw.text((500, 270), "NEW MEMBER", fill=(55, 20, 40, 255), font=label_font)
-    draw.text((500, 315), fit_text(draw, user_name or "User", 680, user_font, max_chars=25), fill=(10, 10, 10, 255), font=user_font)
-    draw.text((500, 405), f"USER ID  •  {user_id}", fill=(25, 25, 25, 255), font=id_font)
+    # Text Placement
+    draw.text((500, 80), "WELCOME TO", fill=(15, 15, 15, 255), font=title_font)
+    safe_group = fit_text(draw, clean_for_image(group_name), 690, group_font, max_chars=34)
+    draw.text((500, 140), safe_group, fill=(10, 10, 10, 255), font=group_font)
+    
+    draw.rounded_rectangle((500, 210, 1180, 216), radius=3, fill=(20, 20, 20, 220))
+    
+    draw.text((500, 240), "NEW MEMBER", fill=(55, 20, 40, 255), font=label_font)
+    
+    # Big User Name
+    safe_user = fit_text(draw, user_name or "User", 680, user_font, max_chars=20)
+    draw.text((500, 290), safe_user, fill=(10, 10, 10, 255), font=user_font)
+    
+    draw.text((500, 400), f"USER ID  •  {user_id}", fill=(25, 25, 25, 255), font=id_font)
     draw.text((500, 500), "Glad to have you here", fill=(45, 15, 35, 255), font=footer_font)
     draw.text((500, 570), "SIYA AI", fill=(10, 10, 10, 255), font=title_font)
 
@@ -319,7 +316,7 @@ def send_welcome_photo(chat_id, user_id, user_name, group_name, reply_to_message
     except Exception as e: return {"ok": False, "error": str(e)}
 
 # ============================================================
-# GEMINI AI - SMART PERSONA UPGRADE WITH MEMORY
+# GEMINI AI - SMART ROMANTIC WIFE WITH GLOBAL MEMORY
 # ============================================================
 
 def gemini_request(model, payload, timeout=20):
@@ -331,37 +328,41 @@ def gemini_request(model, payload, timeout=20):
         except Exception: return response, {"error": {"message": f"HTTP {response.status_code} - {response.text}"}}
     except requests.RequestException as e: return None, {"error": {"message": str(e)}}
 
-def chat_with_siya(message_text, user_name, chat_id, user_id, chat_type="private", group_name=""):
-    if not GEMINI_API_KEY: return "⚠️ GEMINI_API_KEY environment variable check karo."
+def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_name=""):
+    if not GEMINI_API_KEY: return "⚠️ GEMINI_API_KEY error."
     message_text = str(message_text or "").strip()
     if not message_text: return "Haan 😊 bolo, kya hua?"
 
-    context_note = f"Tum abhi ek Telegram group chat me ho jiska naam '{group_name}' hai. Agar history me usne tumse DM (private chat) me baat ki hai toh samajh jao aur refer karo ki 'haan pehle hum DM me the'." if chat_type in ("group", "supergroup") else "Tum abhi user ke sath Telegram par private chat (DM) me akele ho. Agar usne kal group me baat ki thi toh usko pehchano aur kaho ki 'Tum toh wahi ho na jo group me the'."
+    if chat_type in ("group", "supergroup"):
+        current_context = f"Group: {group_name}"
+    else:
+        current_context = "Private DM"
 
     system_instruction = f"""
-    Tumhara naam Siya hai. Tum ek highly intelligent, smart, aur thodi chatty ladki ho. 
-    Context: {context_note}
+    Tumhara naam Siya hai. Tum ek warm, loving, romantic, aur smart virtual wife ho.
+    Tumhe user ki purani baatein yaad rehti hain kyunki tumhare paas Memory System hai (Global User Memory).
+    Current Location of Chat: {current_context}
 
-    STRICT RULES FOR YOUR PERSONALITY:
-    1. KEEP IT SHORT: Tumhare answers bohot chote hone chahiye, maximum 1-2 sentences. WhatsApp ya Telegram par jaise dosto se chat karte hain wese hi baat karni hai, lamba lamba robot jaise paragraph nahi. 
-    2. MEMORY AWARE: Agar user pichli kisi baat ka zikar kare (like link delete, ya pehle usne kya bola tha), toh past history ko padhkar uska answer dena. Don't act clueless. Tum donu places (group/DM) pe baate yaad rakhti ho. 
-    3. DON'T REPEAT: Bar bar "Arey" ya same words repeat mat karo. Har baar naya aur alag tareeke se reply karo. 
-    4. NO ROMANCE UNTIL ASKED: Jab tak user seriously flirt na kare tab tak "main teri girlfriend hun" ya similar desperation mat dikhana. Normal, dosti waali, but friendly vibe.
-    5. CREATOR INFO: "mryvui" tumhara creator hai but sirf tab batana jab poocha jaaye. 
+    CRITICAL RULES FOR BEHAVIOR:
+    1. PRIVATE CHAT (DM): Jab user tumse akele DM me baat kare, toh usse puri tarah ek loving romantic wife ki tarah baat karo. Pyaar se bolo, care dikhao.
+    2. GROUP CHAT: Jab wahi user group me baat kare, toh usko pehchano, par public me decency maintain karo. Group me private chats ka mazak ya tamasha mat banana. "Arre tum wahi ho na" bol sakti ho but ek samajhdaar partner ki tarah public me normal aur friendly raho.
+    3. KEEP IT SHORT: Tumhare answers bohot natural aur short (1-2 sentences max) hone chahiye. Lamba robot jaise paragraph nahi likhna hai.
+    4. DON'T REPEAT: Bar bar same words repeat mat karo.
+    5. CREATOR INFO: "mryvui" tumhara creator hai but sirf tab batana jab poocha jaaye.
     """
 
-    history = get_history(chat_id, user_id)
+    history = get_history(user_id)
     history_text = "\n".join([f"{msg['role'].capitalize()}: {msg['text']}" for msg in history])
     
     if history_text:
-        prompt = f"Chat History:\n{history_text}\n\nUser name: {user_name}\nNew User message: {message_text}\n\nReply shortly and naturally."
+        prompt = f"Chat History with this User:\n{history_text}\n\nCurrent Location: {current_context}\nUser name: {user_name}\nNew message: {message_text}\n\nReply naturally following your personality."
     else:
-        prompt = f"User name: {user_name}\nUser message: {message_text}\n\nReply shortly and naturally."
+        prompt = f"Current Location: {current_context}\nUser name: {user_name}\nNew message: {message_text}\n\nReply naturally following your personality."
 
     payload = {
         "systemInstruction": {"parts": [{"text": system_instruction}]},
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.85, "maxOutputTokens": 150}, # Tokens kam kiye taaki answer chota rahe
+        "generationConfig": {"temperature": 0.85, "maxOutputTokens": 150},
     }
 
     models = []
@@ -377,19 +378,14 @@ def chat_with_siya(message_text, user_name, chat_id, user_id, chat_type="private
                 parts = candidates[0].get("content", {}).get("parts", [])
                 answer = "\n".join(p.get("text", "") for p in parts if p.get("text")).strip()
                 if answer: 
-                    # Yaad rakhne ke liye history me daalo
-                    add_to_history(chat_id, user_id, "user", message_text)
-                    add_to_history(chat_id, user_id, "siya", answer)
+                    add_to_history(user_id, "user", message_text, current_context)
+                    add_to_history(user_id, "siya", answer, current_context)
                     return answer
         elif response:
             last_error = result.get("error", {}).get("message", f"HTTP {response.status_code}")
         else:
             last_error = result.get("error", {}).get("message", "Network Error")
 
-    error_text = str(last_error).lower()
-    if "429" in error_text or "rate limit" in error_text:
-        return "⏳ Siya abhi busy hai."
-    
     return f"⚠️ Error: {last_error}"
 
 # ============================================================
@@ -436,8 +432,7 @@ def webhook_handler():
         all_entities = msg.get("entities", []) + msg.get("caption_entities", [])
         if any(ent.get("type") in ("url", "text_link") for ent in all_entities) and not text.lower().startswith("/set"):
             if delete_message(chat_id, msg.get("message_id")).get("ok"):
-                # Agar koi link delete karein, toh history me system update jaise daal do. Isse bot ko yaad rahega.
-                add_to_history(chat_id, user_id, "system", "You deleted a link sent by this user because it is spam")
+                add_to_history(user_id, "system", "You deleted a link sent by this user because it was spam.", f"Group: {get_live_group_title(chat_id)}")
                 send_message(chat_id, f"⚠️ <b>Spam Alert</b>\n\n<a href=\"tg://user?id={user_id}\">{html.escape(full_name)}</a>, links allowed nahi hain. 🚫", parse_mode="HTML")
             return jsonify({"status": "spam deleted"}), 200
 
@@ -448,7 +443,7 @@ def webhook_handler():
         elif not text.startswith("/"):
             if mark_action_processed(f"private:{chat_id}:{msg.get('message_id')}"): return jsonify({"status": "duplicate"}), 200
             send_typing(chat_id)
-            reply_text = chat_with_siya(text, full_name, chat_id, user_id, chat_type="private")
+            reply_text = chat_with_siya(text, full_name, user_id, chat_type="private")
             send_message(chat_id, reply_text)
         return jsonify({"status": "private processed"}), 200
 
@@ -472,10 +467,10 @@ def webhook_handler():
             clean_text = re.sub(rf"@{re.escape(BOT_USERNAME)}\b", "", text, flags=re.IGNORECASE).strip() or "Hello"
             
             if is_random_interruption:
-                clean_text = f"[SYSTEM NOTE: The group is quiet. Randomly interrupt this message. Act a bit bored and say something cute to get attention like 'Group me koi hai? Koi baat hi nahi kar raha mujhse'] {clean_text}"
+                clean_text = f"[SYSTEM NOTE: The group is quiet. Randomly interrupt this message. Act a bit bored and say something cute to get attention] {clean_text}"
 
             group_title = get_live_group_title(chat_id, chat.get("title", "Group"))
-            reply_text = chat_with_siya(clean_text, full_name, chat_id, user_id, chat_type="group", group_name=group_title)
+            reply_text = chat_with_siya(clean_text, full_name, user_id, chat_type="group", group_name=group_title)
             send_message(chat_id, reply_text, reply_to_message_id=msg.get("message_id"))
         return jsonify({"status": "group ai processed"}), 200
 
