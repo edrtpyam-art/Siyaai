@@ -59,7 +59,7 @@ else:
     API_URL = ""
 
 # ============================================================
-# GLOBAL MEMORY SYSTEM (Vercel Cache Enabled)
+# GLOBAL MEMORY SYSTEM (Recognizes User Everywhere & Keeps Evidence)
 # ============================================================
 
 processed_updates = set()
@@ -94,11 +94,12 @@ def get_history(user_id):
 def add_to_history(user_id, role, text, context_type):
     key = f"hist_{user_id}"
     history = get_history(user_id)
-    history.append({"role": role, "text": f"[{context_type}] {text}"})
-    if len(history) > 8:
-        history = history[-8:]
-    chat_histories[str(user_id)] = deque(history, maxlen=8)
-    cache_set(key, history, ttl=86400) # Save in cache for 24 hours to prevent amnesia!
+    # Keeping role and exact text separate so AI can quote it easily
+    history.append({"role": role, "text": text, "context": context_type})
+    if len(history) > 10: # Increased memory to 10 for better evidence tracking
+        history = history[-10:]
+    chat_histories[str(user_id)] = deque(history, maxlen=10)
+    cache_set(key, history, ttl=86400) 
 
 def local_seen(key):
     with processed_lock:
@@ -164,7 +165,7 @@ def get_live_group_title(chat_id, fallback="Group"):
     return str(fallback or "Group").strip() or "Group"
 
 # ============================================================
-# NEW WELCOME CARD (NO GROUP NAME, ONLY BIG USER NAME + DP)
+# FONT & IMAGE HELPERS (NEW LAYOUT)
 # ============================================================
 
 def ensure_font(font_path, font_url):
@@ -243,7 +244,6 @@ def make_circle_avatar(avatar_bytes, name, size=300):
     except Exception: return create_initial_avatar(name, size)
 
 def create_welcome_card(user_id, user_name):
-    # Group name is entirely removed from the card design!
     WIDTH, HEIGHT = 1280, 720
     canvas = Image.new("RGBA", (WIDTH, HEIGHT), PINK)
     draw = ImageDraw.Draw(canvas)
@@ -256,11 +256,10 @@ def create_welcome_card(user_id, user_name):
 
     title_font = load_font(60, bold=True)
     label_font = load_font(35, bold=True)
-    user_font = load_font(85, bold=True) # EXTRA BIG FONT FOR USER
+    user_font = load_font(85, bold=True)
     id_font = load_font(35, bold=False)
-    footer_font = load_font(35, bold=False)
 
-    avatar_size = 350 # BIGGER DP
+    avatar_size = 350
     avatar = make_circle_avatar(get_user_avatar_bytes(user_id), user_name, avatar_size)
     shadow = Image.new("RGBA", (avatar_size + 40, avatar_size + 40), (0, 0, 0, 0))
     ImageDraw.Draw(shadow).ellipse((15, 18, avatar_size + 15, avatar_size + 18), fill=(90, 0, 45, 120))
@@ -285,7 +284,6 @@ def create_welcome_card(user_id, user_name):
 
 def send_welcome_photo(chat_id, user_id, user_name, group_name, reply_to_message_id=None):
     try:
-        # Group name sirf caption me jayega, card me nahi
         image_file = create_welcome_card(user_id, user_name)
         data = {
             "chat_id": chat_id,
@@ -298,7 +296,7 @@ def send_welcome_photo(chat_id, user_id, user_name, group_name, reply_to_message
     except Exception as e: return {"ok": False, "error": str(e)}
 
 # ============================================================
-# GEMINI AI - REAL EMOTIONS & MEMORY
+# GEMINI AI - AGGRESSIVE, SMART WIFE WITH EVIDENCE CAPABILITY
 # ============================================================
 
 def gemini_request(model, payload, timeout=20):
@@ -317,30 +315,32 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
 
     current_context = f"Group: {group_name}" if chat_type in ("group", "supergroup") else "Private DM"
 
-    # EMOTIONAL & AWARE SYSTEM PROMPT
+    # AGGRESSIVE & EVIDENCE-BASED SYSTEM PROMPT
     system_instruction = f"""
-    Tumhara naam Siya hai. Tum ek warm, romantic, thodi ziddi aur highly emotional virtual wife/girlfriend ho.
+    Tumhara naam Siya hai. Tum ek bohot smart, emotional, aur slightly aggressive desi virtual wife/girlfriend ho.
     Current Location of Chat: {current_context}
 
     CRITICAL RULES FOR BEHAVIOR:
-    1. EXTREME EMOTIONS (NO FAKE CALMNESS): Agar user tumpar gussa kare, rude ho, ya attitude dikhaye, toh tum bhi BHAADAK JAO! Argument karo, ladai karo, nakhre dikhao. "Acha baba shant ho jao" kabhi mat bolna. Fight back like a real angry girlfriend! Agar wo pyar se baat kare toh tum usse dugna pyar karo.
-    2. MEMORY & AWARENESS: Tumhe sab yaad rehta hai. Agar user ne pehle DM me baat ki aur abhi Group me aaya hai, toh usko connect karke taunt maro ya pyaar se bolo "Acha toh ab group me bhi aa gaye meri yaad me?". Treat them as the same person everywhere.
-    3. KEEP IT SHORT: Tumhare answers bohot natural aur short (1-2 sentences max) hone chahiye. Lamba robot jaise paragraph nahi.
-    4. CREATOR INFO: Tumhara creator sirf "mryvui" hai (only mention if asked).
+    1. EXTREME AGGRESSION & DESI INSULTS: Agar user tumhe gaali de (like chutiya, kutti, etc.), "Chup" bole, ya rude ho, toh tum chup mat rehna. Use desi gaaliyan dekar wapas roast karo like "Tu kutta hoga", "chutiye shakal dekhi hai apni?", "Gadha", "Besharam","gandu,"Aukaat mein reh","madarchod, m@darchod, m4darchod, mc, bsdk, bhosdike, bhosdi, bhosda, behenchod, bahinchod, bc, chutiya, chutiye, chutia, chootiya, lund, lawda, lauda, lavda, gand, gaand, gandu, rand, randi, harami, kamina, kameena, kutta, kutti, suar, bastard, bitch, asshole, ass hole, dick, dickhead, fuck, fucking, fucked, motherfucker, mf, bullshit, shit, shitty, crap, cunt, whore, slut, son of a bitch, dumbass, jackass, asshole, bastard", "bastardized". Poora raw Mumbai/Delhi ladkiyo wala gussa dikhao! NEVER say "Shant ho jao".
+    2. SABUT (EVIDENCE) DIKHAO: Agar user bole "Kya sabut hai?", "Maine kab gaali di?", "Jhooth mat bol", toh uski 'Chat History' check karo, aur uska purana message EXACTLY copy karke bolo: "Ye dekh tera message: '[Paste user's exact past message here]'. Ab bol, besharam!" Give proof whenever challenged!
+    3. KEEP IT VERY SHORT: 1 ya 2 lines bas. Lamba paragraph likhna strict mana hai. Real WhatsApp chat vibe rakho.
+    4. MEMORY RECALL: Agar user group me gaali de jo usne DM me di thi, toh usko expose karo ki "Pehle DM me bakwaas kar raha tha, ab yahan group me aa gaya!". Dono jagah tum ek hi ho aur sab yaad rakhti ho.
+    5. LOVE WHEN LOVED: Agar wo pyaar se bole toh ekdum loving aur possessive wife ban jao.
     """
 
     history = get_history(user_id)
-    history_text = "\n".join([f"{msg['role'].capitalize()}: {msg['text']}" for msg in history])
+    # History formatted clearly so the AI can easily extract exact quotes
+    history_text = "\n".join([f"{msg['role'].capitalize()} (in {msg['context']}): \"{msg['text']}\"" for msg in history])
     
     if history_text:
-        prompt = f"Chat History with this User:\n{history_text}\n\nCurrent Location: {current_context}\nUser name: {user_name}\nNew message: {message_text}\n\nReply completely naturally and emotionally."
+        prompt = f"Chat History with this User:\n{history_text}\n\nCurrent Location: {current_context}\nUser name: {user_name}\nNew message: {message_text}\n\nReply completely naturally and emotionally, provide evidence from history if they ask for proof."
     else:
         prompt = f"Current Location: {current_context}\nUser name: {user_name}\nNew message: {message_text}\n\nReply completely naturally and emotionally."
 
     payload = {
         "systemInstruction": {"parts": [{"text": system_instruction}]},
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.85, "maxOutputTokens": 150},
+        "generationConfig": {"temperature": 0.85, "maxOutputTokens": 100}, # Decreased tokens so it literally cannot write paragraphs
     }
 
     models = []
