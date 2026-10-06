@@ -40,9 +40,9 @@ GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "").strip()
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "").strip()
 
 # OFFICIAL STABLE MODELS
-GEMINI_MODEL = "gemini-1.5-flash"
-GROQ_MODEL = "llama3-8b-8192"
-OPENROUTER_MODEL = "google/gemini-flash-1.5"
+GEMINI_MODEL = "gemini-3.8-flash"
+GROQ_MODEL = "openai/gpt-oss-120b"
+OPENROUTER_MODEL = "google/gemini-flash-3.5"
 
 FONT_REGULAR_URL = "https://raw.githubusercontent.com/dejavu-fonts/dejavu-fonts-ttf/master/ttf/DejaVuSans.ttf"
 FONT_BOLD_URL = "https://raw.githubusercontent.com/dejavu-fonts/dejavu-fonts-ttf/master/ttf/DejaVuSans-Bold.ttf"
