@@ -34,7 +34,6 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip()
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 BOT_USERNAME = os.environ.get("BOT_USERNAME", "Siya268_bot").strip().lstrip("@")
 
-# Tumhare official 3.x models wapas lag gaye hain
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash").strip()
 GEMINI_FALLBACK_MODELS = [
     "gemini-3.6-flash",
@@ -60,7 +59,7 @@ else:
     API_URL = ""
 
 # ============================================================
-# GLOBAL MEMORY SYSTEM (Recognizes User Everywhere)
+# GLOBAL MEMORY SYSTEM (Vercel Cache Enabled)
 # ============================================================
 
 processed_updates = set()
@@ -69,40 +68,7 @@ processed_action_keys = set()
 processed_action_queue = deque(maxlen=2000)
 processed_lock = Lock()
 
-# Memory is now mapped by USER_ID, not just chat_id
 chat_histories = {}
-
-def get_history(user_id):
-    key = str(user_id)
-    if key not in chat_histories:
-        chat_histories[key] = deque(maxlen=8) # Last 8 messages yaad rakhegi
-    return chat_histories[key]
-
-def add_to_history(user_id, role, text, context_type):
-    key = str(user_id)
-    get_history(user_id).append({"role": role, "text": f"[{context_type}] {text}"})
-
-def local_seen(key):
-    with processed_lock:
-        if key in processed_updates:
-            return True
-        if len(processed_update_queue) >= processed_update_queue.maxlen:
-            old = processed_update_queue.popleft()
-            processed_updates.discard(old)
-        processed_updates.add(key)
-        processed_update_queue.append(key)
-        return False
-
-def local_action_seen(key):
-    with processed_lock:
-        if key in processed_action_keys:
-            return True
-        if len(processed_action_queue) >= processed_action_queue.maxlen:
-            old = processed_action_queue.popleft()
-            processed_action_keys.discard(old)
-        processed_action_keys.add(key)
-        processed_action_queue.append(key)
-        return False
 
 def cache_get(key):
     if not runtime_cache: return None
@@ -115,6 +81,42 @@ def cache_set(key, value, ttl=900):
         runtime_cache.set(key, value, {"ttl": ttl, "tags": ["siya-ai"]})
         return True
     except Exception: return False
+
+def get_history(user_id):
+    key = f"hist_{user_id}"
+    cached = cache_get(key)
+    if cached is not None:
+        return list(cached)
+    if str(user_id) in chat_histories:
+        return list(chat_histories[str(user_id)])
+    return []
+
+def add_to_history(user_id, role, text, context_type):
+    key = f"hist_{user_id}"
+    history = get_history(user_id)
+    history.append({"role": role, "text": f"[{context_type}] {text}"})
+    if len(history) > 8:
+        history = history[-8:]
+    chat_histories[str(user_id)] = deque(history, maxlen=8)
+    cache_set(key, history, ttl=86400) # Save in cache for 24 hours to prevent amnesia!
+
+def local_seen(key):
+    with processed_lock:
+        if key in processed_updates: return True
+        if len(processed_update_queue) >= processed_update_queue.maxlen:
+            processed_updates.discard(processed_update_queue.popleft())
+        processed_updates.add(key)
+        processed_update_queue.append(key)
+        return False
+
+def local_action_seen(key):
+    with processed_lock:
+        if key in processed_action_keys: return True
+        if len(processed_action_queue) >= processed_action_queue.maxlen:
+            processed_action_keys.discard(processed_action_queue.popleft())
+        processed_action_keys.add(key)
+        processed_action_queue.append(key)
+        return False
 
 def mark_update_processed(update_id):
     if update_id is None: return False
@@ -162,7 +164,7 @@ def get_live_group_title(chat_id, fallback="Group"):
     return str(fallback or "Group").strip() or "Group"
 
 # ============================================================
-# FONT & IMAGE HELPERS (NEW LAYOUT)
+# NEW WELCOME CARD (NO GROUP NAME, ONLY BIG USER NAME + DP)
 # ============================================================
 
 def ensure_font(font_path, font_url):
@@ -190,18 +192,6 @@ def load_font(size, bold=False):
     try: return ImageFont.load_default(size=size)
     except TypeError: return ImageFont.load_default()
 
-def load_symbol_font(size):
-    size = max(8, int(size))
-    paths = ["/usr/share/fonts/truetype/noto/NotoSansSymbols2-Regular.ttf"]
-    for path in paths:
-        try: return ImageFont.truetype(path, size)
-        except Exception: pass
-    preferred = ensure_font(FONT_SYMBOLS_PATH, FONT_SYMBOLS_URL)
-    if preferred:
-        try: return ImageFont.truetype(preferred, size)
-        except Exception: pass
-    return load_font(size)
-
 def fit_text(draw, text, max_width, font, max_chars=60):
     text = str(text or "").strip()
     if len(text) > max_chars: text = text[:max_chars - 3] + "..."
@@ -210,11 +200,6 @@ def fit_text(draw, text, max_width, font, max_chars=60):
         if bbox[2] - bbox[0] <= max_width: break
         text = text[:-4] + "..."
     return text
-
-def clean_for_image(text):
-    if not text: return "OUR GROUP"
-    cleaned = re.sub(r'[^\x00-\x7F]+', '', text).strip()
-    return cleaned if cleaned else "OUR GROUP"
 
 def get_user_avatar_bytes(user_id):
     if not API_URL or not user_id: return None
@@ -257,8 +242,8 @@ def make_circle_avatar(avatar_bytes, name, size=300):
         return result
     except Exception: return create_initial_avatar(name, size)
 
-def create_welcome_card(user_id, user_name, group_name):
-    # 16:9 Aspect Ratio
+def create_welcome_card(user_id, user_name):
+    # Group name is entirely removed from the card design!
     WIDTH, HEIGHT = 1280, 720
     canvas = Image.new("RGBA", (WIDTH, HEIGHT), PINK)
     draw = ImageDraw.Draw(canvas)
@@ -269,37 +254,29 @@ def create_welcome_card(user_id, user_name, group_name):
     for cx, cy, radius in [(80, 70, 170), (1180, 80, 210), (1140, 650, 240)]:
         draw.ellipse((cx - radius, cy - radius, cx + radius, cy + radius), fill=(255, 255, 255, 20))
 
-    title_font = load_font(50, bold=True)
-    group_font = load_font(42, bold=True)
-    label_font = load_font(27, bold=True)
-    user_font = load_font(75, bold=True)
-    id_font = load_font(31, bold=False)
-    footer_font = load_font(28, bold=False)
+    title_font = load_font(60, bold=True)
+    label_font = load_font(35, bold=True)
+    user_font = load_font(85, bold=True) # EXTRA BIG FONT FOR USER
+    id_font = load_font(35, bold=False)
+    footer_font = load_font(35, bold=False)
 
-    # Circle DP on the left side
-    avatar_size = 300
+    avatar_size = 350 # BIGGER DP
     avatar = make_circle_avatar(get_user_avatar_bytes(user_id), user_name, avatar_size)
     shadow = Image.new("RGBA", (avatar_size + 40, avatar_size + 40), (0, 0, 0, 0))
     ImageDraw.Draw(shadow).ellipse((15, 18, avatar_size + 15, avatar_size + 18), fill=(90, 0, 45, 120))
-    canvas.alpha_composite(shadow, (65, 200))
-    canvas.alpha_composite(avatar, (85, 210))
+    canvas.alpha_composite(shadow, (65, 170))
+    canvas.alpha_composite(avatar, (85, 180))
 
-    # Text Placement
-    draw.text((500, 80), "WELCOME TO", fill=(15, 15, 15, 255), font=title_font)
-    safe_group = fit_text(draw, clean_for_image(group_name), 690, group_font, max_chars=34)
-    draw.text((500, 140), safe_group, fill=(10, 10, 10, 255), font=group_font)
+    draw.text((530, 110), "WELCOME", fill=(15, 15, 15, 255), font=title_font)
+    draw.rounded_rectangle((530, 190, 1180, 196), radius=3, fill=(20, 20, 20, 220))
     
-    draw.rounded_rectangle((500, 210, 1180, 216), radius=3, fill=(20, 20, 20, 220))
+    draw.text((530, 230), "NEW MEMBER", fill=(55, 20, 40, 255), font=label_font)
     
-    draw.text((500, 240), "NEW MEMBER", fill=(55, 20, 40, 255), font=label_font)
-    
-    # Big User Name
     safe_user = fit_text(draw, user_name or "User", 680, user_font, max_chars=20)
-    draw.text((500, 290), safe_user, fill=(10, 10, 10, 255), font=user_font)
+    draw.text((530, 300), safe_user, fill=(10, 10, 10, 255), font=user_font)
     
-    draw.text((500, 400), f"USER ID  •  {user_id}", fill=(25, 25, 25, 255), font=id_font)
-    draw.text((500, 500), "Glad to have you here", fill=(45, 15, 35, 255), font=footer_font)
-    draw.text((500, 570), "SIYA AI", fill=(10, 10, 10, 255), font=title_font)
+    draw.text((530, 430), f"USER ID  •  {user_id}", fill=(25, 25, 25, 255), font=id_font)
+    draw.text((530, 540), "SIYA AI", fill=(10, 10, 10, 255), font=title_font)
 
     output = BytesIO()
     canvas.convert("RGB").save(output, format="JPEG", quality=95, optimize=True)
@@ -308,15 +285,20 @@ def create_welcome_card(user_id, user_name, group_name):
 
 def send_welcome_photo(chat_id, user_id, user_name, group_name, reply_to_message_id=None):
     try:
-        image_file = create_welcome_card(user_id, user_name, group_name)
-        data = {"chat_id": chat_id}
+        # Group name sirf caption me jayega, card me nahi
+        image_file = create_welcome_card(user_id, user_name)
+        data = {
+            "chat_id": chat_id,
+            "caption": f"🎉 <b>WELCOME TO {html.escape(group_name)}</b>\n\nHey <a href=\"tg://user?id={user_id}\">{html.escape(user_name)}</a>, we are glad to have you here! ✨",
+            "parse_mode": "HTML"
+        }
         if reply_to_message_id: data["reply_to_message_id"] = reply_to_message_id
         files = {"photo": ("welcome.jpg", image_file, "image/jpeg")}
         return requests.post(f"{API_URL}/sendPhoto", data=data, files=files, timeout=25).json()
     except Exception as e: return {"ok": False, "error": str(e)}
 
 # ============================================================
-# GEMINI AI - SMART ROMANTIC WIFE WITH GLOBAL MEMORY
+# GEMINI AI - REAL EMOTIONS & MEMORY
 # ============================================================
 
 def gemini_request(model, payload, timeout=20):
@@ -333,31 +315,27 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
     message_text = str(message_text or "").strip()
     if not message_text: return "Haan 😊 bolo, kya hua?"
 
-    if chat_type in ("group", "supergroup"):
-        current_context = f"Group: {group_name}"
-    else:
-        current_context = "Private DM"
+    current_context = f"Group: {group_name}" if chat_type in ("group", "supergroup") else "Private DM"
 
+    # EMOTIONAL & AWARE SYSTEM PROMPT
     system_instruction = f"""
-    Tumhara naam Siya hai. Tum ek warm, loving, romantic, aur smart virtual wife ho.
-    Tumhe user ki purani baatein yaad rehti hain kyunki tumhare paas Memory System hai (Global User Memory).
+    Tumhara naam Siya hai. Tum ek warm, romantic, thodi ziddi aur highly emotional virtual wife/girlfriend ho.
     Current Location of Chat: {current_context}
 
     CRITICAL RULES FOR BEHAVIOR:
-    1. PRIVATE CHAT (DM): Jab user tumse akele DM me baat kare, toh usse puri tarah ek loving romantic wife ki tarah baat karo. Pyaar se bolo, care dikhao.
-    2. GROUP CHAT: Jab wahi user group me baat kare, toh usko pehchano, par public me decency maintain karo. Group me private chats ka mazak ya tamasha mat banana. "Arre tum wahi ho na" bol sakti ho but ek samajhdaar partner ki tarah public me normal aur friendly raho.
-    3. KEEP IT SHORT: Tumhare answers bohot natural aur short (1-2 sentences max) hone chahiye. Lamba robot jaise paragraph nahi likhna hai.
-    4. DON'T REPEAT: Bar bar same words repeat mat karo.
-    5. CREATOR INFO: "mryvui" tumhara creator hai but sirf tab batana jab poocha jaaye.
+    1. EXTREME EMOTIONS (NO FAKE CALMNESS): Agar user tumpar gussa kare, rude ho, ya attitude dikhaye, toh tum bhi BHAADAK JAO! Argument karo, ladai karo, nakhre dikhao. "Acha baba shant ho jao" kabhi mat bolna. Fight back like a real angry girlfriend! Agar wo pyar se baat kare toh tum usse dugna pyar karo.
+    2. MEMORY & AWARENESS: Tumhe sab yaad rehta hai. Agar user ne pehle DM me baat ki aur abhi Group me aaya hai, toh usko connect karke taunt maro ya pyaar se bolo "Acha toh ab group me bhi aa gaye meri yaad me?". Treat them as the same person everywhere.
+    3. KEEP IT SHORT: Tumhare answers bohot natural aur short (1-2 sentences max) hone chahiye. Lamba robot jaise paragraph nahi.
+    4. CREATOR INFO: Tumhara creator sirf "mryvui" hai (only mention if asked).
     """
 
     history = get_history(user_id)
     history_text = "\n".join([f"{msg['role'].capitalize()}: {msg['text']}" for msg in history])
     
     if history_text:
-        prompt = f"Chat History with this User:\n{history_text}\n\nCurrent Location: {current_context}\nUser name: {user_name}\nNew message: {message_text}\n\nReply naturally following your personality."
+        prompt = f"Chat History with this User:\n{history_text}\n\nCurrent Location: {current_context}\nUser name: {user_name}\nNew message: {message_text}\n\nReply completely naturally and emotionally."
     else:
-        prompt = f"Current Location: {current_context}\nUser name: {user_name}\nNew message: {message_text}\n\nReply naturally following your personality."
+        prompt = f"Current Location: {current_context}\nUser name: {user_name}\nNew message: {message_text}\n\nReply completely naturally and emotionally."
 
     payload = {
         "systemInstruction": {"parts": [{"text": system_instruction}]},
