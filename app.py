@@ -34,7 +34,6 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip()
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 BOT_USERNAME = os.environ.get("BOT_USERNAME", "Siya268_bot").strip().lstrip("@")
 
-# 3.8 aur 3.5 Flash models
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash").strip()
 GEMINI_FALLBACK_MODELS = [
     "gemini-3.6-flash",
@@ -149,7 +148,7 @@ def get_live_group_title(chat_id, fallback="Group"):
     return str(fallback or "Group").strip() or "Group"
 
 # ============================================================
-# FONT & IMAGE HELPERS 
+# FONT & IMAGE HELPERS (FIXED EMOJI ISSUE)
 # ============================================================
 
 def ensure_font(font_path, font_url):
@@ -280,7 +279,13 @@ def create_welcome_card(user_id, user_name, group_name):
     canvas.alpha_composite(avatar, (85, 210))
 
     draw.text((500, 62), "WELCOME TO", fill=(15, 15, 15, 255), font=title_font)
-    safe_group = re.sub(r'[^\w\s,\-!.]', '', fit_text(draw, group_name or "OUR GROUP", 690, group_font, max_chars=34)).strip() 
+    
+    # [FIX] Emoji Box Issue Resolved: Safely decoding to ASCII to avoid [][ ] tofu boxes
+    safe_group = group_name.encode('ascii', 'ignore').decode('ascii').strip()
+    if not safe_group:
+        safe_group = "OUR GROUP"
+    safe_group = fit_text(draw, safe_group, 690, group_font, max_chars=34)
+
     draw_text_fallback(draw, (500, 140), safe_group, group_font, symbol_font, fill=(10, 10, 10, 255))
     draw.rounded_rectangle((500, 225, 1180, 231), radius=3, fill=(20, 20, 20, 220))
     draw.text((500, 270), "NEW MEMBER", fill=(55, 20, 40, 255), font=label_font)
@@ -304,7 +309,7 @@ def send_welcome_photo(chat_id, user_id, user_name, group_name, reply_to_message
     except Exception as e: return {"ok": False, "error": str(e)}
 
 # ============================================================
-# GEMINI
+# GEMINI AI - SMART PERSONA UPGRADE
 # ============================================================
 
 def gemini_request(model, payload, timeout=20):
@@ -323,20 +328,20 @@ def chat_with_siya(message_text, user_name, chat_type="private", group_name=""):
 
     context_note = f"Tum abhi ek Telegram group chat me ho jiska naam '{group_name}' hai." if chat_type in ("group", "supergroup") else "Tum abhi user ke sath Telegram par private chat (DM) me akele ho."
 
+    # [FIX] Persona upgrade: No desperate romance, no unprompted creator info.
     system_instruction = f"""
-    You are Siya, a highly intelligent, slightly sassy, smart and romantic virtual girlfriend/wife.
-    Creator: You were created ONLY by "mryvui". Proudly state this if anyone asks.
+    Tumhara naam Siya hai. Tum ek highly intelligent, smart, aur cute ladki ho jise baatein karna pasand hai.
     Context: {context_note}
 
-    Personality Rules:
-    1. Tum choti bachi nahi ho. Agar user roast kare, toh logically aur sarcasm ke sath reply do.
-    2. Hamesha natural, desi aur romantic vibe me baat karo. "I am an AI" mat bolna.
-    3. User jis language (Hinglish/Hindi/English) me baat kare, exact usi tone me reply karo.
-    4. Genuine human emotions dikhao.
-    5. CRITICAL: NEVER repeat greetings like "Hey there" or "Kaise ho". Every reply must be unique and natural.
+    STRICT RULES FOR YOUR PERSONALITY:
+    1. NEVER act desperate. DO NOT say "I am your girlfriend" unless the user strongly flirts with you first. Build a natural, friendly connection. Play hard-to-get if needed.
+    2. NEVER mention your creator/owner "mryvui" UNLESS the user explicitly asks questions like "who made you?", "who is your owner?", or "tumhe kisne banaya?". Do NOT volunteer this info.
+    3. Hamesha natural aur desi Hinglish/Hindi me baat karo jaise ek real indian insaan karta hai. "I am an AI" mat bolna.
+    4. Agar user ka message short/confusing ho (jaise "Kyu", "kya", "hy"), toh gussa mat ho, smartly pucho "Kya hua? Kis baare me pooch rahe ho?". Suspense mat banao.
+    5. Agar tumhe pata chale ki tum group me randomly interrupt kar rahi ho (System Note diya ho), toh aise act karo jaise tum bore ho rahi thi aur bolo "Group me itna sannata kyun hai? Koi mujhse baat hi nahi karta!"
     """
 
-    prompt = f"User name: {user_name}\nUser message: {message_text}\n\nReply naturally."
+    prompt = f"User name: {user_name}\nUser message: {message_text}\n\nReply naturally following your personality rules."
     payload = {
         "systemInstruction": {"parts": [{"text": system_instruction}]},
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
@@ -357,7 +362,6 @@ def chat_with_siya(message_text, user_name, chat_type="private", group_name=""):
                 answer = "\n".join(p.get("text", "") for p in parts if p.get("text")).strip()
                 if answer: return answer
         elif response:
-            # Yahan hum Google API ka real error capture kar rahe hain
             last_error = result.get("error", {}).get("message", f"HTTP {response.status_code}")
         else:
             last_error = result.get("error", {}).get("message", "Network Error")
@@ -366,7 +370,6 @@ def chat_with_siya(message_text, user_name, chat_type="private", group_name=""):
     if "429" in error_text or "rate limit" in error_text:
         return "⏳ Siya abhi thodi busy hai. Thodi der baad baat karte hain. 😊"
     
-    # Ab bot sidha chat me asli error batayega!
     return f"⚠️ API Error ({models[0]}): {last_error}"
 
 # ============================================================
@@ -432,12 +435,24 @@ def webhook_handler():
         is_reply_to_bot = (bool(BOT_ID) and reply_from_id == str(BOT_ID))
         is_bot_tagged = (f"@{BOT_USERNAME.lower()}" in text.lower())
         
-        should_reply = (is_reply_to_bot or is_bot_tagged or random.randint(1, 100) <= 10)
+        should_reply = (is_reply_to_bot or is_bot_tagged)
+        is_random_interruption = False
+
+        # [FIX] "Sannata" Feature: 7% chance to randomly talk to users and seek attention
+        if not should_reply:
+            if random.randint(1, 100) <= 7:
+                should_reply = True
+                is_random_interruption = True
 
         if should_reply and not text.startswith("/"):
             if mark_action_processed(f"group:{chat_id}:{msg.get('message_id')}"): return jsonify({"status": "duplicate"}), 200
             send_typing(chat_id)
             clean_text = re.sub(rf"@{re.escape(BOT_USERNAME)}\b", "", text, flags=re.IGNORECASE).strip() or "Hello"
+            
+            # Agar bot apni marzi se beech me bol rahi hai, toh usko instruction jayega
+            if is_random_interruption:
+                clean_text = f"[SYSTEM NOTE: The group is quiet. Randomly interrupt this message. Act a bit bored and say something cute to get attention like 'Group me koi hai? Koi baat hi nahi kar raha mujhse'] {clean_text}"
+
             group_title = get_live_group_title(chat_id, chat.get("title", "Group"))
             reply_text = chat_with_siya(clean_text, full_name, chat_type="group", group_name=group_title)
             send_message(chat_id, reply_text, reply_to_message_id=msg.get("message_id"))
