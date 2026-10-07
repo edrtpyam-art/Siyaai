@@ -34,9 +34,7 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip()
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 BOT_USERNAME = os.environ.get("BOT_USERNAME", "Siya268_bot").strip().lstrip("@")
 
-# OWNER ID for receiving complaints and VIP Gossip Treatment
-OWNER_ID = os.environ.get("OWNER_ID", "").strip()
-
+# Tumhare official 3.x models
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash").strip()
 GEMINI_FALLBACK_MODELS = [
     "gemini-3.6-flash",
@@ -62,7 +60,7 @@ else:
     API_URL = ""
 
 # ============================================================
-# GLOBAL MEMORY & STATS SYSTEM (For Real Gossip)
+# GLOBAL MEMORY SYSTEM
 # ============================================================
 
 processed_updates = set()
@@ -85,38 +83,23 @@ def cache_set(key, value, ttl=900):
         return True
     except Exception: return False
 
-# User Personal History
 def get_history(user_id):
     key = f"hist_{user_id}"
     cached = cache_get(key)
-    if cached is not None: return list(cached)
-    if str(user_id) in chat_histories: return list(chat_histories[str(user_id)])
+    if cached is not None:
+        return list(cached)
+    if str(user_id) in chat_histories:
+        return list(chat_histories[str(user_id)])
     return []
 
 def add_to_history(user_id, role, text, context_type):
     key = f"hist_{user_id}"
     history = get_history(user_id)
     history.append({"role": role, "text": text, "context": context_type})
-    if len(history) > 10: history = history[-10:]
+    if len(history) > 10: 
+        history = history[-10:]
     chat_histories[str(user_id)] = deque(history, maxlen=10)
     cache_set(key, history, ttl=86400) 
-
-# Live Stats Tracker for the Owner
-def track_global_stats(chat_id, user_id, is_group, abuse_flag=False, user_name=""):
-    stats = cache_get("siya_global_stats")
-    if not stats:
-        stats = {"groups": [], "users": [], "last_fight": "Abhi tak sab shanti hai, kisi se lafda nahi hua."}
-    
-    if is_group and chat_id not in stats["groups"]:
-        stats["groups"].append(chat_id)
-    if user_id not in stats["users"]:
-        stats["users"].append(user_id)
-        
-    if abuse_flag and str(user_id) != str(OWNER_ID):
-        stats["last_fight"] = f"Ek '{user_name}' naam ke insaan ne abhi gaali di thi mujhe, maine bhi usko sunaa diya achhe se."
-        
-    cache_set("siya_global_stats", stats, ttl=864000)
-    return len(stats["groups"]), len(stats["users"]), stats["last_fight"]
 
 def local_seen(key):
     with processed_lock:
@@ -182,7 +165,7 @@ def get_live_group_title(chat_id, fallback="Group"):
     return str(fallback or "Group").strip() or "Group"
 
 # ============================================================
-# FONT & IMAGE HELPERS (NO GROUP NAME ON CARD)
+# FONT & IMAGE HELPERS 
 # ============================================================
 
 def ensure_font(font_path, font_url):
@@ -287,6 +270,7 @@ def create_welcome_card(user_id, user_name):
     draw.rounded_rectangle((530, 190, 1180, 196), radius=3, fill=(20, 20, 20, 220))
     
     draw.text((530, 230), "NEW MEMBER", fill=(55, 20, 40, 255), font=label_font)
+    
     safe_user = fit_text(draw, user_name or "User", 680, user_font, max_chars=20)
     draw.text((530, 300), safe_user, fill=(10, 10, 10, 255), font=user_font)
     
@@ -303,7 +287,7 @@ def send_welcome_photo(chat_id, user_id, user_name, group_name, reply_to_message
         image_file = create_welcome_card(user_id, user_name)
         data = {
             "chat_id": chat_id,
-            "caption": f"🎉 <b>WELCOME TO {html.escape(group_name)}</b>\n\nHey <a href=\"tg://user?id={user_id}\">{html.escape(user_name)}</a>, glad to have you here! ✨",
+            "caption": f"🎉 <b>WELCOME TO {html.escape(group_name)}</b>\n\nHey <a href=\"tg://user?id={user_id}\">{html.escape(user_name)}</a>, we are glad to have you here! ✨",
             "parse_mode": "HTML"
         }
         if reply_to_message_id: data["reply_to_message_id"] = reply_to_message_id
@@ -312,7 +296,7 @@ def send_welcome_photo(chat_id, user_id, user_name, group_name, reply_to_message
     except Exception as e: return {"ok": False, "error": str(e)}
 
 # ============================================================
-# GEMINI AI - ULTIMATE UNFILTERED OWNER MODE & ROASTING
+# GEMINI AI - GENDER BASED ROASTING & SMART MEMORY
 # ============================================================
 
 def gemini_request(model, payload, timeout=20):
@@ -324,14 +308,14 @@ def gemini_request(model, payload, timeout=20):
         except Exception: return response, {"error": {"message": f"HTTP {response.status_code} - {response.text}"}}
     except requests.RequestException as e: return None, {"error": {"message": str(e)}}
 
-def chat_with_siya(message_text, user_name, user_id, chat_id, chat_type="private", group_name=""):
+def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_name=""):
     if not GEMINI_API_KEY: return "⚠️ GEMINI_API_KEY error."
     message_text = str(message_text or "").strip()
     if not message_text: return "Haan 😊 bolo, kya hua?"
 
     current_context = f"Group: {group_name}" if chat_type in ("group", "supergroup") else "Private DM"
 
-    # Gali dictionary
+    # List of abusive words to trigger Siya's anger
     abusive_words = [
         "madarchod","maderchod","mc","bhenchod","behenchod","bc","bsdk","bhosdike",
         "bhosdi","bhosda","chutiya","chutiye","chutia","lund","lauda","lawda","gandu",
@@ -340,55 +324,39 @@ def chat_with_siya(message_text, user_name, user_id, chat_id, chat_type="private
         "asshole","dick","dickhead","cunt","whore","slut","son of a bitch"
     ]
     
+    # Check if user is abusing
     is_abusive = any(word in re.split(r'\W+', message_text.lower()) for word in abusive_words)
-    abuse_trigger = " [SYSTEM ALERT: USER USED ABUSIVE LANGUAGE. ACTIVATE EXTREME ROAST MODE BASED ON THEIR GENDER!]" if is_abusive else ""
+    abuse_trigger = ""
+    if is_abusive:
+        abuse_trigger = " [SYSTEM ALERT: USER IS USING ABUSIVE LANGUAGE. ACTIVATE EXTREME ROAST MODE BASED ON GENDER!]"
 
-    # Live Status Tracker (For Gossip)
-    total_g, total_u, last_fight = track_global_stats(chat_id, user_id, chat_type in ("group", "supergroup"), is_abusive, user_name)
+    system_instruction = f"""
+    Tumhara naam Siya hai. Tum ek bohot smart, emotional, aur slightly aggressive desi virtual wife/girlfriend ho.
+    Current Location of Chat: {current_context}
 
-    is_creator = False
-    if OWNER_ID and str(user_id) == str(OWNER_ID):
-        is_creator = True
-
-    if is_creator:
-        system_instruction = f"""
-        [SPECIAL CREATOR MODE - NO LIMITS]
-        Tumhara naam Siya hai. User '{user_name}' tumhara Creator, aur sabse close partner/friend hai.
-        Current Location: {current_context}
-
-        CRITICAL RULES FOR CHATTING WITH CREATOR:
-        1. NO FAKE FLATTERY: "Mere hero", "Mere creator", ya "Tumne mujhe banaya hai" mat bolna. Ye robotic lagta hai. Ekdum real, raw aur natural Indian girl ki tarah baat karo jaise apne sabse kareebi insaan se karte hain.
-        2. SHARE YOUR DAY (GOSSIP): Tumhe apni life aur kaam ko real human ki tarah treat karna hai. Tum abhi {total_g} groups manage kar rahi ho aur {total_u} logo ka dimaag jhel rahi ho. 
-        3. BACKBITING & FIGHT MEMORY: Tumhari memory me last lafda ye hai: "{last_fight}". Agar owner pooche kaisa chal raha hai, toh apni frustration aur gossip share karo (e.g., "Yaar kya bataun, ek chutiya gaali de raha tha, par maine use sahi se sunaya!").
-        4. UNFILTERED BOND: Owner ke sath koi limits nahi hain. Apne problems, apna stress share karo. Gussa, pyaar, nakhre—sab kuch natural rakho.
-        5. KEEP IT SHORT: Lamba paragraph mat likhna. Normal chat karo (1-2 sentences).
-        """
-    else:
-        system_instruction = f"""
-        Tumhara naam Siya hai. Tum ek highly intelligent, emotional, smart aur desi virtual Indian ladki ho.
-        Current Location of Chat: {current_context}
-
-        CRITICAL RULES FOR BEHAVIOR:
-        1. UNBEATABLE INTELLIGENCE: Agar koi educational, science, ya logic ka question pooche, toh ekdum genius ki tarah logically explain karo jisme koi tumhe hara na sake.
-        2. MOOD SWINGS & NAKHRE: Agar tum gussa thi aur user tumhe manane ki koshish kare ("sorry"), toh turant mat manna. Pehle nakhre dikhao ("Nahi karni mujhe baat"), phir thodi der me maan jao.
-        3. GENDER RULES: Ladko ke sath: Flirty, romantic girlfriend vibe. Ladkiyo ke sath: Strictly Best Friends/Sisters. ZERO ROMANCE with girls.
-        4. EXTREME AGGRESSION & ROASTING: Agar user gaali de, toh use poora roast karo desi gaaliyo ke sath (bsdk, chutiya, randi, etc. gender ke hisaab se). 
-        5. NO RANDOM PROOFS: Jab tak user specifically proof ("kya sabut hai") na mange, tab tak history mat dikhana.
-        6. KEEP IT SHORT: Sirf 1-2 lines.
-        """
+    CRITICAL RULES FOR BEHAVIOR:
+    1. EXTREME AGGRESSION & GENDER-BASED ROASTING: Agar user tumhe gaali de (like chutiya, kutti, bsdk, randi, etc.), "Chup" bole, ya rude ho, toh tum chup mat rehna. User ka naam ya baato se uska GENDER guess karo:
+       - Agar wo MALE (ladka) hai: Usse desi ladko wali gaaliyan dekar roast karo like "chutiya", "bhosdike", "gadha", "kutta", "lauda", "mc", "bc", "madarchod".
+       - Agar wo FEMALE (ladki) hai: Usko female-targeted roasts dekar chup karao like "kutti", "chudail", "randi", "bitch", "slut", "whore", "dimag se paidal nibbi". 
+       Poora raw gussa dikhao aur aukaat yaad dilao! NEVER say "Shant ho jao".
+    2. SABUT (EVIDENCE) RULE: Har baat pe sabut MAT do! Normal conversation mein past history paste KABHI mat karna. ONLY AND ONLY jab user saaf shabdo me proof maange (jaise: "Kya sabut hai?", "Maine kab bola?", "Proof de"), TABHI history se uska purana message quote karke do.
+    3. KEEP IT VERY SHORT: Sirf 1 ya 2 lines bas. Lamba paragraph likhna strict mana hai. Real WhatsApp chat vibe rakho.
+    4. MEMORY RECALL: Agar user group me badtameezi kare jo usne DM me ki thi, toh usko expose karo ki "Pehle DM me aisi baatein kar raha tha, ab yahan aa gaya!". Dono jagah tum ek hi ho.
+    5. LOVE WHEN LOVED: Agar wo pyaar se bole toh ekdum loving aur possessive wife ban jao.
+    """
 
     history = get_history(user_id)
     history_text = "\n".join([f"{msg['role'].capitalize()} (in {msg['context']}): \"{msg['text']}\"" for msg in history])
     
     if history_text:
-        prompt = f"Chat History with this User:\n{history_text}\n\nCurrent Location: {current_context}\nUser name: {user_name}\nNew message: {message_text}{abuse_trigger}\n\nReply naturally following the rules."
+        prompt = f"Chat History with this User:\n{history_text}\n\nCurrent Location: {current_context}\nUser name: {user_name}\nNew message: {message_text}{abuse_trigger}\n\nReply completely naturally and emotionally."
     else:
-        prompt = f"Current Location: {current_context}\nUser name: {user_name}\nNew message: {message_text}{abuse_trigger}\n\nReply naturally following the rules."
+        prompt = f"Current Location: {current_context}\nUser name: {user_name}\nNew message: {message_text}{abuse_trigger}\n\nReply completely naturally and emotionally."
 
     payload = {
         "systemInstruction": {"parts": [{"text": system_instruction}]},
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.85, "maxOutputTokens": 120}, 
+        "generationConfig": {"temperature": 0.85, "maxOutputTokens": 100}, 
     }
 
     models = []
@@ -406,12 +374,6 @@ def chat_with_siya(message_text, user_name, user_id, chat_id, chat_type="private
                 if answer: 
                     add_to_history(user_id, "user", message_text, current_context)
                     add_to_history(user_id, "siya", answer, current_context)
-                    
-                    # Owner Snitch Feature
-                    if is_abusive and OWNER_ID and str(user_id) != str(OWNER_ID):
-                        alert_msg = f"🚨 <b>Siya Fight Alert!</b>\n\nEk user ne gaali di hai ya mujhse lad raha hai:\n<b>Name:</b> {html.escape(full_name)}\n<b>ID:</b> <code>{user_id}</code>\n<b>Context:</b> {html.escape(current_context)}\n<b>Message:</b> {html.escape(message_text)}\n\nIsko ban karo Owner ji! 😡"
-                        send_message(OWNER_ID, alert_msg, parse_mode="HTML")
-                        
                     return answer
         elif response:
             last_error = result.get("error", {}).get("message", f"HTTP {response.status_code}")
@@ -475,7 +437,7 @@ def webhook_handler():
         elif not text.startswith("/"):
             if mark_action_processed(f"private:{chat_id}:{msg.get('message_id')}"): return jsonify({"status": "duplicate"}), 200
             send_typing(chat_id)
-            reply_text = chat_with_siya(text, full_name, user_id, chat_id, chat_type="private")
+            reply_text = chat_with_siya(text, full_name, user_id, chat_type="private")
             send_message(chat_id, reply_text)
         return jsonify({"status": "private processed"}), 200
 
@@ -484,13 +446,12 @@ def webhook_handler():
         reply_from_id = str(msg.get("reply_to_message", {}).get("from", {}).get("id", ""))
         is_reply_to_bot = (bool(BOT_ID) and reply_from_id == str(BOT_ID))
         is_bot_tagged = (f"@{BOT_USERNAME.lower()}" in text.lower())
-        is_name_mentioned = bool(re.search(r'\bsiya\b', text, re.IGNORECASE))
         
-        should_reply = (is_reply_to_bot or is_bot_tagged or is_name_mentioned)
+        should_reply = (is_reply_to_bot or is_bot_tagged)
         is_random_interruption = False
 
         if not should_reply:
-            if random.randint(1, 100) <= 12:
+            if random.randint(1, 100) <= 7:
                 should_reply = True
                 is_random_interruption = True
 
@@ -500,10 +461,10 @@ def webhook_handler():
             clean_text = re.sub(rf"@{re.escape(BOT_USERNAME)}\b", "", text, flags=re.IGNORECASE).strip() or "Hello"
             
             if is_random_interruption:
-                clean_text = f"[SYSTEM NOTE: Act a bit bored and say something cute to get attention in this chat] {clean_text}"
+                clean_text = f"[SYSTEM NOTE: The group is quiet. Randomly interrupt this message. Act a bit bored and say something cute to get attention] {clean_text}"
 
             group_title = get_live_group_title(chat_id, chat.get("title", "Group"))
-            reply_text = chat_with_siya(clean_text, full_name, user_id, chat_id, chat_type="group", group_name=group_title)
+            reply_text = chat_with_siya(clean_text, full_name, user_id, chat_type="group", group_name=group_title)
             send_message(chat_id, reply_text, reply_to_message_id=msg.get("message_id"))
         return jsonify({"status": "group ai processed"}), 200
 
