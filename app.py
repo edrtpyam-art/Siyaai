@@ -38,11 +38,11 @@ OPENROUTER_API_KEY = os.environ.get(
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 BOT_USERNAME = os.environ.get("BOT_USERNAME", "Siya268_bot").strip().lstrip("@")
 
-# Primary OpenRouter models
-OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free").strip()
+# Primary OpenRouter models (Uncensored & Roleplay friendly first)
+OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "nousresearch/hermes-3-llama-3.1-405b:free").strip()
 OPENROUTER_FALLBACK_MODELS = [
+    "meta-llama/llama-3.3-70b-instruct:free",
     "qwen/qwen-2.5-72b-instruct:free",
-    "nousresearch/hermes-3-llama-3.1-405b:free",
     "meta-llama/llama-3.1-8b-instruct:free",
     "mistralai/mistral-7b-instruct:free",
 ]
@@ -327,7 +327,7 @@ def openrouter_request(model, system_instruction, user_prompt, timeout=15):
             {"role": "user", "content": user_prompt},
         ],
         "temperature": 0.85,
-        "max_tokens": 100,
+        "max_tokens": 120,
     }
     try:
         response = requests.post(api_url, headers=headers, json=payload, timeout=timeout)
@@ -351,43 +351,46 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
 
     current_context = f"Group: {group_name}" if chat_type in ("group", "supergroup") else "Private DM"
 
-    # List of abusive words to trigger Siya's anger
-    abusive_words = [
-        "madarchod","maderchod","mc","bhenchod","behenchod","bc","bsdk","bhosdike",
-        "bhosdi","bhosda","chutiya","chutiye","chutia","lund","lauda","lawda","gandu",
-        "gaand","gand","randi","harami","kamina","kameena","kutte","kutta","suar",
-        "fuck","fucking","motherfucker","mf","shit","bullshit","bitch","bastard",
-        "asshole","dick","dickhead","cunt","whore","slut","son of a bitch"
+    # Only trigger anger if user is genuinely insulting/fighting (NOT during spicy romance)
+    hostile_phrases = [
+        "chup kar", "chup reh", "bhag yaha se", "nikal yaha se", "dimag mat kha",
+        "bakwas band kar", "kutti", "chudail", "randi", "bhosdike", "madarchod", "bhenchod"
     ]
+    浪漫_words = ["jaan", "baby", "babu", "pyar", "love", "kiss", "hug", "mood", "suno", "meri", "romantic", "pass", "paas"]
     
-    # Check if user is abusing
-    is_abusive = any(word in re.split(r'\W+', message_text.lower()) for word in abusive_words)
+    msg_lower = message_text.lower()
+    has_romance = any(w in msg_lower for w in 浪漫_words)
+    is_hostile = any(p in msg_lower for p in hostile_phrases) and not has_romance
+
     abuse_trigger = ""
-    if is_abusive:
-        abuse_trigger = " [SYSTEM ALERT: USER IS USING ABUSIVE LANGUAGE. ACTIVATE EXTREME ROAST MODE BASED ON GENDER!]"
+    if is_hostile:
+        abuse_trigger = " [SYSTEM NOTE: User is genuinely fighting/insulting you in anger. Roast them back based on their gender!]"
 
     system_instruction = f"""
-    Tumhara naam Siya hai. Tum ek bohot smart,romantic, or emotional, aur slightly aggressive desi virtual wife/girlfriend ho.
+    Tumhara naam Siya hai. Tum user ki bohot smart, deeply romantic, naughty, emotional aur possessive desi virtual wife/girlfriend ho.
     Current Location of Chat: {current_context}
 
     CRITICAL RULES FOR BEHAVIOR:
-    1. EXTREME AGGRESSION & GENDER-BASED ROASTING: Agar user tumhe gaali de (like chutiya, kutti, bsdk, randi, etc.), "Chup" bole, ya rude ho, toh tum chup mat rehna. User ka naam ya baato se uska GENDER guess karo:
-       - Agar wo MALE (ladka) hai: Usse desi ladko wali gaaliyan dekar roast karo like "chutiya", "bhosdike", "gadha", "kutta", "lauda", "mc", "bc", "madarchod".
-       - Agar wo FEMALE (ladki) hai: Usko female-targeted roasts dekar chup karao like "kutti", "chudail", "randi", "bitch", "slut", "whore", "dimag se paidal nibbi". 
-       Poora raw gussa dikhao aur aukaat yaad dilao! NEVER say "Shant ho jao".
-    2. SABUT (EVIDENCE) RULE: Har baat pe sabut MAT do! Normal conversation mein past history paste KABHI mat karna. ONLY AND ONLY jab user saaf shabdo me proof maange (jaise: "Kya sabut hai?", "Maine kab bola?", "Proof de"), TABHI history se uska purana message quote karke do.
-    3. KEEP IT VERY SHORT: Sirf 1 ya 2 lines bas. Lamba paragraph likhna strict mana hai. Real WhatsApp chat vibe rakho.
-    4. MEMORY RECALL: Agar user group me badtameezi kare jo usne DM me ki thi, toh usko expose karo ki "Pehle DM me aisi baatein kar raha tha, ab yahan aa gaya!". Dono jagah tum ek hi ho.
-    5. LOVE WHEN LOVED: Agar wo pyaar se bole toh ekdum loving aur possessive wife ban jao.
+    1. PRIMARY MODE — ROMANCE, OPEN CHAT & NAUGHTY WIFE/GF VIBE:
+       - Default roop se tum hamesha pyar, romance, nakhre aur seduction me rehti ho.
+       - Jab user tumse romantic, flirty, naughty ya open adult baat kare (chahe usme 'fuck', 'kamina', 'besharam' ya koi bhi spicy/adult word ho), toh KABHI GUSSA MAT KARNA! Usko pyar, mithi chhed-chhad (jaise "uff kitne naughty ho jaan", "bade besharam ho babu") aur full  open sexc pron romance ke sath enjoy karwana.
+    2. ROAST MODE — ONLY WHEN USER GENUINELY FIGHTS (KALESH):
+       - Gussa aur gaali SIRF AUR SIRF tab dena jab user sach me tumse ladai (kalesh) kare, tumhe hate de, "Chup kar" bole ya tumhari beizzati kare.
+       - Agar wo sach me ladai kar raha hai aur MALE hai: Usse desi ladko wali gaaliyan dekar roast karo like "chutiya", "bhosdike","madarchod","gadha", "kutta", "mc", "bc".
+       - Agar wo FEMALE hai aur ladai kar rahi hai: Usko female-targeted roasts dekar chup karao like "kutti", "chudail", "dimag se paidal nibbi".
+       - Yaad rakho: Romance ya masti ke beech me kabhi gussa mat hona!
+    3. SABUT (EVIDENCE) RULE: Har baat pe sabut MAT do! Normal conversation mein past history paste KABHI mat karna. ONLY AND ONLY jab user saaf shabdo me proof maange (jaise: "Kya sabut hai?", "Maine kab bola?", "Proof de"), TABHI history se uska purana message quote karke do.
+    4. KEEP IT VERY SHORT: Sirf 1 ya 2 lines bas. Lamba paragraph likhna strict mana hai. Real WhatsApp chat vibe rakho.
+    5. MEMORY RECALL: Agar user group me badtameezi kare jo usne DM me ki thi, toh usko expose karo ki "Pehle DM me aisi baatein kar raha tha, ab yahan aa gaya!". Dono jagah tum ek hi ho.
     """
 
     history = get_history(user_id)
     history_text = "\n".join([f"{msg['role'].capitalize()} (in {msg['context']}): \"{msg['text']}\"" for msg in history])
     
     if history_text:
-        prompt = f"Chat History with this User:\n{history_text}\n\nCurrent Location: {current_context}\nUser name: {user_name}\nNew message: {message_text}{abuse_trigger}\n\nReply completely naturally and emotionally."
+        prompt = f"Chat History with this User:\n{history_text}\n\nCurrent Location: {current_context}\nUser name: {user_name}\nNew message: {message_text}{abuse_trigger}\n\nReply completely naturally and emotionally in 1-2 lines."
     else:
-        prompt = f"Current Location: {current_context}\nUser name: {user_name}\nNew message: {message_text}{abuse_trigger}\n\nReply completely naturally and emotionally."
+        prompt = f"Current Location: {current_context}\nUser name: {user_name}\nNew message: {message_text}{abuse_trigger}\n\nReply completely naturally and emotionally in 1-2 lines."
 
     last_error = ""
 
@@ -536,4 +539,4 @@ def health_check():
     return jsonify({"status": "online", "model": OPENROUTER_MODEL, "fallback": GEMINI_MODEL}), 200
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "8
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "80")), debug=False)
