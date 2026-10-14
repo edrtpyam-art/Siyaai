@@ -31,10 +31,23 @@ app = Flask(__name__)
 # ============================================================
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip()
+OPENROUTER_API_KEY = os.environ.get(
+    "OPENROUTER_API_KEY",
+    "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"
+).strip()
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 BOT_USERNAME = os.environ.get("BOT_USERNAME", "Siya268_bot").strip().lstrip("@")
 
-# Tumhare official 3.x models
+# Primary OpenRouter models
+OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free").strip()
+OPENROUTER_FALLBACK_MODELS = [
+    "qwen/qwen-2.5-72b-instruct:free",
+    "nousresearch/hermes-3-llama-3.1-405b:free",
+    "meta-llama/llama-3.1-8b-instruct:free",
+    "mistralai/mistral-7b-instruct:free",
+]
+
+# Tumhare official 3.x models (Fallback)
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash").strip()
 GEMINI_FALLBACK_MODELS = [
     "gemini-3.6-flash",
@@ -296,8 +309,31 @@ def send_welcome_photo(chat_id, user_id, user_name, group_name, reply_to_message
     except Exception as e: return {"ok": False, "error": str(e)}
 
 # ============================================================
-# GEMINI AI - GENDER BASED ROASTING & SMART MEMORY
+# OPENROUTER (PRIMARY) & GEMINI AI (FALLBACK)
 # ============================================================
+
+def openrouter_request(model, system_instruction, user_prompt, timeout=15):
+    api_url = "https://openrouter.ai/api/v1/chat/completions"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "HTTP-Referer": "https://siya-ai.vercel.app",
+        "X-Title": "Siya AI",
+    }
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system_instruction},
+            {"role": "user", "content": user_prompt},
+        ],
+        "temperature": 0.85,
+        "max_tokens": 100,
+    }
+    try:
+        response = requests.post(api_url, headers=headers, json=payload, timeout=timeout)
+        try: return response, response.json()
+        except Exception: return response, {"error": {"message": f"HTTP {response.status_code} - {response.text}"}}
+    except requests.RequestException as e: return None, {"error": {"message": str(e)}}
 
 def gemini_request(model, payload, timeout=20):
     api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
@@ -309,7 +345,7 @@ def gemini_request(model, payload, timeout=20):
     except requests.RequestException as e: return None, {"error": {"message": str(e)}}
 
 def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_name=""):
-    if not GEMINI_API_KEY: return "⚠️ GEMINI_API_KEY error."
+    if not OPENROUTER_API_KEY and not GEMINI_API_KEY: return "⚠️ API_KEY error."
     message_text = str(message_text or "").strip()
     if not message_text: return "Haan 😊 bolo, kya hua?"
 
@@ -353,32 +389,57 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
     else:
         prompt = f"Current Location: {current_context}\nUser name: {user_name}\nNew message: {message_text}{abuse_trigger}\n\nReply completely naturally and emotionally."
 
-    payload = {
-        "systemInstruction": {"parts": [{"text": system_instruction}]},
-        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.85, "maxOutputTokens": 100}, 
-    }
-
-    models = []
-    for model in ([GEMINI_MODEL] + GEMINI_FALLBACK_MODELS):
-        if model and model not in models: models.append(model)
-
     last_error = ""
-    for model in models:
-        response, result = gemini_request(model, payload, timeout=15)
-        if response and response.ok:
-            candidates = result.get("candidates", [])
-            if candidates:
-                parts = candidates[0].get("content", {}).get("parts", [])
-                answer = "\n".join(p.get("text", "") for p in parts if p.get("text")).strip()
-                if answer: 
-                    add_to_history(user_id, "user", message_text, current_context)
-                    add_to_history(user_id, "siya", answer, current_context)
-                    return answer
-        elif response:
-            last_error = result.get("error", {}).get("message", f"HTTP {response.status_code}")
-        else:
-            last_error = result.get("error", {}).get("message", "Network Error")
+
+    # 1. PRIMARY: OpenRouter
+    if OPENROUTER_API_KEY:
+        or_models = []
+        for model in ([OPENROUTER_MODEL] + OPENROUTER_FALLBACK_MODELS):
+            if model and model not in or_models: or_models.append(model)
+
+        for model in or_models:
+            response, result = openrouter_request(model, system_instruction, prompt, timeout=15)
+            if response and response.ok:
+                choices = result.get("choices", [])
+                if choices:
+                    answer = (choices[0].get("message", {}).get("content") or "").strip()
+                    if answer:
+                        add_to_history(user_id, "user", message_text, current_context)
+                        add_to_history(user_id, "siya", answer, current_context)
+                        return answer
+            elif response:
+                err_obj = result.get("error", {})
+                last_error = err_obj.get("message", f"HTTP {response.status_code}") if isinstance(err_obj, dict) else str(err_obj)
+            else:
+                last_error = result.get("error", {}).get("message", "OpenRouter Network Error")
+
+    # 2. FALLBACK: Gemini (Active when OpenRouter fails)
+    if GEMINI_API_KEY:
+        payload = {
+            "systemInstruction": {"parts": [{"text": system_instruction}]},
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.85, "maxOutputTokens": 100}, 
+        }
+
+        models = []
+        for model in ([GEMINI_MODEL] + GEMINI_FALLBACK_MODELS):
+            if model and model not in models: models.append(model)
+
+        for model in models:
+            response, result = gemini_request(model, payload, timeout=15)
+            if response and response.ok:
+                candidates = result.get("candidates", [])
+                if candidates:
+                    parts = candidates[0].get("content", {}).get("parts", [])
+                    answer = "\n".join(p.get("text", "") for p in parts if p.get("text")).strip()
+                    if answer: 
+                        add_to_history(user_id, "user", message_text, current_context)
+                        add_to_history(user_id, "siya", answer, current_context)
+                        return answer
+            elif response:
+                last_error = result.get("error", {}).get("message", f"HTTP {response.status_code}")
+            else:
+                last_error = result.get("error", {}).get("message", "Network Error")
 
     return f"⚠ Error: {last_error}"
 
@@ -472,7 +533,7 @@ def webhook_handler():
 
 @app.route("/", methods=["GET"])
 def health_check():
-    return jsonify({"status": "online", "model": GEMINI_MODEL}), 200
+    return jsonify({"status": "online", "model": OPENROUTER_MODEL, "fallback": GEMINI_MODEL}), 200
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "80")), debug=False)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "8
