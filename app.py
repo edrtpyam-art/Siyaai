@@ -50,7 +50,7 @@ OPENROUTER_FALLBACK_MODELS = [
 # Tumhare official 3.x models (Fallback)
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite").strip()
 GEMINI_FALLBACK_MODELS = [
-    "gemini-2.5-flash-lite",
+    "gemini-3.5-flash-lite",
     "gemini-3.5-flash-lite",
 ]
 
