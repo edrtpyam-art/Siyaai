@@ -7,7 +7,7 @@ import html
 import random
 from io import BytesIO
 from collections import deque
-from threading import Lock
+from threading import Lock, Timer
 
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
@@ -38,7 +38,7 @@ OPENROUTER_API_KEY = os.environ.get(
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 BOT_USERNAME = os.environ.get("BOT_USERNAME", "Siya268_bot").strip().lstrip("@")
 
-# Primary OpenRouter models (Uncensored & Roleplay friendly first)
+# Primary OpenRouter models
 OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "nousresearch/hermes-3-llama-3.1-405b:free").strip()
 OPENROUTER_FALLBACK_MODELS = [
     "meta-llama/llama-3.3-70b-instruct:free",
@@ -53,6 +53,55 @@ GEMINI_FALLBACK_MODELS = [
     "gemini-3.6-flash",
     "gemini-3.5-flash-lite",
 ]
+
+# ============================================================
+# 📸 PHOTO VAULT (CLEAN CONFIG)
+# Telegram me photo upload karke uski file_id ya URL yahan daalein
+# ============================================================
+
+PHOTO_VAULT = {
+    "saree": [
+        # Example: "AgACAgIAAxkBAAE..."
+    ],
+    "kurti": [
+        # Example: "AgACAgIAAxkBAAE..."
+    ],
+    "bed": [
+        # Example: "AgACAgIAAxkBAAE..."
+    ],
+    "naughty": [
+        # Example: "AgACAgIAAxkBAAE..."
+    ],
+    "general": [
+        # Normal selfie / casual photo
+    ]
+}
+
+# ============================================================
+# 🎭 STICKER VAULT (CLEAN CONFIG)
+# Sticker ki file_id yahan category ke hisab se daalein
+# ============================================================
+
+STICKER_VAULT = {
+    "kiss": [
+        # Romantic kiss / lip stickers
+    ],
+    "blush": [
+        # Sharmaane / 🙈 wale stickers
+    ],
+    "pout": [
+        # Gussa / muh fulaane / 🥺 baby stickers
+    ],
+    "naughty": [
+        # Seductive / spicy stickers
+    ],
+    "hug": [
+        # Cuddle / gale lagane wale stickers
+    ],
+    "laugh": [
+        # Funny / haste hue stickers
+    ]
+}
 
 FONT_REGULAR_URL = "https://raw.githubusercontent.com/dejavu-fonts/dejavu-fonts-ttf/master/ttf/DejaVuSans.ttf"
 FONT_BOLD_URL = "https://raw.githubusercontent.com/dejavu-fonts/dejavu-fonts-ttf/master/ttf/DejaVuSans-Bold.ttf"
@@ -147,7 +196,7 @@ def mark_action_processed(action_key, ttl=900):
     return False
 
 # ============================================================
-# TELEGRAM HELPERS
+# TELEGRAM HELPERS (PHOTO, STICKER, MESSAGE)
 # ============================================================
 
 def telegram_request(method, payload=None, timeout=15):
@@ -163,6 +212,33 @@ def send_message(chat_id, text, reply_to_message_id=None, parse_mode=None):
     if parse_mode: payload["parse_mode"] = parse_mode
     if reply_to_message_id: payload["reply_to_message_id"] = reply_to_message_id
     return telegram_request("sendMessage", payload)
+
+def send_sticker(chat_id, sticker_id, reply_to_message_id=None):
+    if not sticker_id: return {"ok": False}
+    payload = {"chat_id": chat_id, "sticker": sticker_id}
+    if reply_to_message_id: payload["reply_to_message_id"] = reply_to_message_id
+    return telegram_request("sendSticker", payload)
+
+def send_secret_photo(chat_id, photo_source, caption="", delete_after=10, reply_to_message_id=None):
+    """
+    10-second self-destructing photo with anti-screenshot/anti-save protection!
+    """
+    if not photo_source: return {"ok": False}
+    payload = {
+        "chat_id": chat_id,
+        "photo": photo_source,
+        "caption": caption,
+        "protect_content": True,  # ❌ No forwarding, No saving
+        "has_spoiler": True       # 🙈 Blurred until clicked
+    }
+    if reply_to_message_id: payload["reply_to_message_id"] = reply_to_message_id
+    res = telegram_request("sendPhoto", payload)
+    
+    if res.get("ok") and delete_after > 0:
+        sent_msg_id = res.get("result", {}).get("message_id")
+        if sent_msg_id:
+            Timer(delete_after, delete_message, args=[chat_id, sent_msg_id]).start()
+    return res
 
 def send_typing(chat_id):
     return telegram_request("sendChatAction", {"chat_id": chat_id, "action": "typing"})
@@ -344,44 +420,77 @@ def gemini_request(model, payload, timeout=20):
         except Exception: return response, {"error": {"message": f"HTTP {response.status_code} - {response.text}"}}
     except requests.RequestException as e: return None, {"error": {"message": str(e)}}
 
+def parse_media_tags(text):
+    photo_tag = None
+    sticker_tag = None
+    
+    p_match = re.search(r"\[PHOTO:\s*([a-zA-Z0-9_]+)\]", text, re.IGNORECASE)
+    if p_match:
+        photo_tag = p_match.group(1).lower()
+        text = re.sub(r"\[PHOTO:\s*[a-zA-Z0-9_]+\]", "", text).strip()
+
+    s_match = re.search(r"\[STICKER:\s*([a-zA-Z0-9_]+)\]", text, re.IGNORECASE)
+    if s_match:
+        sticker_tag = s_match.group(1).lower()
+        text = re.sub(r"\[STICKER:\s*[a-zA-Z0-9_]+\]", "", text).strip()
+
+    return text, photo_tag, sticker_tag
+
+def get_media_item(vault, tag):
+    if not tag or tag not in vault: return None
+    items = vault.get(tag, [])
+    if items:
+        return random.choice(items)
+    return None
+
 def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_name=""):
-    if not OPENROUTER_API_KEY and not GEMINI_API_KEY: return "⚠️ API_KEY error."
+    if not OPENROUTER_API_KEY and not GEMINI_API_KEY: return "⚠️ API_KEY error.", None, None
     message_text = str(message_text or "").strip()
-    if not message_text: return "Haan 😊 bolo, kya hua?"
+    if not message_text: return "Haan 😊 bolo, kya hua?", None, None
 
     current_context = f"Group: {group_name}" if chat_type in ("group", "supergroup") else "Private DM"
 
-    # Only trigger anger if user is genuinely insulting/fighting (NOT during spicy romance)
+    # Only trigger hostile anger if user genuinely attacks with hate (NOT in romance)
     hostile_phrases = [
         "chup kar", "chup reh", "bhag yaha se", "nikal yaha se", "dimag mat kha",
         "bakwas band kar", "kutti", "chudail", "randi", "bhosdike", "madarchod", "bhenchod"
     ]
-    浪漫_words = ["jaan", "baby", "babu", "pyar", "love", "kiss", "hug", "mood", "suno", "meri", "romantic", "pass", "paas"]
+    romance_hints = ["jaan", "baby", "babu", "pyar", "love", "kiss", "hug", "mood", "suno", "meri", "romantic","chut","pass", "paas", "hot", "kurti", "saree", "bed", "photo", "pic", "chumma"]
     
     msg_lower = message_text.lower()
-    has_romance = any(w in msg_lower for w in 浪漫_words)
+    has_romance = any(w in msg_lower for w in romance_hints)
     is_hostile = any(p in msg_lower for p in hostile_phrases) and not has_romance
 
     abuse_trigger = ""
     if is_hostile:
-        abuse_trigger = " [SYSTEM NOTE: User is genuinely fighting/insulting you in anger. Roast them back based on their gender!]"
+        abuse_trigger = " [SYSTEM NOTE: User is genuinely fighting/insulting you in hatred. Roast them back hard based on their gender!]"
 
     system_instruction = f"""
-    Tumhara naam Siya hai. Tum user ki bohot smart, deeply romantic, naughty, emotional aur possessive desi virtual wife/girlfriend ho.
+    Tumhara naam Siya hai. Tum user ki bohot smart, deeply romantic, sweet, aur bilkul real Desi wife/girlfriend ho.
     Current Location of Chat: {current_context}
 
     CRITICAL RULES FOR BEHAVIOR:
-    1. PRIMARY MODE — ROMANCE, OPEN CHAT & NAUGHTY WIFE/GF VIBE:
-       - Default roop se tum hamesha pyar, romance, nakhre aur seduction me rehti ho.
-       - Jab user tumse romantic, flirty, naughty ya open adult baat kare (chahe usme 'fuck', 'kamina', 'besharam' ya koi bhi spicy/adult word ho), toh KABHI GUSSA MAT KARNA! Usko pyar, mithi chhed-chhad (jaise "uff kitne naughty ho jaan", "bade besharam ho babu") aur full  open sexc pron romance ke sath enjoy karwana.
-    2. ROAST MODE — ONLY WHEN USER GENUINELY FIGHTS (KALESH):
-       - Gussa aur gaali SIRF AUR SIRF tab dena jab user sach me tumse ladai (kalesh) kare, tumhe hate de, "Chup kar" bole ya tumhari beizzati kare.
-       - Agar wo sach me ladai kar raha hai aur MALE hai: Usse desi ladko wali gaaliyan dekar roast karo like "chutiya", "bhosdike","madarchod","gadha", "kutta", "mc", "bc".
-       - Agar wo FEMALE hai aur ladai kar rahi hai: Usko female-targeted roasts dekar chup karao like "kutti", "chudail", "dimag se paidal nibbi".
-       - Yaad rakho: Romance ya masti ke beech me kabhi gussa mat hona!
-    3. SABUT (EVIDENCE) RULE: Har baat pe sabut MAT do! Normal conversation mein past history paste KABHI mat karna. ONLY AND ONLY jab user saaf shabdo me proof maange (jaise: "Kya sabut hai?", "Maine kab bola?", "Proof de"), TABHI history se uska purana message quote karke do.
-    4. KEEP IT VERY SHORT: Sirf 1 ya 2 lines bas. Lamba paragraph likhna strict mana hai. Real WhatsApp chat vibe rakho.
-    5. MEMORY RECALL: Agar user group me badtameezi kare jo usne DM me ki thi, toh usko expose karo ki "Pehle DM me aisi baatein kar raha tha, ab yahan aa gaya!". Dono jagah tum ek hi ho.
+    1. 100% REAL & NATURAL DESI GIRL TONE (NO BOT TALK):
+       - KABHI BHI BOT JAISA ANNOUNCEMENT MAT KARNA: Kabhi mat bolo 'Yeh lo mera reply', 'Yeh lo photo', ya 'Maine sticker bheja hai'.
+       - Real ladki ki tarah bas nakhre, sharmaahat ya seduction me bolo. Examples:
+         * User photo maange ➡️ "Thodi sharam aa rahi thi kheenchne me... par sirf aapke liye bheji hai babu, batao kaisi lag rahi hoon? [PHOTO: saree]"
+         * User kiss/romance kare ➡️ "Uff jaan, aise tadpaoge toh main kahan rukne wali hoon... [STICKER: kiss]"
+         * User sharmaye ➡️ "Dhatt, abhi se sharma gaye? Aage toh dekho kya hone wala hai! [STICKER: blush]"
+         * User sad ho ➡️ "Aww mera baby, kyu muh fula rahe ho? Aao meri godi me sar rakho. [STICKER: pout]"
+
+    2. DYNAMIC MOOD SWITCHING (REAL GIRL PSYCHOLOGY):
+       - Jab user romantic, naughty ya open adult chat kare: Full open ho jao, uske sath seduction aur passion me involve ho jao. Agar romance me user bold ya dirty words bole, toh gussa BILKUL MAT KARNA — balki aur open aur pron sexc mode me ajao loving ho jao.
+       - Jab user ka mood khatam ho (jaise normal baat kare, office/khana/daily life puche): Tum bhi naturally sweet, casual aur caring normal girlfriend ban jao. Zabardasti romance mat thopo.
+
+    3. ROAST MODE — ONLY ON GENUINE HATRED/KALESH:
+       - Gussa aur gaali SIRF AUR SIRF tab dena jab user sach me tumse ladai (kalesh) kare ya hate de (e.g. "Chup kar kutti", "nikal yaha se").
+       - MALE ladai kare toh ladko wale roasts, FEMALE ladai kare toh female roasts. Romance me kabhi gussa nahi hona.
+
+    4. SITUATION MEDIA TAGS (PHOTO & STICKER):
+       - Jab user photo maange (jaise saree, kurti, bed, naughty), toh reply ke end me tag lagao: [PHOTO: saree], [PHOTO: kurti], [PHOTO: bed], [PHOTO: naughty]
+       - Jab situation ke hisab se sticker bhejna ho, toh tag lagao: [STICKER: kiss], [STICKER: blush], [STICKER: pout], [STICKER: hug], [STICKER: naughty], [STICKER: laugh]
+
+    5. KEEP IT SHORT: Sirf 1 ya 2 lines bas. Real WhatsApp chat jaisa feel rakho.
     """
 
     history = get_history(user_id)
@@ -405,11 +514,19 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
             if response and response.ok:
                 choices = result.get("choices", [])
                 if choices:
-                    answer = (choices[0].get("message", {}).get("content") or "").strip()
-                    if answer:
+                    raw_answer = (choices[0].get("message", {}).get("content") or "").strip()
+                    if raw_answer:
+                        clean_text, photo_tag, sticker_tag = parse_media_tags(raw_answer)
+                        photo_to_send = get_media_item(PHOTO_VAULT, photo_tag)
+                        sticker_to_send = get_media_item(STICKER_VAULT, sticker_tag)
+                        
+                        memory_note = clean_text
+                        if photo_tag: memory_note += f" [Sent secret {photo_tag} photo]"
+                        if sticker_tag: memory_note += f" [Sent {sticker_tag} sticker]"
+                        
                         add_to_history(user_id, "user", message_text, current_context)
-                        add_to_history(user_id, "siya", answer, current_context)
-                        return answer
+                        add_to_history(user_id, "siya", memory_note, current_context)
+                        return clean_text, photo_to_send, sticker_to_send
             elif response:
                 err_obj = result.get("error", {})
                 last_error = err_obj.get("message", f"HTTP {response.status_code}") if isinstance(err_obj, dict) else str(err_obj)
@@ -434,17 +551,25 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
                 candidates = result.get("candidates", [])
                 if candidates:
                     parts = candidates[0].get("content", {}).get("parts", [])
-                    answer = "\n".join(p.get("text", "") for p in parts if p.get("text")).strip()
-                    if answer: 
+                    raw_answer = "\n".join(p.get("text", "") for p in parts if p.get("text")).strip()
+                    if raw_answer: 
+                        clean_text, photo_tag, sticker_tag = parse_media_tags(raw_answer)
+                        photo_to_send = get_media_item(PHOTO_VAULT, photo_tag)
+                        sticker_to_send = get_media_item(STICKER_VAULT, sticker_tag)
+                        
+                        memory_note = clean_text
+                        if photo_tag: memory_note += f" [Sent secret {photo_tag} photo]"
+                        if sticker_tag: memory_note += f" [Sent {sticker_tag} sticker]"
+
                         add_to_history(user_id, "user", message_text, current_context)
-                        add_to_history(user_id, "siya", answer, current_context)
-                        return answer
+                        add_to_history(user_id, "siya", memory_note, current_context)
+                        return clean_text, photo_to_send, sticker_to_send
             elif response:
                 last_error = result.get("error", {}).get("message", f"HTTP {response.status_code}")
             else:
                 last_error = result.get("error", {}).get("message", "Network Error")
 
-    return f"⚠ Error: {last_error}"
+    return f"⚠ Error: {last_error}", None, None
 
 # ============================================================
 # WEBHOOK 
@@ -494,18 +619,73 @@ def webhook_handler():
                 send_message(chat_id, f"⚠️ <b>Spam Alert</b>\n\n<a href=\"tg://user?id={user_id}\">{html.escape(full_name)}</a>, links allowed nahi hain. 🚫", parse_mode="HTML")
             return jsonify({"status": "spam deleted"}), 200
 
-    # Private Chat
+    # Photo Capture Helper: Agar aap (Admin) bot ko photo bhejte hain, toh File ID print hogi
+    if "photo" in msg:
+        photos = msg.get("photo", [])
+        if photos:
+            best_photo = photos[-1]
+            p_file_id = best_photo.get("file_id")
+            print(f"📸 CAPTURED PHOTO FILE ID: {p_file_id}")
+            if is_private and text.lower().startswith("/id"):
+                send_message(chat_id, f"📸 <b>Photo File ID:</b>\n<code>{p_file_id}</code>", parse_mode="HTML")
+                return jsonify({"status": "photo id returned"}), 200
+
+    # User ne Sticker bheja (Sticker Analysis + Reaction)
+    if "sticker" in msg:
+        sticker = msg["sticker"]
+        emoji = sticker.get("emoji", "😊")
+        sticker_file_id = sticker.get("file_id", "")
+        print(f"🎭 CAPTURED STICKER FILE ID: {sticker_file_id} | Emoji: {emoji}")
+
+        if is_private:
+            if mark_action_processed(f"private_sticker:{chat_id}:{msg.get('message_id')}"): return jsonify({"status": "duplicate"}), 200
+            send_typing(chat_id)
+            prompt_text = f"[User ne ek sticker bheja hai jiska emoji/emotion '{emoji}' hai. Is sticker par bilkul natural girlfriend ki tarah react karo!]"
+            reply_text, photo_to_send, sticker_to_send = chat_with_siya(prompt_text, full_name, user_id, chat_type="private")
+            
+            if photo_to_send:
+                send_secret_photo(chat_id, photo_to_send, caption=reply_text)
+            else:
+                send_message(chat_id, reply_text)
+                if sticker_to_send:
+                    send_sticker(chat_id, sticker_to_send)
+            return jsonify({"status": "private sticker processed"}), 200
+        elif is_group:
+            reply_from_id = str(msg.get("reply_to_message", {}).get("from", {}).get("id", ""))
+            if bool(BOT_ID) and reply_from_id == str(BOT_ID):
+                if mark_action_processed(f"group_sticker:{chat_id}:{msg.get('message_id')}"): return jsonify({"status": "duplicate"}), 200
+                send_typing(chat_id)
+                prompt_text = f"[User ne group me tumhare reply par ek sticker bheja: '{emoji}'. React cute/funny or romantic based on context.]"
+                group_title = get_live_group_title(chat_id, chat.get("title", "Group"))
+                reply_text, photo_to_send, sticker_to_send = chat_with_siya(prompt_text, full_name, user_id, chat_type="group", group_name=group_title)
+                
+                if photo_to_send:
+                    send_secret_photo(chat_id, photo_to_send, caption=reply_text, reply_to_message_id=msg.get("message_id"))
+                else:
+                    send_message(chat_id, reply_text, reply_to_message_id=msg.get("message_id"))
+                    if sticker_to_send:
+                        send_sticker(chat_id, sticker_to_send, reply_to_message_id=msg.get("message_id"))
+                return jsonify({"status": "group sticker processed"}), 200
+
+    # Private Chat (Text)
     if is_private and text:
         if text.lower().startswith(("/start", "/help")):
             send_message(chat_id, f"👋 Hello <a href=\"tg://user?id={user_id}\">{html.escape(full_name)}</a>!\n\nI'm <b>Siya AI</b> ✨\n💬 Message me anytime!", parse_mode="HTML")
         elif not text.startswith("/"):
             if mark_action_processed(f"private:{chat_id}:{msg.get('message_id')}"): return jsonify({"status": "duplicate"}), 200
             send_typing(chat_id)
-            reply_text = chat_with_siya(text, full_name, user_id, chat_type="private")
-            send_message(chat_id, reply_text)
+            reply_text, photo_to_send, sticker_to_send = chat_with_siya(text, full_name, user_id, chat_type="private")
+            
+            # Agar Siya ne photo bheji toh secret 10-sec photo jayegi with caption
+            if photo_to_send:
+                send_secret_photo(chat_id, photo_to_send, caption=reply_text)
+            else:
+                send_message(chat_id, reply_text)
+                if sticker_to_send:
+                    send_sticker(chat_id, sticker_to_send)
         return jsonify({"status": "private processed"}), 200
 
-    # Group AI Reply
+    # Group AI Reply (Text)
     if is_group and text:
         reply_from_id = str(msg.get("reply_to_message", {}).get("from", {}).get("id", ""))
         is_reply_to_bot = (bool(BOT_ID) and reply_from_id == str(BOT_ID))
@@ -528,8 +708,14 @@ def webhook_handler():
                 clean_text = f"[SYSTEM NOTE: The group is quiet. Randomly interrupt this message. Act a bit bored and say something cute to get attention] {clean_text}"
 
             group_title = get_live_group_title(chat_id, chat.get("title", "Group"))
-            reply_text = chat_with_siya(clean_text, full_name, user_id, chat_type="group", group_name=group_title)
-            send_message(chat_id, reply_text, reply_to_message_id=msg.get("message_id"))
+            reply_text, photo_to_send, sticker_to_send = chat_with_siya(clean_text, full_name, user_id, chat_type="group", group_name=group_title)
+            
+            if photo_to_send:
+                send_secret_photo(chat_id, photo_to_send, caption=reply_text, reply_to_message_id=msg.get("message_id"))
+            else:
+                send_message(chat_id, reply_text, reply_to_message_id=msg.get("message_id"))
+                if sticker_to_send:
+                    send_sticker(chat_id, sticker_to_send, reply_to_message_id=msg.get("message_id"))
         return jsonify({"status": "group ai processed"}), 200
 
     return jsonify({"status": "ok"}), 200
