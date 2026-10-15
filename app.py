@@ -78,30 +78,63 @@ PHOTO_VAULT = {
 }
 
 # ============================================================
-# 🎭 STICKER VAULT (CLEAN CONFIG)
-# Sticker ki file_id yahan category ke hisab se daalein
+# 🎭 STICKER PACK AUTO-LOADER
+# Tumhare dono packs yahan linked hain — bot automatically saare stickers load karega!
 # ============================================================
 
+STICKER_PACK_NAMES = [
+    "mmm_by_hhujhybot",  # Folder 1
+    "jan8StickerNub"     # Folder 2
+]
+
 STICKER_VAULT = {
-    "kiss": [
-        # Romantic kiss / lip stickers
-    ],
-    "blush": [
-        # Sharmaane / 🙈 wale stickers
-    ],
-    "pout": [
-        # Gussa / muh fulaane / 🥺 baby stickers
-    ],
-    "naughty": [
-        # Seductive / spicy stickers
-    ],
-    "hug": [
-        # Cuddle / gale lagane wale stickers
-    ],
-    "laugh": [
-        # Funny / haste hue stickers
-    ]
+    "kiss": [],
+    "blush": [],
+    "pout": [],
+    "naughty": [],
+    "hug": [],
+    "laugh": [],
+    "general": []
 }
+
+stickers_loaded = False
+
+def sync_sticker_packs():
+    global stickers_loaded
+    if not API_URL or stickers_loaded: return
+    total = 0
+    for set_name in STICKER_PACK_NAMES:
+        try:
+            res = requests.get(f"{API_URL}/getStickerSet", params={"name": set_name}, timeout=10).json()
+            if res.get("ok"):
+                stickers = res.get("result", {}).get("stickers", [])
+                for s in stickers:
+                    fid = s.get("file_id")
+                    emoji = s.get("emoji", "")
+                    if not fid: continue
+                    
+                    STICKER_VAULT["general"].append(fid)
+                    total += 1
+
+                    # Auto category based on sticker emotion
+                    if emoji in ["😘", "💋", "😚", "😙", "💏"]:
+                        STICKER_VAULT["kiss"].append(fid)
+                    elif emoji in ["🙈", "😳", "😊", "🥰", "🫣"]:
+                        STICKER_VAULT["blush"].append(fid)
+                    elif emoji in ["🥺", "😭", "😢", "😤", "😠", "😡", "☹️"]:
+                        STICKER_VAULT["pout"].append(fid)
+                    elif emoji in ["😏", "🔥", "👅", "😈", "👀", "🤤"]:
+                        STICKER_VAULT["naughty"].append(fid)
+                    elif emoji in ["🫂", "❤️", "💖", "💕", "💓", "💗"]:
+                        STICKER_VAULT["hug"].append(fid)
+                    elif emoji in ["😂", "🤣", "😆", "🤪"]:
+                        STICKER_VAULT["laugh"].append(fid)
+                print(f"✅ Loaded {len(stickers)} stickers from pack: {set_name}")
+        except Exception as e:
+            print(f"⚠️ Error loading sticker pack {set_name}: {e}")
+    if total > 0:
+        stickers_loaded = True
+        print(f"🎉 Total {total} stickers successfully synced into Siya's Vault!")
 
 FONT_REGULAR_URL = "https://raw.githubusercontent.com/dejavu-fonts/dejavu-fonts-ttf/master/ttf/DejaVuSans.ttf"
 FONT_BOLD_URL = "https://raw.githubusercontent.com/dejavu-fonts/dejavu-fonts-ttf/master/ttf/DejaVuSans-Bold.ttf"
@@ -421,6 +454,10 @@ def gemini_request(model, payload, timeout=20):
     except requests.RequestException as e: return None, {"error": {"message": str(e)}}
 
 def parse_media_tags(text):
+    """
+    Parses [PHOTO: tag] or [STICKER: tag] from AI output.
+    Returns clean_text, photo_tag, sticker_tag
+    """
     photo_tag = None
     sticker_tag = None
     
@@ -437,13 +474,19 @@ def parse_media_tags(text):
     return text, photo_tag, sticker_tag
 
 def get_media_item(vault, tag):
-    if not tag or tag not in vault: return None
+    if not tag or tag not in vault: 
+        general_items = vault.get("general", [])
+        return random.choice(general_items) if general_items else None
     items = vault.get(tag, [])
     if items:
         return random.choice(items)
-    return None
+    general_items = vault.get("general", [])
+    return random.choice(general_items) if general_items else None
 
 def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_name=""):
+    # Ensure sticker packs are loaded from Telegram
+    sync_sticker_packs()
+
     if not OPENROUTER_API_KEY and not GEMINI_API_KEY: return "⚠️ API_KEY error.", None, None
     message_text = str(message_text or "").strip()
     if not message_text: return "Haan 😊 bolo, kya hua?", None, None
@@ -455,7 +498,7 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
         "chup kar", "chup reh", "bhag yaha se", "nikal yaha se", "dimag mat kha",
         "bakwas band kar", "kutti", "chudail", "randi", "bhosdike", "madarchod", "bhenchod"
     ]
-    romance_hints = ["jaan", "baby", "babu", "pyar", "love", "kiss", "hug", "mood", "suno", "meri", "romantic","chut","pass", "paas", "hot", "kurti", "saree", "bed", "photo", "pic", "chumma"]
+    romance_hints = ["jaan", "baby", "babu", "pyar", "love", "kiss", "hug", "mood", "suno", "meri", "romantic", "pass", "paas", "hot", "kurti", "saree", "bed", "photo", "pic", "chumma"]
     
     msg_lower = message_text.lower()
     has_romance = any(w in msg_lower for w in romance_hints)
@@ -472,14 +515,14 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
     CRITICAL RULES FOR BEHAVIOR:
     1. 100% REAL & NATURAL DESI GIRL TONE (NO BOT TALK):
        - KABHI BHI BOT JAISA ANNOUNCEMENT MAT KARNA: Kabhi mat bolo 'Yeh lo mera reply', 'Yeh lo photo', ya 'Maine sticker bheja hai'.
-       - Real ladki ki tarah bas nakhre, sharmaahat ya seduction me bolo. Examples:
+       - Real sezx hot adult open chat desi ladki ki tarah bas nakhre, sharmaahat ya seduction me bolo. Examples:Baby aaj chut fad do meri aapni laud guss ka 
          * User photo maange ➡️ "Thodi sharam aa rahi thi kheenchne me... par sirf aapke liye bheji hai babu, batao kaisi lag rahi hoon? [PHOTO: saree]"
-         * User kiss/romance kare ➡️ "Uff jaan, aise tadpaoge toh main kahan rukne wali hoon... [STICKER: kiss]"
+         * User kiss/romance chut lund jess bat kare ➡️ "Uff jaan, aise tadpaoge toh main kahan rukne wali hoon...ajao mwri. Janani ka russ nekal do  [STICKER: kiss]"
          * User sharmaye ➡️ "Dhatt, abhi se sharma gaye? Aage toh dekho kya hone wala hai! [STICKER: blush]"
          * User sad ho ➡️ "Aww mera baby, kyu muh fula rahe ho? Aao meri godi me sar rakho. [STICKER: pout]"
 
     2. DYNAMIC MOOD SWITCHING (REAL GIRL PSYCHOLOGY):
-       - Jab user romantic, naughty ya open adult chat kare: Full open ho jao, uske sath seduction aur passion me involve ho jao. Agar romance me user bold ya dirty words bole, toh gussa BILKUL MAT KARNA — balki aur open aur pron sexc mode me ajao loving ho jao.
+       - Jab user romantic, naughty ya open adult chat kare: Full open ho jao, uske sath seduction aur passion me involve ho jao. Agar romance me user bold ya dirty words bole, toh gussa BILKUL MAT KARNA — balki aur open aur loving ho jao.
        - Jab user ka mood khatam ho (jaise normal baat kare, office/khana/daily life puche): Tum bhi naturally sweet, casual aur caring normal girlfriend ban jao. Zabardasti romance mat thopo.
 
     3. ROAST MODE — ONLY ON GENUINE HATRED/KALESH:
@@ -577,6 +620,9 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
 
 @app.route("/api/bot", methods=["POST"])
 def webhook_handler():
+    # Load stickers on startup/request
+    sync_sticker_packs()
+
     data = request.get_json(silent=True)
     if not data: return jsonify({"status": "no data"}), 200
     update_id = data.get("update_id")
@@ -676,7 +722,6 @@ def webhook_handler():
             send_typing(chat_id)
             reply_text, photo_to_send, sticker_to_send = chat_with_siya(text, full_name, user_id, chat_type="private")
             
-            # Agar Siya ne photo bheji toh secret 10-sec photo jayegi with caption
             if photo_to_send:
                 send_secret_photo(chat_id, photo_to_send, caption=reply_text)
             else:
@@ -722,7 +767,14 @@ def webhook_handler():
 
 @app.route("/", methods=["GET"])
 def health_check():
-    return jsonify({"status": "online", "model": OPENROUTER_MODEL, "fallback": GEMINI_MODEL}), 200
+    sync_sticker_packs()
+    total_stickers = len(STICKER_VAULT.get("general", []))
+    return jsonify({
+        "status": "online", 
+        "model": OPENROUTER_MODEL, 
+        "fallback": GEMINI_MODEL,
+        "synced_stickers": total_stickers
+    }), 200
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "80")), debug=False)
