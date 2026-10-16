@@ -28,18 +28,28 @@ except Exception as e:
 app = Flask(__name__)
 
 # ============================================================
-# CONFIG
+# MULTI-KEY CONFIGURATION (VERCEL ENVIRONMENT VARIABLES)
 # ============================================================
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip()
-OPENROUTER_API_KEY = os.environ.get(
-    "OPENROUTER_API_KEY",
-    "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"
-).strip()
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 BOT_USERNAME = os.environ.get("BOT_USERNAME", "Siya268_bot").strip().lstrip("@")
 
-# Primary OpenRouter models
+# --- GROQ CONFIG (4 Keys) ---
+GROQ_API_KEYS = [
+    os.environ.get("GROQ_API_KEY", "").strip(),
+    os.environ.get("GROQ_API_KEY2", "").strip(),
+    os.environ.get("GROQ_API_KEY3", "").strip(),
+    os.environ.get("GROQ_API_KEY4", "").strip()
+]
+GROQ_API_KEYS = [k for k in GROQ_API_KEYS if k]
+GROQ_MODEL = "llama3-8b-8192"
+
+# --- OPENROUTER CONFIG (2 Keys) ---
+OPENROUTER_API_KEYS = [
+    os.environ.get("OPENROUTER_API_KEY", "").strip(),
+    os.environ.get("OPENROUTER_API_KEY2", "").strip()
+]
+OPENROUTER_API_KEYS = [k for k in OPENROUTER_API_KEYS if k]
 OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "nousresearch/hermes-3-llama-3.1-405b:free").strip()
 OPENROUTER_FALLBACK_MODELS = [
     "meta-llama/llama-3.3-70b-instruct:free",
@@ -48,11 +58,17 @@ OPENROUTER_FALLBACK_MODELS = [
     "mistralai/mistral-7b-instruct:free",
 ]
 
-# Tumhare official 3.x models (Fallback)
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash").strip()
+# --- GEMINI CONFIG (3 Keys) ---
+GEMINI_API_KEYS = [
+    os.environ.get("GEMINI_API_KEY", "").strip(),
+    os.environ.get("GEMINI_API_KEY2", "").strip(),
+    os.environ.get("GEMINI_API_KEY3", "").strip()
+]
+GEMINI_API_KEYS = [k for k in GEMINI_API_KEYS if k]
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash").strip()
 GEMINI_FALLBACK_MODELS = [
-    "gemini-3.5-flash-lite",
-    "gemini-3.5-flash-lite",
+    "gemini-1.5-flash-8b",
+    "gemini-1.5-flash-8b"
 ]
 
 # ============================================================
@@ -417,40 +433,62 @@ def send_welcome_photo(chat_id, user_id, user_name, group_name, reply_to_message
     except Exception as e: return {"ok": False, "error": str(e)}
 
 # ============================================================
-# MULTIMODAL AI LOGIC (OPENROUTER + GEMINI VISION)
+# MULTIMODAL AI LOGIC & SMART WATERFALL SYSTEM
 # ============================================================
 
-def openrouter_request(model, system_instruction, user_prompt, timeout=15):
+def groq_request(api_key, model, system_instruction, user_prompt, timeout=15):
+    api_url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
+    payload = {
+        "model": model,
+        "messages": [{"role": "system", "content": system_instruction}, {"role": "user", "content": user_prompt}],
+        "temperature": 0.85, "max_tokens": 120,
+    }
+    try:
+        res = requests.post(api_url, headers=headers, json=payload, timeout=timeout)
+        if res.status_code == 429: return False, "Rate Limit"
+        if res.ok:
+            data = res.json()
+            if data.get("choices"): return True, data["choices"][0]["message"]["content"]
+        return False, f"HTTP {res.status_code}"
+    except Exception as e: return False, str(e)
+
+def openrouter_request(api_key, model, system_instruction, user_prompt, timeout=15):
     api_url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Authorization": f"Bearer {api_key}",
         "HTTP-Referer": "https://siya-ai.vercel.app",
         "X-Title": "Siya AI",
     }
     payload = {
         "model": model,
-        "messages": [
-            {"role": "system", "content": system_instruction},
-            {"role": "user", "content": user_prompt},
-        ],
-        "temperature": 0.85,
-        "max_tokens": 120,
+        "messages": [{"role": "system", "content": system_instruction}, {"role": "user", "content": user_prompt}],
+        "temperature": 0.85, "max_tokens": 120,
     }
     try:
         response = requests.post(api_url, headers=headers, json=payload, timeout=timeout)
-        try: return response, response.json()
-        except Exception: return response, {"error": {"message": f"HTTP {response.status_code} - {response.text}"}}
-    except requests.RequestException as e: return None, {"error": {"message": str(e)}}
+        if response.status_code == 429: return False, "Rate Limit"
+        if response.ok:
+            data = response.json()
+            if data.get("choices"): return True, data["choices"][0]["message"]["content"]
+        return False, f"HTTP {response.status_code}"
+    except Exception as e: return False, str(e)
 
-def gemini_request(model, payload, timeout=20):
+def gemini_request(api_key, model, payload, timeout=20):
     api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-    headers = {"Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY}
+    headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
     try:
         response = requests.post(api_url, headers=headers, json=payload, timeout=timeout)
-        try: return response, response.json()
-        except Exception: return response, {"error": {"message": f"HTTP {response.status_code} - {response.text}"}}
-    except requests.RequestException as e: return None, {"error": {"message": str(e)}}
+        if response.status_code == 429: return False, "Rate Limit"
+        if response.ok:
+            data = response.json()
+            if data.get("candidates"):
+                parts = data["candidates"][0].get("content", {}).get("parts", [])
+                raw_answer = "\n".join(p.get("text", "") for p in parts if p.get("text")).strip()
+                return True, raw_answer
+        return False, f"HTTP {response.status_code}"
+    except Exception as e: return False, str(e)
 
 def parse_media_tags(text):
     photo_tag = None
@@ -481,10 +519,9 @@ def get_media_item(vault, tag):
 def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_name="", media_base64=None, media_mime_type="image/jpeg"):
     sync_sticker_packs()
 
-    if not OPENROUTER_API_KEY and not GEMINI_API_KEY: return "⚠️ API_KEY error.", None, None
+    if not GROQ_API_KEYS and not OPENROUTER_API_KEYS and not GEMINI_API_KEYS: return "⚠️ API_KEY error.", None, None
     message_text = str(message_text or "").strip()
     
-    # Text aur Media dono nahi hain toh default response
     if not message_text and not media_base64: return "Haan 😊 bolo, kya hua?", None, None
 
     current_context = f"Group: {group_name}" if chat_type in ("group", "supergroup") else "Private DM"
@@ -541,87 +578,101 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
 
     last_error = ""
 
-    # Primary: OpenRouter (Sirf Text messages ke liye, Media ke sath error aayega isliye ignore karenge)
-    if OPENROUTER_API_KEY and not media_base64:
-        or_models = []
-        for model in ([OPENROUTER_MODEL] + OPENROUTER_FALLBACK_MODELS):
-            if model and model not in or_models: or_models.append(model)
+    # ROUTE 1: MEDIA PROCESSING (DIRECTLY TO GEMINI VISION)
+    if media_base64:
+        for key in GEMINI_API_KEYS:
+            user_parts = []
+            if prompt: user_parts.append({"text": prompt})
+            user_parts.append({"inlineData": {"mimeType": media_mime_type, "data": media_base64}})
+                
+            payload = {
+                "systemInstruction": {"parts": [{"text": system_instruction}]},
+                "contents": [{"role": "user", "parts": user_parts}],
+                "generationConfig": {"temperature": 0.85, "maxOutputTokens": 100}, 
+            }
 
-        for model in or_models:
-            response, result = openrouter_request(model, system_instruction, prompt, timeout=15)
-            if response and response.ok:
-                choices = result.get("choices", [])
-                if choices:
-                    raw_answer = (choices[0].get("message", {}).get("content") or "").strip()
-                    if raw_answer:
-                        clean_text, photo_tag, sticker_tag = parse_media_tags(raw_answer)
-                        photo_to_send = get_media_item(PHOTO_VAULT, photo_tag)
-                        sticker_to_send = get_media_item(STICKER_VAULT, sticker_tag)
-                        
-                        memory_note = clean_text
-                        if photo_tag: memory_note += f" [Sent secret {photo_tag} photo]"
-                        if sticker_tag: memory_note += f" [Sent {sticker_tag} sticker]"
-                        
-                        add_to_history(user_id, "user", message_text, current_context)
-                        add_to_history(user_id, "siya", memory_note, current_context)
-                        return clean_text, photo_to_send, sticker_to_send
-            elif response:
-                err_obj = result.get("error", {})
-                last_error = err_obj.get("message", f"HTTP {response.status_code}") if isinstance(err_obj, dict) else str(err_obj)
-            else:
-                last_error = result.get("error", {}).get("message", "OpenRouter Network Error")
+            models = [GEMINI_MODEL] + GEMINI_FALLBACK_MODELS
+            for model in models:
+                success, response_text = gemini_request(key, model, payload, timeout=15)
+                if success and response_text:
+                    clean_text, photo_tag, sticker_tag = parse_media_tags(response_text)
+                    photo_to_send = get_media_item(PHOTO_VAULT, photo_tag)
+                    sticker_to_send = get_media_item(STICKER_VAULT, sticker_tag)
+                    
+                    memory_note = clean_text
+                    if photo_tag: memory_note += f" [Sent secret {photo_tag} photo]"
+                    if sticker_tag: memory_note += f" [Sent {sticker_tag} sticker]"
 
-    # Fallback & VISION: Gemini (Jab OR fail ho, YA jab user Photo/Sticker bheje)
-    if GEMINI_API_KEY:
-        user_parts = []
-        if prompt:
-            user_parts.append({"text": prompt})
+                    msg_to_save = "[Media sent by user]" if not message_text else message_text
+                    add_to_history(user_id, "user", msg_to_save, current_context)
+                    add_to_history(user_id, "siya", memory_note, current_context)
+                    return clean_text, photo_to_send, sticker_to_send
+                last_error = str(response_text)
+        return f"⚠️ Baby abhi main images theek se nahi dekh paa rahi.", None, None
+
+    # ROUTE 2: TEXT PROCESSING (GROQ -> OPENROUTER -> GEMINI)
+    
+    # Step A: Groq Waterfall
+    for key in GROQ_API_KEYS:
+        success, response_text = groq_request(key, GROQ_MODEL, system_instruction, prompt, timeout=15)
+        if success and response_text:
+            clean_text, photo_tag, sticker_tag = parse_media_tags(response_text)
+            photo_to_send = get_media_item(PHOTO_VAULT, photo_tag)
+            sticker_to_send = get_media_item(STICKER_VAULT, sticker_tag)
             
-        # Aankhein: Gemini ko base64 image dena
-        if media_base64:
-            user_parts.append({
-                "inlineData": {
-                    "mimeType": media_mime_type,
-                    "data": media_base64
-                }
-            })
+            memory_note = clean_text
+            if photo_tag: memory_note += f" [Sent secret {photo_tag} photo]"
+            if sticker_tag: memory_note += f" [Sent {sticker_tag} sticker]"
             
+            add_to_history(user_id, "user", message_text, current_context)
+            add_to_history(user_id, "siya", memory_note, current_context)
+            return clean_text, photo_to_send, sticker_to_send
+        last_error = str(response_text)
+
+    # Step B: OpenRouter Waterfall
+    for key in OPENROUTER_API_KEYS:
+        models = [OPENROUTER_MODEL] + OPENROUTER_FALLBACK_MODELS
+        for model in models:
+            success, response_text = openrouter_request(key, model, system_instruction, prompt, timeout=15)
+            if success and response_text:
+                clean_text, photo_tag, sticker_tag = parse_media_tags(response_text)
+                photo_to_send = get_media_item(PHOTO_VAULT, photo_tag)
+                sticker_to_send = get_media_item(STICKER_VAULT, sticker_tag)
+                
+                memory_note = clean_text
+                if photo_tag: memory_note += f" [Sent secret {photo_tag} photo]"
+                if sticker_tag: memory_note += f" [Sent {sticker_tag} sticker]"
+                
+                add_to_history(user_id, "user", message_text, current_context)
+                add_to_history(user_id, "siya", memory_note, current_context)
+                return clean_text, photo_to_send, sticker_to_send
+            last_error = str(response_text)
+
+    # Step C: Gemini Waterfall
+    for key in GEMINI_API_KEYS:
         payload = {
             "systemInstruction": {"parts": [{"text": system_instruction}]},
-            "contents": [{"role": "user", "parts": user_parts}],
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
             "generationConfig": {"temperature": 0.85, "maxOutputTokens": 100}, 
         }
-
-        models = []
-        for model in ([GEMINI_MODEL] + GEMINI_FALLBACK_MODELS):
-            if model and model not in models: models.append(model)
-
+        models = [GEMINI_MODEL] + GEMINI_FALLBACK_MODELS
         for model in models:
-            response, result = gemini_request(model, payload, timeout=15)
-            if response and response.ok:
-                candidates = result.get("candidates", [])
-                if candidates:
-                    parts = candidates[0].get("content", {}).get("parts", [])
-                    raw_answer = "\n".join(p.get("text", "") for p in parts if p.get("text")).strip()
-                    if raw_answer: 
-                        clean_text, photo_tag, sticker_tag = parse_media_tags(raw_answer)
-                        photo_to_send = get_media_item(PHOTO_VAULT, photo_tag)
-                        sticker_to_send = get_media_item(STICKER_VAULT, sticker_tag)
-                        
-                        memory_note = clean_text
-                        if photo_tag: memory_note += f" [Sent secret {photo_tag} photo]"
-                        if sticker_tag: memory_note += f" [Sent {sticker_tag} sticker]"
+            success, response_text = gemini_request(key, model, payload, timeout=15)
+            if success and response_text:
+                clean_text, photo_tag, sticker_tag = parse_media_tags(response_text)
+                photo_to_send = get_media_item(PHOTO_VAULT, photo_tag)
+                sticker_to_send = get_media_item(STICKER_VAULT, sticker_tag)
+                
+                memory_note = clean_text
+                if photo_tag: memory_note += f" [Sent secret {photo_tag} photo]"
+                if sticker_tag: memory_note += f" [Sent {sticker_tag} sticker]"
 
-                        msg_to_save = "[Media sent by user]" if not message_text else message_text
-                        add_to_history(user_id, "user", msg_to_save, current_context)
-                        add_to_history(user_id, "siya", memory_note, current_context)
-                        return clean_text, photo_to_send, sticker_to_send
-            elif response:
-                last_error = result.get("error", {}).get("message", f"HTTP {response.status_code}")
-            else:
-                last_error = result.get("error", {}).get("message", "Network Error")
+                add_to_history(user_id, "user", message_text, current_context)
+                add_to_history(user_id, "siya", memory_note, current_context)
+                return clean_text, photo_to_send, sticker_to_send
+            last_error = str(response_text)
 
-    return f"⚠ Error: {last_error}", None, None
+    return f"⚠ Server busy hai babu: {last_error}", None, None
 
 # ============================================================
 # WEBHOOK 
@@ -800,7 +851,8 @@ def health_check():
         "status": "online", 
         "model": OPENROUTER_MODEL, 
         "fallback": GEMINI_MODEL,
-        "synced_stickers": total_stickers
+        "synced_stickers": total_stickers,
+        "groq_keys_loaded": len(GROQ_API_KEYS)
     }), 200
 
 if __name__ == "__main__":
