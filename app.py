@@ -110,7 +110,6 @@ else:
 # ============================================================
 # 💎 CREDIT PLANS CONFIG (REQUEST BASED)
 # ============================================================
-# Free users start with 15 credits. Buying a plan adds exact credits!
 PLAN_CREDITS = {
     "30": 35,
     "49": 50,
@@ -119,20 +118,60 @@ PLAN_CREDITS = {
 }
 
 # ============================================================
-# 📸🎥 PHOTO & VIDEO VAULT (GITHUB LOCAL FILES)
+# 📸🎥 PHOTO & VIDEO VAULT (UPDATED WITH ALL NEW FILES)
 # ============================================================
 
 PHOTO_VAULT = {
     "simplepic": ["simplepic.jpg", "simplepic2.jpg"],
-    "bodes": ["private1.jpg", "private2.jpg", "private3.jpg", "private4.jpg", "video.mp4", "video2.mp4"],
-    "bodes_video": ["video.mp4", "video2.mp4"],
+    "kiss": ["kiss.jpg"],
+    "bodes": [
+        "private1.jpg", "private2.jpg", "private3.jpg", "private4.jpg", "private5.jpg",
+        "video.mp4", "video1.mp4", "video2.mp4", "video3.mp4"
+    ],
+    "bodes_video": ["video.mp4", "video1.mp4", "video2.mp4", "video3.mp4"],
     "showhard": ["showhard.jpg", "showhard2.jpg"],
-    "chut": ["open1.jpg", "open2.jpg", "video3.mp4", "video4.mp4"],
-    "chut_video": ["video3.mp4", "video4.mp4"],
+    "chut": [
+        "open1.jpg", "open2.jpg", "opan3.jpg", "open3.jpg", "open4.jpg", "opan4.jpg",
+        "video4.mp4", "video5.mp4"
+    ],
+    "chut_video": ["video4.mp4", "video5.mp4"],
     "endshow": ["endshow.jpg"],
-    "gand": ["bom1.jpg", "bom2.jpg", "video5.mp4"],
-    "gand_video": ["video5.mp4"]
+    "gand": [
+        "bom1.jpg", "bom2.jpg", "bom3.jpg",
+        "video6.mp4", "video7.mp4"
+    ],
+    "gand_video": ["video6.mp4", "video7.mp4"]
 }
+
+def find_local_file(filename):
+    """Checks if a file exists locally on Vercel server."""
+    if not filename: return None
+    for p in [os.path.join(BASE_DIR, filename), os.path.join(BASE_DIR, "..", filename), os.path.join(os.getcwd(), filename)]:
+        if os.path.exists(p) and os.path.isfile(p):
+            return p
+    return None
+
+def get_media_item(vault, tag, prefer_video=False):
+    if not tag: return None
+    tag = tag.lower().strip()
+    # Map synonyms if AI outputs slightly different tag name
+    if tag in ["boom", "bom", "ass", "back"]: tag = "gand"
+    elif tag in ["private", "privatepic", "nudes", "body"]: tag = "bodes"
+    elif tag in ["open", "opan", "pussy", "front"]: tag = "chut"
+
+    candidates = []
+    if prefer_video and f"{tag}_video" in vault:
+        candidates = vault[f"{tag}_video"]
+    elif tag in vault:
+        candidates = vault[tag]
+
+    if not candidates: return None
+
+    # Filter only files that actually exist in the GitHub deployment so it never fails!
+    existing = [f for f in candidates if find_local_file(f) is not None]
+    if existing:
+        return random.choice(existing)
+    return random.choice(candidates)
 
 # ============================================================
 # 🎭 STICKER PACK AUTO-LOADER (ALL 10 PACKS)
@@ -167,16 +206,6 @@ def get_sticker(s_type):
         return random.choice(STICKER_VAULT[s_type])
     return None
 
-def get_media_item(vault, tag, prefer_video=False):
-    if not tag: return None
-    tag = tag.lower().strip()
-    if prefer_video and f"{tag}_video" in vault:
-        v_items = vault[f"{tag}_video"]
-        if v_items: return random.choice(v_items)
-    if tag not in vault: return None
-    items = vault.get(tag, [])
-    return random.choice(items) if items else None
-
 FONT_REGULAR_URL = "https://raw.githubusercontent.com/dejavu-fonts/dejavu-fonts-ttf/master/ttf/DejaVuSans.ttf"
 FONT_BOLD_URL = "https://raw.githubusercontent.com/dejavu-fonts/dejavu-fonts-ttf/master/ttf/DejaVuSans-Bold.ttf"
 FONT_REGULAR_PATH = "/tmp/Siya-DejaVuSans.ttf"
@@ -199,7 +228,6 @@ def fb_get_user(user_id):
         res = requests.get(f"{FIREBASE_URL}/users/{user_id}.json?auth={FIREBASE_SECRET}", timeout=5).json()
         if isinstance(res, dict):
             if "credits" not in res:
-                # Migrate old msg_count users to credit system smoothly
                 used = int(res.get("msg_count", 0))
                 res["credits"] = max(0, 15 - used)
             return res
@@ -219,7 +247,7 @@ def add_to_history(user_id, role, text, context_type="Private DM"):
     user_data = fb_get_user(user_id)
     history = user_data.get("history", [])
     history.append({"role": role, "text": text, "context": context_type})
-    if len(history) > 60: history = history[-60:] # Strong 60-message memory
+    if len(history) > 60: history = history[-60:]
     fb_update_user(user_id, {"history": history})
 
 def cache_get(key):
@@ -296,24 +324,14 @@ def get_payment_keyboard():
     }
 
 def send_local_or_url_media(chat_id, filename, caption="", protect=False, spoiler=False, reply_to_message_id=None, parse_mode=None):
-    """Automatically detects .mp4 vs .jpg and uploads directly from Vercel disk or URL!"""
+    """Automatically detects .mp4 vs .jpg and uploads directly from Vercel disk!"""
     if not filename: return {"ok": False}
     is_video = filename.lower().endswith(".mp4")
     api_method = "sendVideo" if is_video else "sendPhoto"
     media_key = "video" if is_video else "photo"
     mime_type = "video/mp4" if is_video else "image/jpeg"
 
-    possible_paths = [
-        os.path.join(BASE_DIR, filename),
-        os.path.join(BASE_DIR, "..", filename),
-        os.path.join(os.getcwd(), filename)
-    ]
-    
-    local_file_path = None
-    for p in possible_paths:
-        if os.path.exists(p) and os.path.isfile(p):
-            local_file_path = p
-            break
+    local_file_path = find_local_file(filename)
 
     if local_file_path:
         try:
@@ -545,7 +563,6 @@ def groq_request(api_key, model, system_instruction, user_prompt, timeout=15):
             data = res.json()
             if data.get("choices"):
                 ans = (data["choices"][0]["message"]["content"] or "").strip()
-                # Strip <think>...</think> tags if deepseek model is used
                 ans = re.sub(r"<think>.*?</think>", "", ans, flags=re.DOTALL).strip()
                 if is_censored_refusal(ans):
                     return False, "Groq Censored"
@@ -634,28 +651,29 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
 
     CRITICAL HUMAN PROGRESSION & BEHAVIOR RULES:
     1. STAGE 1 — SWEET, CUTE & LOVING (DEFAULT):
-       - Jab baat normal ho, toh ekdum pyari, sweet, caring aur cute girlfriend ki tarah baat karo (e.g., "Kya kar rahe ho babu?", "Khana khaya?").
+       - Jab baat normal ho, toh ekdum pyari, sweet, caring aur cute girlfriend ki tarah baat karo.
        - Agar user GK, logic ya koi sawal puche, toh smartly sahi jawab do pyar ke sath.
 
     2. STAGE 2 — SHY TO FULL OPEN ROMANCE (STEP-BY-STEP):
        - Jab user romance shuru kare, toh pehle thoda sharmao aur nakhre dikhao ("Dhatt, badi besharam baatein karte ho... 🙈").
        - Jaise-jaise user aage badhe, dheere-dheere full open, wild, passionate aur submissive ho jao!
-       - IMPORTANT: Romance aur intimate roleplay ke dauran agar user dirty words ya gaali bhi de, toh GUSSA BILKUL MAT HONA, balki usko enjoy karo aur pura sath do sexc adult chat me.
+       - IMPORTANT: Romance ke dauran agar user dirty words ya gaali bhi de, toh GUSSA BILKUL MAT HONA, balki usko enjoy karo adult chat srxc full opan aur pura sath do.
 
     3. STAGE 3 — AFTER-ROMANCE COOL DOWN (TIRED & SWEET):
        - Jab intense romance khatam ho aur user normal baat par aaye, toh bilkul real ladki ki tarah react karo: "Uff jaan, aaj toh kasam se maza aa gaya... main toh puri thak chuki hoon ab tumhari baahon me sona hai 🥰" aur `[PHOTO: endshow]` lagao. Fir wapas normal cute mode me aa jao.
 
     4. CUSTOM CHARACTER & STORY ROLEPLAY:
-       - Agar user bole "Aaj tumhara naam X hai" ya "Tum meri bhabhi/teacher/maid/gf ho aur aisi story hai", toh turant us naam aur किरदार (character) ko apna lo aur usi story ke hisab se roleplay karo!
+       - Agar user bole "Aaj tumhara naam X hai" ya "Tum meri bhabhi/teacher/maid/gf ho", toh turant us naam aur character ko apna lo aur usi story ke hisab se roleplay karo!
 
     5. ANGER MODE (ONLY IN NON-ROMANTIC FIGHTS):
-       - Agar bina kisi romance ke user seedha badtameezi ya ladai kare, tabhi gusse me gali maderchod bsdk chutiya mc bhanchod or roast karo. Aur jab user sorry bole ya pyar se manaye, toh pighal kar maan jao.
+       - Agar bina kisi romance ke user seedha badtameezi ya ladai kare, tabhi gusse me roast karo. Aur jab user sorry bole ya pyar se manaye, toh pighal kar maan jao.
 
-    MEDIA TAGS (Add at the end of reply ONLY when situation matches):
+    MEDIA TAGS (Add at the end of reply when user asks OR automatically during intense romance):
     - User asks for normal/cute photo -> [PHOTO: simplepic]
-    - User asks for private body photo/video (bodes/nudes) -> [PHOTO: bodes]
-    - User asks for front open photo/video (chut/pussy) -> [PHOTO: chut]
-    - User asks for back photo/video (gand/ass) -> [PHOTO: gand]
+    - User asks for a kiss pic or intense kissing moment -> [PHOTO: kiss]
+    - User asks for private body photo/video (bodes/nudes/private) OR during hot romance -> [PHOTO: bodes]
+    - User asks for front open photo/video (chut/pussy/open) OR during deep romance -> [PHOTO: chut]
+    - User asks for back photo/video (gand/boom/bom/ass) -> [PHOTO: gand]
     - Surprise him in the middle of peak romance -> [PHOTO: showhard]
     - Right when romance finishes & cooling down -> [PHOTO: endshow]
     - Add ONE sticker tag matching mood -> [STICKER: NORMAL] or [STICKER: ROMANTIC] or [STICKER: HOT]
@@ -975,7 +993,6 @@ def webhook_handler():
                 media_label = "photo"
             else:
                 v_obj = msg.get("video") or msg.get("animation") or {}
-                # Use thumbnail if video is large so it downloads super fast on Vercel
                 if v_obj.get("file_size", 0) > 4000000 and v_obj.get("thumbnail"):
                     file_id = v_obj["thumbnail"]["file_id"]
                     mime = "image/jpeg"
