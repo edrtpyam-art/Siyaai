@@ -53,8 +53,8 @@ OPENROUTER_FALLBACK_MODELS = ["cognitivecomputations/dolphin3.0-r1-mistral-24b:f
 
 # --- 3. GEMINI CONFIG ---
 GEMINI_API_KEYS = [os.environ.get(f"GEMINI_API_KEY{i if i>1 else ''}", "").strip() for i in range(1, 4) if os.environ.get(f"GEMINI_API_KEY{i if i>1 else ''}", "").strip()]
-GEMINI_MODEL = "gemini-2.5-flash"
-GEMINI_FALLBACK_MODELS = ["gemini-1.5-flash", "gemini-1.5-pro"]
+GEMINI_MODEL = "gemini-3.8-flash"
+GEMINI_FALLBACK_MODELS = [  "gemini-3.6-flash", "gemini-3.5-flash-lite",]
 
 GEMINI_SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
