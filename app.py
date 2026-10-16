@@ -417,7 +417,7 @@ def send_welcome_photo(chat_id, user_id, user_name, group_name, reply_to_message
     except Exception as e: return {"ok": False, "error": str(e)}
 
 # ============================================================
-# OPENROUTER & GEMINI
+# MULTIMODAL AI LOGIC (OPENROUTER + GEMINI VISION)
 # ============================================================
 
 def openrouter_request(model, system_instruction, user_prompt, timeout=15):
@@ -478,12 +478,14 @@ def get_media_item(vault, tag):
     general_items = vault.get("general", [])
     return random.choice(general_items) if general_items else None
 
-def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_name=""):
+def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_name="", media_base64=None, media_mime_type="image/jpeg"):
     sync_sticker_packs()
 
     if not OPENROUTER_API_KEY and not GEMINI_API_KEY: return "⚠️ API_KEY error.", None, None
     message_text = str(message_text or "").strip()
-    if not message_text: return "Haan 😊 bolo, kya hua?", None, None
+    
+    # Text aur Media dono nahi hain toh default response
+    if not message_text and not media_base64: return "Haan 😊 bolo, kya hua?", None, None
 
     current_context = f"Group: {group_name}" if chat_type in ("group", "supergroup") else "Private DM"
 
@@ -539,7 +541,8 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
 
     last_error = ""
 
-    if OPENROUTER_API_KEY:
+    # Primary: OpenRouter (Sirf Text messages ke liye, Media ke sath error aayega isliye ignore karenge)
+    if OPENROUTER_API_KEY and not media_base64:
         or_models = []
         for model in ([OPENROUTER_MODEL] + OPENROUTER_FALLBACK_MODELS):
             if model and model not in or_models: or_models.append(model)
@@ -568,10 +571,24 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
             else:
                 last_error = result.get("error", {}).get("message", "OpenRouter Network Error")
 
+    # Fallback & VISION: Gemini (Jab OR fail ho, YA jab user Photo/Sticker bheje)
     if GEMINI_API_KEY:
+        user_parts = []
+        if prompt:
+            user_parts.append({"text": prompt})
+            
+        # Aankhein: Gemini ko base64 image dena
+        if media_base64:
+            user_parts.append({
+                "inlineData": {
+                    "mimeType": media_mime_type,
+                    "data": media_base64
+                }
+            })
+            
         payload = {
             "systemInstruction": {"parts": [{"text": system_instruction}]},
-            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "contents": [{"role": "user", "parts": user_parts}],
             "generationConfig": {"temperature": 0.85, "maxOutputTokens": 100}, 
         }
 
@@ -595,7 +612,8 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
                         if photo_tag: memory_note += f" [Sent secret {photo_tag} photo]"
                         if sticker_tag: memory_note += f" [Sent {sticker_tag} sticker]"
 
-                        add_to_history(user_id, "user", message_text, current_context)
+                        msg_to_save = "[Media sent by user]" if not message_text else message_text
+                        add_to_history(user_id, "user", msg_to_save, current_context)
                         add_to_history(user_id, "siya", memory_note, current_context)
                         return clean_text, photo_to_send, sticker_to_send
             elif response:
@@ -632,6 +650,14 @@ def webhook_handler():
     user_id = str(user.get("id", ""))
     full_name = f"{user.get('first_name', 'User')} {user.get('last_name', '')}".strip()
 
+    # Calculate Group Permissions (Common for text & media)
+    should_process_group = False
+    if is_group:
+        reply_from_id = str(msg.get("reply_to_message", {}).get("from", {}).get("id", ""))
+        is_reply_to_bot = (bool(BOT_ID) and reply_from_id == str(BOT_ID))
+        is_bot_tagged = (f"@{BOT_USERNAME.lower()}" in text.lower())
+        should_process_group = (is_reply_to_bot or is_bot_tagged)
+
     # Welcome
     new_members = msg.get("new_chat_members", [])
     if is_group and new_members:
@@ -664,52 +690,17 @@ def webhook_handler():
             p_file_id = best_photo.get("file_id")
             print(f"📸 CAPTURED PHOTO FILE ID: {p_file_id}")
             
-            if is_private:
+            if is_private or should_process_group:
                 send_typing(chat_id)
-                prompt_text = f"[User ne ek photo bheji hai. Caption: '{caption}'. Is photo ko dhyan se dekho aur ek romantic girlfriend ki tarah react karo!]"
+                prompt_text = f"[User ne ek photo bheji hai. Caption: '{caption}'. Is photo ko sach me dhyan se dekho aur ek romantic girlfriend ki tarah react karo!]"
                 
                 base64_img = get_telegram_file_base64(p_file_id)
-                if base64_img:
-                    prompt_text += f"\n[IMAGE_BASE64: {base64_img[:50]}...]" 
                 
-                reply_text, photo_to_send, sticker_to_send = chat_with_siya(prompt_text, full_name, user_id, chat_type="private")
-                
-                if photo_to_send:
-                    send_secret_photo(chat_id, photo_to_send, caption=reply_text)
-                else:
-                    send_message(chat_id, reply_text)
-                    if sticker_to_send:
-                        send_sticker(chat_id, sticker_to_send)
-                return jsonify({"status": "photo read processed"}), 200
-
-    # User ne Sticker bheja
-    if "sticker" in msg:
-        sticker = msg["sticker"]
-        emoji = sticker.get("emoji", "😊")
-        sticker_file_id = sticker.get("file_id", "")
-        print(f"🎭 CAPTURED STICKER FILE ID: {sticker_file_id} | Emoji: {emoji}")
-
-        if is_private:
-            if mark_action_processed(f"private_sticker:{chat_id}:{msg.get('message_id')}"): return jsonify({"status": "duplicate"}), 200
-            send_typing(chat_id)
-            prompt_text = f"[User ne ek sticker bheja hai jiska emoji/emotion '{emoji}' hai. Is sticker par bilkul natural girlfriend ki tarah react karo!]"
-            reply_text, photo_to_send, sticker_to_send = chat_with_siya(prompt_text, full_name, user_id, chat_type="private")
-            
-            if photo_to_send:
-                send_secret_photo(chat_id, photo_to_send, caption=reply_text)
-            else:
-                send_message(chat_id, reply_text)
-                if sticker_to_send:
-                    send_sticker(chat_id, sticker_to_send)
-            return jsonify({"status": "private sticker processed"}), 200
-        elif is_group:
-            reply_from_id = str(msg.get("reply_to_message", {}).get("from", {}).get("id", ""))
-            if bool(BOT_ID) and reply_from_id == str(BOT_ID):
-                if mark_action_processed(f"group_sticker:{chat_id}:{msg.get('message_id')}"): return jsonify({"status": "duplicate"}), 200
-                send_typing(chat_id)
-                prompt_text = f"[User ne group me tumhare reply par ek sticker bheja: '{emoji}'. React cute/funny or romantic based on context.]"
-                group_title = get_live_group_title(chat_id, chat.get("title", "Group"))
-                reply_text, photo_to_send, sticker_to_send = chat_with_siya(prompt_text, full_name, user_id, chat_type="group", group_name=group_title)
+                reply_text, photo_to_send, sticker_to_send = chat_with_siya(
+                    prompt_text, full_name, user_id, chat_type=chat_type, 
+                    group_name=get_live_group_title(chat_id) if is_group else "",
+                    media_base64=base64_img, media_mime_type="image/jpeg"
+                )
                 
                 if photo_to_send:
                     send_secret_photo(chat_id, photo_to_send, caption=reply_text, reply_to_message_id=msg.get("message_id"))
@@ -717,7 +708,43 @@ def webhook_handler():
                     send_message(chat_id, reply_text, reply_to_message_id=msg.get("message_id"))
                     if sticker_to_send:
                         send_sticker(chat_id, sticker_to_send, reply_to_message_id=msg.get("message_id"))
-                return jsonify({"status": "group sticker processed"}), 200
+                return jsonify({"status": "photo read processed"}), 200
+
+    # User ne Sticker bheja (Gemini Vision + Emoji Fallback)
+    if "sticker" in msg:
+        sticker = msg["sticker"]
+        emoji = sticker.get("emoji", "😊")
+        sticker_file_id = sticker.get("file_id", "")
+        is_animated = sticker.get("is_animated", False)
+        is_video = sticker.get("is_video", False)
+        print(f"🎭 CAPTURED STICKER FILE ID: {sticker_file_id} | Emoji: {emoji}")
+
+        if is_private or should_process_group:
+            send_typing(chat_id)
+            
+            # WebP/WebM stickers ko base64 banakar direct AI ki aankhon me bhejo
+            if not is_animated:
+                base64_img = get_telegram_file_base64(sticker_file_id)
+                mime = "video/webm" if is_video else "image/webp"
+                prompt_text = "[User ne chat me ek sticker image bheja hai. Is image/meme/feeling ko dhyan se dekho aur natural partner ki tarah reply do!]"
+                
+                reply_text, photo_to_send, sticker_to_send = chat_with_siya(
+                    prompt_text, full_name, user_id, chat_type=chat_type,
+                    group_name=get_live_group_title(chat_id) if is_group else "",
+                    media_base64=base64_img, media_mime_type=mime
+                )
+            else:
+                # Agar animated (.tgs) hai toh purana emoji fallback use hoga
+                prompt_text = f"[User ne ek animated sticker bheja hai jiska emoji/emotion '{emoji}' hai. Is sticker par bilkul natural girlfriend ki tarah react karo!]"
+                reply_text, photo_to_send, sticker_to_send = chat_with_siya(prompt_text, full_name, user_id, chat_type=chat_type, group_name=get_live_group_title(chat_id) if is_group else "")
+            
+            if photo_to_send:
+                send_secret_photo(chat_id, photo_to_send, caption=reply_text, reply_to_message_id=msg.get("message_id"))
+            else:
+                send_message(chat_id, reply_text, reply_to_message_id=msg.get("message_id"))
+                if sticker_to_send:
+                    send_sticker(chat_id, sticker_to_send, reply_to_message_id=msg.get("message_id"))
+            return jsonify({"status": "sticker read processed"}), 200
 
     # Private Chat (Text)
     if is_private and text:
@@ -738,19 +765,13 @@ def webhook_handler():
 
     # Group AI Reply (Text)
     if is_group and text:
-        reply_from_id = str(msg.get("reply_to_message", {}).get("from", {}).get("id", ""))
-        is_reply_to_bot = (bool(BOT_ID) and reply_from_id == str(BOT_ID))
-        is_bot_tagged = (f"@{BOT_USERNAME.lower()}" in text.lower())
-        
-        should_reply = (is_reply_to_bot or is_bot_tagged)
         is_random_interruption = False
-
-        if not should_reply:
+        if not should_process_group:
             if random.randint(1, 100) <= 7:
-                should_reply = True
+                should_process_group = True
                 is_random_interruption = True
 
-        if should_reply and not text.startswith("/"):
+        if should_process_group and not text.startswith("/"):
             if mark_action_processed(f"group:{chat_id}:{msg.get('message_id')}"): return jsonify({"status": "duplicate"}), 200
             send_typing(chat_id)
             clean_text = re.sub(rf"@{re.escape(BOT_USERNAME)}\b", "", text, flags=re.IGNORECASE).strip() or "Hello"
