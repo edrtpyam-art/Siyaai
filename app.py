@@ -28,7 +28,7 @@ except Exception as e:
 app = Flask(__name__)
 
 # ============================================================
-# MULTI-KEY CONFIGURATION (VERCEL ENVIRONMENT VARIABLES)
+# MULTI-KEY CONFIGURATION (OFFICIAL 2026 MODELS)
 # ============================================================
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip()
@@ -42,8 +42,13 @@ GROQ_API_KEYS = [
     os.environ.get("GROQ_API_KEY4", "").strip()
 ]
 GROQ_API_KEYS = [k for k in GROQ_API_KEYS if k]
-# FIXED WORKING GROQ MODEL (Do not use ChatGPT's fake models)
-GROQ_MODEL = "llama-3.1-8b-instant" 
+
+# Official Groq Models (from your screenshot & GroqDocs)
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b").strip()
+GROQ_FALLBACK_MODELS = [
+    "openai/gpt-oss-20b",
+    "qwen/qwen3.8-27b"
+]
 
 # --- OPENROUTER CONFIG (2 Keys) ---
 OPENROUTER_API_KEYS = [
@@ -51,11 +56,13 @@ OPENROUTER_API_KEYS = [
     os.environ.get("OPENROUTER_API_KEY2", "").strip()
 ]
 OPENROUTER_API_KEYS = [k for k in OPENROUTER_API_KEYS if k]
-# FIXED WORKING OPENROUTER FREE MODELS
-OPENROUTER_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
+
+# Official OpenRouter Free Models
+OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "qwen/qwen3.8-27b:free").strip()
 OPENROUTER_FALLBACK_MODELS = [
-    "google/gemma-2-9b-it:free",
-    "huggingfaceh4/zephyr-7b-beta:free",
+    "openrouter/free",
+    "thinkingmachines/inkling:free",
+    "cohere/north-mini-code:free",
 ]
 
 # --- GEMINI CONFIG (3 Keys) ---
@@ -65,10 +72,13 @@ GEMINI_API_KEYS = [
     os.environ.get("GEMINI_API_KEY3", "").strip()
 ]
 GEMINI_API_KEYS = [k for k in GEMINI_API_KEYS if k]
-# FIXED WORKING GEMINI MODELS (Gemini 3.8 does not exist)
-GEMINI_MODEL = "gemini-1.5-flash"
+
+# Official Gemini 3.x & 2.5 Models (Active Free Tier)
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash").strip()
 GEMINI_FALLBACK_MODELS = [
-    "gemini-1.5-flash-8b"
+    "gemini-3.5-flash-lite",
+    "gemini-3.5-flash",
+    "gemini-2.5-flash"
 ]
 
 if BOT_TOKEN:
@@ -449,7 +459,7 @@ def groq_request(api_key, model, system_instruction, user_prompt, timeout=15):
         if res.ok:
             data = res.json()
             if data.get("choices"): return True, data["choices"][0]["message"]["content"]
-        return False, f"HTTP {res.status_code}"
+        return False, f"Groq ({model}) HTTP {res.status_code}"
     except Exception as e: return False, str(e)
 
 def openrouter_request(api_key, model, system_instruction, user_prompt, timeout=15):
@@ -471,7 +481,7 @@ def openrouter_request(api_key, model, system_instruction, user_prompt, timeout=
         if response.ok:
             data = response.json()
             if data.get("choices"): return True, data["choices"][0]["message"]["content"]
-        return False, f"HTTP {response.status_code}"
+        return False, f"OR ({model}) HTTP {response.status_code}"
     except Exception as e: return False, str(e)
 
 def gemini_request(api_key, model, payload, timeout=20):
@@ -486,7 +496,7 @@ def gemini_request(api_key, model, payload, timeout=20):
                 parts = data["candidates"][0].get("content", {}).get("parts", [])
                 raw_answer = "\n".join(p.get("text", "") for p in parts if p.get("text")).strip()
                 return True, raw_answer
-        return False, f"HTTP {response.status_code}"
+        return False, f"Gemini ({model}) HTTP {response.status_code}"
     except Exception as e: return False, str(e)
 
 def parse_media_tags(text):
@@ -580,6 +590,10 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
 
     # ROUTE 1: MEDIA PROCESSING (DIRECTLY TO GEMINI VISION)
     if media_base64:
+        g_models = []
+        for m in ([GEMINI_MODEL] + GEMINI_FALLBACK_MODELS):
+            if m and m not in g_models: g_models.append(m)
+
         for key in GEMINI_API_KEYS:
             user_parts = []
             if prompt: user_parts.append({"text": prompt})
@@ -591,8 +605,7 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
                 "generationConfig": {"temperature": 0.85, "maxOutputTokens": 100}, 
             }
 
-            models = [GEMINI_MODEL] + GEMINI_FALLBACK_MODELS
-            for model in models:
+            for model in g_models:
                 success, response_text = gemini_request(key, model, payload, timeout=15)
                 if success and response_text:
                     clean_text, photo_tag, sticker_tag = parse_media_tags(response_text)
@@ -612,27 +625,35 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
 
     # ROUTE 2: TEXT PROCESSING (GROQ -> OPENROUTER -> GEMINI)
     
-    # Step A: Groq Waterfall
-    for key in GROQ_API_KEYS:
-        success, response_text = groq_request(key, GROQ_MODEL, system_instruction, prompt, timeout=15)
-        if success and response_text:
-            clean_text, photo_tag, sticker_tag = parse_media_tags(response_text)
-            photo_to_send = get_media_item(PHOTO_VAULT, photo_tag)
-            sticker_to_send = get_media_item(STICKER_VAULT, sticker_tag)
-            
-            memory_note = clean_text
-            if photo_tag: memory_note += f" [Sent secret {photo_tag} photo]"
-            if sticker_tag: memory_note += f" [Sent {sticker_tag} sticker]"
-            
-            add_to_history(user_id, "user", message_text, current_context)
-            add_to_history(user_id, "siya", memory_note, current_context)
-            return clean_text, photo_to_send, sticker_to_send
-        last_error = str(response_text)
+    # Step A: Groq Waterfall (Official Models)
+    groq_models = []
+    for m in ([GROQ_MODEL] + GROQ_FALLBACK_MODELS):
+        if m and m not in groq_models: groq_models.append(m)
 
-    # Step B: OpenRouter Waterfall
+    for key in GROQ_API_KEYS:
+        for model in groq_models:
+            success, response_text = groq_request(key, model, system_instruction, prompt, timeout=15)
+            if success and response_text:
+                clean_text, photo_tag, sticker_tag = parse_media_tags(response_text)
+                photo_to_send = get_media_item(PHOTO_VAULT, photo_tag)
+                sticker_to_send = get_media_item(STICKER_VAULT, sticker_tag)
+                
+                memory_note = clean_text
+                if photo_tag: memory_note += f" [Sent secret {photo_tag} photo]"
+                if sticker_tag: memory_note += f" [Sent {sticker_tag} sticker]"
+                
+                add_to_history(user_id, "user", message_text, current_context)
+                add_to_history(user_id, "siya", memory_note, current_context)
+                return clean_text, photo_to_send, sticker_to_send
+            last_error = str(response_text)
+
+    # Step B: OpenRouter Waterfall (Official Free Models)
+    or_models = []
+    for m in ([OPENROUTER_MODEL] + OPENROUTER_FALLBACK_MODELS):
+        if m and m not in or_models: or_models.append(m)
+
     for key in OPENROUTER_API_KEYS:
-        models = [OPENROUTER_MODEL] + OPENROUTER_FALLBACK_MODELS
-        for model in models:
+        for model in or_models:
             success, response_text = openrouter_request(key, model, system_instruction, prompt, timeout=15)
             if success and response_text:
                 clean_text, photo_tag, sticker_tag = parse_media_tags(response_text)
@@ -648,15 +669,18 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
                 return clean_text, photo_to_send, sticker_to_send
             last_error = str(response_text)
 
-    # Step C: Gemini Waterfall
+    # Step C: Gemini Waterfall (Official 3.x & 2.5 Models)
+    g_models = []
+    for m in ([GEMINI_MODEL] + GEMINI_FALLBACK_MODELS):
+        if m and m not in g_models: g_models.append(m)
+
     for key in GEMINI_API_KEYS:
         payload = {
             "systemInstruction": {"parts": [{"text": system_instruction}]},
             "contents": [{"role": "user", "parts": [{"text": prompt}]}],
             "generationConfig": {"temperature": 0.85, "maxOutputTokens": 100}, 
         }
-        models = [GEMINI_MODEL] + GEMINI_FALLBACK_MODELS
-        for model in models:
+        for model in g_models:
             success, response_text = gemini_request(key, model, payload, timeout=15)
             if success and response_text:
                 clean_text, photo_tag, sticker_tag = parse_media_tags(response_text)
@@ -849,8 +873,9 @@ def health_check():
     total_stickers = len(STICKER_VAULT.get("general", []))
     return jsonify({
         "status": "online", 
-        "model": OPENROUTER_MODEL, 
-        "fallback": GEMINI_MODEL,
+        "groq_model": GROQ_MODEL,
+        "or_model": OPENROUTER_MODEL, 
+        "gemini_model": GEMINI_MODEL,
         "synced_stickers": total_stickers,
         "groq_keys_loaded": len(GROQ_API_KEYS)
     }), 200
