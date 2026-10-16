@@ -1,4 +1,4 @@
-from Flask import Flask, request, jsonify
+from flask import Flask, request, jsonify
 import os
 import requests
 import time
@@ -528,7 +528,7 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
     hostile_phrases = [
         "chup kar", "chup reh", "bhag yaha se", "nikal yaha se", "dimag mat kha",
         "bakwas band kar", "kutti", "chudail", "randi", "bhosdike", "madarchod", "bhenchod"
-
+    ]
     romance_hints = ["jaan", "baby", "babu", "pyar", "love","bhabhi","kiss", "hug", "mood", "suno", "meri", "romantic", "pass", "paas", "hot", "kurti", "saree", "bed", "photo", "pic", "chumma"]
     
     msg_lower = message_text.lower()
