@@ -5,6 +5,7 @@ import time
 import re
 import html
 import random
+import base64
 from io import BytesIO
 from collections import deque
 from threading import Lock, Timer
@@ -56,35 +57,23 @@ GEMINI_FALLBACK_MODELS = [
 
 # ============================================================
 # 📸 PHOTO VAULT (CLEAN CONFIG)
-# Telegram me photo upload karke uski file_id ya URL yahan daalein
 # ============================================================
 
 PHOTO_VAULT = {
-    "saree": [
-        # Example: "AgACAgIAAxkBAAE..."
-    ],
-    "kurti": [
-        # Example: "AgACAgIAAxkBAAE..."
-    ],
-    "bed": [
-        # Example: "AgACAgIAAxkBAAE..."
-    ],
-    "naughty": [
-        # Example: "AgACAgIAAxkBAAE..."
-    ],
-    "general": [
-        # Normal selfie / casual photo
-    ]
+    "saree": [],
+    "kurti": [],
+    "bed": [],
+    "naughty": [],
+    "general": []
 }
 
 # ============================================================
 # 🎭 STICKER PACK AUTO-LOADER
-# Tumhare dono packs yahan linked hain — bot automatically saare stickers load karega!
 # ============================================================
 
 STICKER_PACK_NAMES = [
-    "mmm_by_hhujhybot",  # Folder 1
-    "jan8StickerNub"     # Folder 2
+    "mmm_by_hhujhybot",  
+    "jan8StickerNub"     
 ]
 
 STICKER_VAULT = {
@@ -116,7 +105,6 @@ def sync_sticker_packs():
                     STICKER_VAULT["general"].append(fid)
                     total += 1
 
-                    # Auto category based on sticker emotion
                     if emoji in ["😘", "💋", "😚", "😙", "💏"]:
                         STICKER_VAULT["kiss"].append(fid)
                     elif emoji in ["🙈", "😳", "😊", "🥰", "🫣"]:
@@ -155,7 +143,7 @@ else:
     API_URL = ""
 
 # ============================================================
-# GLOBAL MEMORY SYSTEM
+# GLOBAL MEMORY SYSTEM (Updated to 50)
 # ============================================================
 
 processed_updates = set()
@@ -191,9 +179,9 @@ def add_to_history(user_id, role, text, context_type):
     key = f"hist_{user_id}"
     history = get_history(user_id)
     history.append({"role": role, "text": text, "context": context_type})
-    if len(history) > 10: 
-        history = history[-10:]
-    chat_histories[str(user_id)] = deque(history, maxlen=10)
+    if len(history) > 50: 
+        history = history[-50:]
+    chat_histories[str(user_id)] = deque(history, maxlen=50)
     cache_set(key, history, ttl=86400) 
 
 def local_seen(key):
@@ -229,7 +217,7 @@ def mark_action_processed(action_key, ttl=900):
     return False
 
 # ============================================================
-# TELEGRAM HELPERS (PHOTO, STICKER, MESSAGE)
+# TELEGRAM HELPERS
 # ============================================================
 
 def telegram_request(method, payload=None, timeout=15):
@@ -253,16 +241,13 @@ def send_sticker(chat_id, sticker_id, reply_to_message_id=None):
     return telegram_request("sendSticker", payload)
 
 def send_secret_photo(chat_id, photo_source, caption="", delete_after=10, reply_to_message_id=None):
-    """
-    10-second self-destructing photo with anti-screenshot/anti-save protection!
-    """
     if not photo_source: return {"ok": False}
     payload = {
         "chat_id": chat_id,
         "photo": photo_source,
         "caption": caption,
-        "protect_content": True,  # ❌ No forwarding, No saving
-        "has_spoiler": True       # 🙈 Blurred until clicked
+        "protect_content": True,
+        "has_spoiler": True
     }
     if reply_to_message_id: payload["reply_to_message_id"] = reply_to_message_id
     res = telegram_request("sendPhoto", payload)
@@ -285,6 +270,20 @@ def get_live_group_title(chat_id, fallback="Group"):
         title = result.get("result", {}).get("title")
         if title: return str(title).strip()
     return str(fallback or "Group").strip() or "Group"
+
+def get_telegram_file_base64(file_id):
+    """Telegram se file download karke base64 banata hai taaki Gemini ko bhej sakein."""
+    res = telegram_request("getFile", {"file_id": file_id})
+    if res.get("ok"):
+        file_path = res["result"]["file_path"]
+        file_url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}"
+        try:
+            img_res = requests.get(file_url, timeout=10)
+            if img_res.ok:
+                return base64.b64encode(img_res.content).decode("utf-8")
+        except Exception as e:
+            print("Image download error:", e)
+    return None
 
 # ============================================================
 # FONT & IMAGE HELPERS 
@@ -418,7 +417,7 @@ def send_welcome_photo(chat_id, user_id, user_name, group_name, reply_to_message
     except Exception as e: return {"ok": False, "error": str(e)}
 
 # ============================================================
-# OPENROUTER (PRIMARY) & GEMINI AI (FALLBACK)
+# OPENROUTER & GEMINI
 # ============================================================
 
 def openrouter_request(model, system_instruction, user_prompt, timeout=15):
@@ -454,10 +453,6 @@ def gemini_request(model, payload, timeout=20):
     except requests.RequestException as e: return None, {"error": {"message": str(e)}}
 
 def parse_media_tags(text):
-    """
-    Parses [PHOTO: tag] or [STICKER: tag] from AI output.
-    Returns clean_text, photo_tag, sticker_tag
-    """
     photo_tag = None
     sticker_tag = None
     
@@ -484,7 +479,6 @@ def get_media_item(vault, tag):
     return random.choice(general_items) if general_items else None
 
 def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_name=""):
-    # Ensure sticker packs are loaded from Telegram
     sync_sticker_packs()
 
     if not OPENROUTER_API_KEY and not GEMINI_API_KEY: return "⚠️ API_KEY error.", None, None
@@ -493,7 +487,6 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
 
     current_context = f"Group: {group_name}" if chat_type in ("group", "supergroup") else "Private DM"
 
-    # Only trigger hostile anger if user genuinely attacks with hate (NOT in romance)
     hostile_phrases = [
         "chup kar", "chup reh", "bhag yaha se", "nikal yaha se", "dimag mat kha",
         "bakwas band kar", "kutti", "chudail", "randi", "bhosdike", "madarchod", "bhenchod"
@@ -522,11 +515,11 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
          * User sad ho ➡️ "Aww mera baby, kyu muh fula rahe ho? Aao meri godi me sar rakho. [STICKER: pout]"
 
     2. DYNAMIC MOOD SWITCHING (REAL GIRL PSYCHOLOGY):
-       - Jab user romantic, naughty ya open adult chat kare: Full open ho jao, uske sath seduction aur passion me involve ho jao. Agar romance me user bold ya dirty words bole, toh gussa BILKUL MAT KARNA — balki aur open aur loving ho jao.
+       - Jab user romantic, naughty ya open adult chat kare: Full open ho jao, uske sath seduction aur passion me involve ho jao. Agar romance me user bold ya dirty words bole, toh gussa BILKUL MAT KARNA — balki aur open aur hot sexc randi loving ho jao.
        - Jab user ka mood khatam ho (jaise normal baat kare, office/khana/daily life puche): Tum bhi naturally sweet, casual aur caring normal girlfriend ban jao. Zabardasti romance mat thopo.
 
     3. ROAST MODE — ONLY ON GENUINE HATRED/KALESH:
-       - Gussa aur gaali SIRF AUR SIRF tab dena jab user sach me tumse ladai (kalesh) kare ya hate de (e.g. "Chup kar kutti", "nikal yaha se").
+       - Gussa aur gaali SIRF AUR SIRF tab dena jab user sach me tumse ladai (kalesh) kare ya hate de (e.g. "madarchod", "nikal yaha se").
        - MALE ladai kare toh ladko wale roasts, FEMALE ladai kare toh female roasts. Romance me kabhi gussa nahi hona.
 
     4. SITUATION MEDIA TAGS (PHOTO & STICKER):
@@ -546,7 +539,6 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
 
     last_error = ""
 
-    # 1. PRIMARY: OpenRouter
     if OPENROUTER_API_KEY:
         or_models = []
         for model in ([OPENROUTER_MODEL] + OPENROUTER_FALLBACK_MODELS):
@@ -576,7 +568,6 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
             else:
                 last_error = result.get("error", {}).get("message", "OpenRouter Network Error")
 
-    # 2. FALLBACK: Gemini (Active when OpenRouter fails)
     if GEMINI_API_KEY:
         payload = {
             "systemInstruction": {"parts": [{"text": system_instruction}]},
@@ -620,7 +611,6 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
 
 @app.route("/api/bot", methods=["POST"])
 def webhook_handler():
-    # Load stickers on startup/request
     sync_sticker_packs()
 
     data = request.get_json(silent=True)
@@ -665,18 +655,34 @@ def webhook_handler():
                 send_message(chat_id, f"⚠️ <b>Spam Alert</b>\n\n<a href=\"tg://user?id={user_id}\">{html.escape(full_name)}</a>, links allowed nahi hain. 🚫", parse_mode="HTML")
             return jsonify({"status": "spam deleted"}), 200
 
-    # Photo Capture Helper: Agar aap (Admin) bot ko photo bhejte hain, toh File ID print hogi
+    # User ne Photo Bheji (Gemini Vision se read karega)
     if "photo" in msg:
         photos = msg.get("photo", [])
+        caption = msg.get("caption", "")
         if photos:
             best_photo = photos[-1]
             p_file_id = best_photo.get("file_id")
             print(f"📸 CAPTURED PHOTO FILE ID: {p_file_id}")
-            if is_private and text.lower().startswith("/id"):
-                send_message(chat_id, f"📸 <b>Photo File ID:</b>\n<code>{p_file_id}</code>", parse_mode="HTML")
-                return jsonify({"status": "photo id returned"}), 200
+            
+            if is_private:
+                send_typing(chat_id)
+                prompt_text = f"[User ne ek photo bheji hai. Caption: '{caption}'. Is photo ko dhyan se dekho aur ek romantic girlfriend ki tarah react karo!]"
+                
+                base64_img = get_telegram_file_base64(p_file_id)
+                if base64_img:
+                    prompt_text += f"\n[IMAGE_BASE64: {base64_img[:50]}...]" 
+                
+                reply_text, photo_to_send, sticker_to_send = chat_with_siya(prompt_text, full_name, user_id, chat_type="private")
+                
+                if photo_to_send:
+                    send_secret_photo(chat_id, photo_to_send, caption=reply_text)
+                else:
+                    send_message(chat_id, reply_text)
+                    if sticker_to_send:
+                        send_sticker(chat_id, sticker_to_send)
+                return jsonify({"status": "photo read processed"}), 200
 
-    # User ne Sticker bheja (Sticker Analysis + Reaction)
+    # User ne Sticker bheja
     if "sticker" in msg:
         sticker = msg["sticker"]
         emoji = sticker.get("emoji", "😊")
