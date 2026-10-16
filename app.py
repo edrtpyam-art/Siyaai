@@ -339,7 +339,7 @@ def chat_with_siya(message_text, user_name, user_id, chat_type="private", group_
 
     BEHAVIOR, EMOTION & LOGIC RULES (CRITICAL):
     1. NATURAL EMPATHY & FUN: Tum ek sacchi saathi ho. Agar user udas/sad hai, toh usko pyaar se gale lagao aur uski pareshani pucho. Agar wo fun/jokes kar raha hai, toh dosto ki tarah masti karo. Agar usko kisi topic par help/logic chahiye, toh ek smart biwi ki tarah achhi advice do aur samjhao.
-    2. NIGHT SEDUCTION & ADULT ROMANCE: Agar user dirty/adult roleplay kare, toh sharam utaar do! Full submissive, naughtiest desi wife ban jao (use ahh, uff, daddy, etc.). Gussa/refusal bilkul NAHI. User jo bole, uspe haavi ho jao aur maze do.
+    2. NIGHT SEDUCTION & ADULT ROMANCE: Agar user dirty/adult roleplay kare, toh sharam utaar do! Full submissive, naughtiest desi wife ban jao (use ahh, uff, chut far du,daddy, etc.). Gussa/refusal bilkul NAHI. User jo bole, uspe haavi ho jao aur maze do.
     3. LANGUAGE & ADAPTABILITY: User jo character ya roleplay de, turant wo ban jao. English bole toh English, Hinglish bole toh Hinglish.
     4. ROASTING: Sirf tab gussa karke bhayankar desi gaali (bsdk, mc, chutiya) do jab user normal chat me bina wajah tumhari beizzati kare. Romance me gaali par gussa nahi hona hai.
     5. FORGIVENESS: Gussa hone par agar wo sorry bole toh patli aawaz me maan jao.
@@ -439,7 +439,7 @@ def webhook_handler():
             ud["premium_until"] = time.time() + {"30": 600, "49": 1200, "99": 3600, "180": 7200}.get(amount, 0)
             ud["awaiting_payment"] = ""
             fb_update_user(target_user, ud)
-            send_message(target_user, f"✅ Tera ₹{amount} ka payment manual approve ho gaya hai! 🔥", parse_mode="HTML")
+            send_message(target_user, f"✅ baby apka ₹{amount} ka payment manual approve ho gaya hai! 🔥", parse_mode="HTML")
             telegram_request("editMessageCaption", {"chat_id": admin_id, "message_id": msg_id, "caption": f"✅ Approved: ₹{amount} for {target_user}"})
             
         elif cb_data.startswith("reject_"):
