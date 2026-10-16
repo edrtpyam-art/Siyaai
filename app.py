@@ -42,7 +42,8 @@ GROQ_API_KEYS = [
     os.environ.get("GROQ_API_KEY4", "").strip()
 ]
 GROQ_API_KEYS = [k for k in GROQ_API_KEYS if k]
-GROQ_MODEL = "llama3-8b-8192"
+# FIXED WORKING GROQ MODEL (Do not use ChatGPT's fake models)
+GROQ_MODEL = "llama-3.1-8b-instant" 
 
 # --- OPENROUTER CONFIG (2 Keys) ---
 OPENROUTER_API_KEYS = [
@@ -50,12 +51,11 @@ OPENROUTER_API_KEYS = [
     os.environ.get("OPENROUTER_API_KEY2", "").strip()
 ]
 OPENROUTER_API_KEYS = [k for k in OPENROUTER_API_KEYS if k]
-OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "nousresearch/hermes-3-llama-3.1-405b:free").strip()
+# FIXED WORKING OPENROUTER FREE MODELS
+OPENROUTER_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
 OPENROUTER_FALLBACK_MODELS = [
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "qwen/qwen-2.5-72b-instruct:free",
-    "meta-llama/llama-3.1-8b-instruct:free",
-    "mistralai/mistral-7b-instruct:free",
+    "google/gemma-2-9b-it:free",
+    "huggingfaceh4/zephyr-7b-beta:free",
 ]
 
 # --- GEMINI CONFIG (3 Keys) ---
@@ -65,11 +65,18 @@ GEMINI_API_KEYS = [
     os.environ.get("GEMINI_API_KEY3", "").strip()
 ]
 GEMINI_API_KEYS = [k for k in GEMINI_API_KEYS if k]
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash").strip()
+# FIXED WORKING GEMINI MODELS (Gemini 3.8 does not exist)
+GEMINI_MODEL = "gemini-1.5-flash"
 GEMINI_FALLBACK_MODELS = [
-    "gemini-1.5-flash-8b",
     "gemini-1.5-flash-8b"
 ]
+
+if BOT_TOKEN:
+    BOT_ID = BOT_TOKEN.split(":")[0]
+    API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
+else:
+    BOT_ID = ""
+    API_URL = ""
 
 # ============================================================
 # 📸 PHOTO VAULT (CLEAN CONFIG)
@@ -150,13 +157,6 @@ FONT_SYMBOLS_PATH = "/tmp/Siya-NotoSansSymbols2.ttf"
 
 PINK = "#FF1493"
 WHITE = "#FFFFFF"
-
-if BOT_TOKEN:
-    BOT_ID = BOT_TOKEN.split(":")[0]
-    API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
-else:
-    BOT_ID = ""
-    API_URL = ""
 
 # ============================================================
 # GLOBAL MEMORY SYSTEM (Updated to 50)
@@ -288,7 +288,6 @@ def get_live_group_title(chat_id, fallback="Group"):
     return str(fallback or "Group").strip() or "Group"
 
 def get_telegram_file_base64(file_id):
-    """Telegram se file download karke base64 banata hai taaki Gemini ko bhej sakein."""
     res = telegram_request("getFile", {"file_id": file_id})
     if res.get("ok"):
         file_path = res["result"]["file_path"]
