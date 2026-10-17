@@ -635,36 +635,131 @@ def launch_quiz_in_chat(chat_id, user_id, category):
     send_message(chat_id, msg_txt, parse_mode="HTML", reply_markup=kb)
 
 # ============================================================
-# GROUP WELCOME CARD (PIL)
+# GROUP WELCOME CARD (PIL - FULL ORIGINAL WITH AVATAR & SHADOW)
 # ============================================================
+
+def ensure_font(font_path, font_url):
+    if os.path.exists(font_path):
+        try: ImageFont.truetype(font_path, 40); return font_path
+        except Exception: pass
+    try:
+        response = requests.get(font_url, timeout=15)
+        if response.ok and len(response.content) > 10000:
+            with open(font_path, "wb") as f: f.write(response.content)
+            return font_path
+    except Exception: pass
+    return None
 
 def load_font(size, bold=False):
     size = max(8, int(size))
-    p = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-    try: return ImageFont.truetype(p, size)
-    except Exception:
-        try: return ImageFont.load_default(size=size)
-        except TypeError: return ImageFont.load_default()
+    paths = ["/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"]
+    for path in paths:
+        try: return ImageFont.truetype(path, size)
+        except Exception: pass
+    preferred = ensure_font(FONT_BOLD_PATH if bold else FONT_REGULAR_PATH, FONT_BOLD_URL if bold else FONT_REGULAR_URL)
+    if preferred:
+        try: return ImageFont.truetype(preferred, size)
+        except Exception: pass
+    try: return ImageFont.load_default(size=size)
+    except TypeError: return ImageFont.load_default()
+
+def fit_text(draw, text, max_width, font, max_chars=60):
+    text = str(text or "").strip()
+    if len(text) > max_chars: text = text[:max_chars - 3] + "..."
+    while len(text) > 3:
+        bbox = draw.textbbox((0, 0), text, font=font)
+        if bbox[2] - bbox[0] <= max_width: break
+        text = text[:-4] + "..."
+    return text
+
+def get_user_avatar_bytes(user_id):
+    if not API_URL or not user_id: return None
+    try:
+        result = telegram_request("getUserProfilePhotos", {"user_id": user_id, "limit": 1}, timeout=8)
+        if not result.get("ok"): return None
+        photos = result.get("result", {}).get("photos", [])
+        if not photos or not photos[0]: return None
+        file_id = photos[0][-1].get("file_id")
+        file_result = telegram_request("getFile", {"file_id": file_id}, timeout=8)
+        if not file_result.get("ok"): return None
+        file_path = file_result.get("result", {}).get("file_path")
+        response = requests.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}", timeout=8)
+        if response.ok: return response.content
+    except Exception: pass
+    return None
+
+def create_initial_avatar(name, size=300):
+    image = Image.new("RGBA", (size, size), PINK)
+    draw = ImageDraw.Draw(image)
+    initials = "".join(part[0] for part in str(name or "U").split() if part)[:2].upper() or "U"
+    font = load_font(int(size * 0.35), bold=True)
+    bbox = draw.textbbox((0, 0), initials, font=font)
+    draw.text(((size - (bbox[2] - bbox[0])) / 2, (size - (bbox[3] - bbox[1])) / 2 - bbox[1]), initials, fill=WHITE, font=font)
+    return image
+
+def make_circle_avatar(avatar_bytes, name, size=300):
+    try:
+        if avatar_bytes:
+            avatar = Image.open(BytesIO(avatar_bytes)).convert("RGB")
+            avatar = ImageOps.fit(avatar, (size, size), method=Image.Resampling.LANCZOS).convert("RGBA")
+        else: avatar = create_initial_avatar(name, size)
+        mask = Image.new("L", (size, size), 0)
+        ImageDraw.Draw(mask).ellipse((0, 0, size, size), fill=255)
+        result = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+        result.paste(avatar, (0, 0), mask)
+        draw = ImageDraw.Draw(result)
+        draw.ellipse((3, 3, size - 3, size - 3), outline=WHITE, width=8)
+        return result
+    except Exception: return create_initial_avatar(name, size)
 
 def create_welcome_card(user_id, user_name):
-    W, H = 1280, 720
-    canvas = Image.new("RGBA", (W, H), PINK)
+    WIDTH, HEIGHT = 1280, 720
+    canvas = Image.new("RGBA", (WIDTH, HEIGHT), PINK)
     draw = ImageDraw.Draw(canvas)
-    draw.text((530, 120), "WELCOME", fill=(15, 15, 15, 255), font=load_font(60, True))
-    draw.text((530, 260), str(user_name or "User")[:18], fill=(10, 10, 10, 255), font=load_font(80, True))
-    draw.text((530, 420), f"USER ID • {user_id}", fill=(25, 25, 25, 255), font=load_font(35))
-    draw.text((530, 530), "SIYA AI", fill=(10, 10, 10, 255), font=load_font(60, True))
-    out = BytesIO()
-    canvas.convert("RGB").save(out, format="JPEG", quality=90)
-    out.seek(0)
-    return out
+    for y in range(HEIGHT):
+        ratio = y / HEIGHT
+        draw.line((0, y, WIDTH, y), fill=(int(255 - 18 * ratio), int(20 + 8 * ratio), int(147 + 30 * ratio), 255))
+    for cx, cy, radius in [(80, 70, 170), (1180, 80, 210), (1140, 650, 240)]:
+        draw.ellipse((cx - radius, cy - radius, cx + radius, cy + radius), fill=(255, 255, 255, 20))
 
-def send_welcome_photo(chat_id, user_id, user_name, group_name):
+    title_font = load_font(60, bold=True)
+    label_font = load_font(35, bold=True)
+    user_font = load_font(85, bold=True)
+    id_font = load_font(35, bold=False)
+
+    avatar_size = 350
+    avatar = make_circle_avatar(get_user_avatar_bytes(user_id), user_name, avatar_size)
+    shadow = Image.new("RGBA", (avatar_size + 40, avatar_size + 40), (0, 0, 0, 0))
+    ImageDraw.Draw(shadow).ellipse((15, 18, avatar_size + 15, avatar_size + 18), fill=(90, 0, 45, 120))
+    canvas.alpha_composite(shadow, (65, 170))
+    canvas.alpha_composite(avatar, (85, 180))
+
+    draw.text((530, 110), "WELCOME", fill=(15, 15, 15, 255), font=title_font)
+    draw.rounded_rectangle((530, 190, 1180, 196), radius=3, fill=(20, 20, 20, 220))
+    draw.text((530, 230), "NEW MEMBER", fill=(55, 20, 40, 255), font=label_font)
+    safe_user = fit_text(draw, user_name or "User", 680, user_font, max_chars=20)
+    draw.text((530, 300), safe_user, fill=(10, 10, 10, 255), font=user_font)
+    draw.text((530, 430), f"USER ID  •  {user_id}", fill=(25, 25, 25, 255), font=id_font)
+    draw.text((530, 540), "SIYA AI", fill=(10, 10, 10, 255), font=title_font)
+
+    output = BytesIO()
+    canvas.convert("RGB").save(output, format="JPEG", quality=95, optimize=True)
+    output.seek(0)
+    return output
+
+def send_welcome_photo(chat_id, user_id, user_name, group_name, reply_to_message_id=None):
     try:
-        img = create_welcome_card(user_id, user_name)
-        data = {"chat_id": chat_id, "caption": f"🎉 <b>WELCOME TO {html.escape(group_name)}</b>\n\nHey <a href=\"tg://user?id={user_id}\">{html.escape(user_name)}</a>, welcome! ✨", "parse_mode": "HTML"}
-        return requests.post(f"{API_URL}/sendPhoto", data=data, files={"photo": ("welcome.jpg", img, "image/jpeg")}, timeout=20).json()
+        image_file = create_welcome_card(user_id, user_name)
+        data = {
+            "chat_id": chat_id,
+            "caption": f"🎉 <b>WELCOME TO {html.escape(group_name)}</b>\n\nHey <a href=\"tg://user?id={user_id}\">{html.escape(user_name)}</a>, we are glad to have you here! ✨",
+            "parse_mode": "HTML"
+        }
+        if reply_to_message_id: data["reply_to_message_id"] = reply_to_message_id
+        files = {"photo": ("welcome.jpg", image_file, "image/jpeg")}
+        return requests.post(f"{API_URL}/sendPhoto", data=data, files=files, timeout=25).json()
     except Exception as e: return {"ok": False, "error": str(e)}
+
 
 # ============================================================
 # SMART MOOD, TEMPORARY ROLEPLAY & REFUSAL CATCHER
