@@ -182,13 +182,13 @@ def get_media_item(vault, tag, prefer_video=False):
     return random.choice(candidates)
 
 # ============================================================
-# 🎭 STICKER PACK AUTO-LOADER (ONLY CUTE/ROMANTIC/HOT PACKS)
+# 🎭 STRICT SEPARATED STICKER VAULT (NO ADULT STICKERS IN NORMAL!)
 # ============================================================
 
 STICKER_PACKS_CONFIG = {
-    "NORMAL": ["PeachGomaPack11"],
-    "ROMANTIC": ["sticker_BM8g_by_stickerskibot", "Yornseyha077", "Love9_Wallgif", "mmm_by_hhujhybot"],
-    "HOT": ["channel_LOVE0000_01_03", "Cute_hotness", "jan8StickerNub"]
+    "NORMAL": ["PeachGomaPack11"], # 100% Cute & Clean only!
+    "ROMANTIC": ["sticker_BM8g_by_stickerskibot", "Yornseyha077"], # Sweet love only!
+    "HOT": ["channel_LOVE0000_01_03", "Cute_hotness", "jan8StickerNub", "Love9_Wallgif", "mmm_by_hhujhybot"] # Adult 18+ only!
 }
 
 STICKER_VAULT = {"NORMAL": [], "ROMANTIC": [], "HOT": []}
@@ -208,9 +208,15 @@ def sync_sticker_packs():
                 pass
     stickers_loaded = True
 
-def get_sticker(s_type):
+def get_sticker(s_type, mode="NORMAL"):
     if not s_type: return None
     s_type = s_type.upper()
+    # Hard lock: Never allow HOT or ROMANTIC kissing stickers in NORMAL mode!
+    if mode == "NORMAL":
+        s_type = "NORMAL"
+    elif mode == "ROMANTIC" and s_type == "HOT":
+        s_type = "ROMANTIC"
+
     if s_type in STICKER_VAULT and STICKER_VAULT[s_type]: 
         return random.choice(STICKER_VAULT[s_type])
     return None
@@ -223,24 +229,22 @@ PINK = "#FF1493"
 WHITE = "#FFFFFF"
 
 # ============================================================
-# 🌐 STRICT REAL-TIME NEWS & CRICKET VERIFIER (NO FAKE MATCHES!)
+# 🌐 ZERO-HALLUCINATION LIVE WEB SEARCH (NEWS, CRICKET, FACTS)
 # ============================================================
 
 def fetch_live_web_info(query):
     """
-    Strictly checks if there is a REAL live event today.
-    Never lets the AI claim 'India is playing right now' if there is no match today!
+    Fetches 100% real live data from Google News RSS, ESPNcricinfo & Wikipedia.
+    Strictly prevents AI from inventing fake matches or fake news!
     """
     t_low = query.lower()
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
     ist_now = datetime.utcnow() + timedelta(hours=5, minutes=30)
-    today_day_month = ist_now.strftime("%d %b").lower() # e.g. "17 oct"
+    today_day_month = ist_now.strftime("%d %b").lower()
 
-    # 1. If user specifically asks about Cricket / Match today
     if any(w in t_low for w in ["cricket", "match", "score", "ipl", "bcci"]):
         live_scores = []
         try:
-            # Check ESPNcricinfo live scores RSS
             r = requests.get("https://static.cricinfo.com/rss/livescores.xml", headers=headers, timeout=5)
             if r.ok:
                 titles = re.findall(r"<item>.*?<title>(.*?)</title>.*?</item>", r.text, re.DOTALL)
@@ -254,34 +258,46 @@ def fetch_live_web_info(query):
         if live_scores:
             return "LIVE INDIA MATCH SCORE RIGHT NOW: " + " | ".join(live_scores[:2])
         else:
-            return "VERIFIED FACT FOR TODAY: Aaj India ka koi bhi live international cricket match NAHI hai! Tell the user clearly and lovingly that aaj India ka koi match nahi hai."
+            return "VERIFIED LIVE FACT: Aaj India ka koi bhi live international cricket match NAHI chal raha hai! Tell the user clearly that aaj India ka koi match nahi hai."
 
-    # 2. General Live News
     snippets = []
     cleaned = re.sub(
-        r"\b(aja|aaj|aj|ajaj|kal|abhi|avi|ki|ka|ke|ko|kay|kya|ky|ha|hai|h|batao|bato|suna|sunao|khabar|taaza|taja|live|news|mujhe|zara|dekh)\b",
+        r"\b(aja|aaj|aj|ajaj|kal|abhi|avi|ki|ka|ke|ko|kay|kya|ky|ha|hai|h|batao|bato|suna|sunao|khabar|taaza|taja|live|news|mujhe|zara|dekh|kon|kaun)\b",
         "", t_low, flags=re.IGNORECASE
     )
     cleaned = re.sub(r"[^\w\s]", "", cleaned).strip()
     search_q = f"{cleaned} India" if len(cleaned) >= 3 else "India top headlines"
 
+    # 1. Google News India Live RSS
     try:
         rss_url = f"https://news.google.com/rss/search?q={quote(search_q)}+when:1d&hl=en-IN&gl=IN&ceid=IN:en"
         r = requests.get(rss_url, headers=headers, timeout=6)
         if r.ok:
             items = re.findall(r"<item>.*?<title>(.*?)</title>.*?<pubDate>(.*?)</pubDate>.*?</item>", r.text, re.DOTALL)
             for title, pub in items:
-                if today_day_month in pub.lower():
+                if today_day_month in pub.lower() or len(snippets) < 2:
                     clean_t = html.unescape(title).split(" - ")[0].strip()
-                    if clean_t and len(clean_t) > 12:
+                    if clean_t and len(clean_t) > 12 and clean_t not in snippets:
                         snippets.append(f"• {clean_t}")
                 if len(snippets) >= 3:
                     break
     except Exception:
         pass
 
+    # 2. Wikipedia Live Summary for GK/Facts/People/Movies
+    if len(cleaned) >= 3:
+        try:
+            sr_url = f"https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch={quote(cleaned)}&utf8=&format=json"
+            sr = requests.get(sr_url, headers=headers, timeout=4).json()
+            results = sr.get("query", {}).get("search", [])
+            if results:
+                snip = re.sub(r"<.*?>", "", results[0].get("snippet", ""))
+                snippets.append(f"• Fact ({results[0].get('title')}): {html.unescape(snip)}")
+        except Exception:
+            pass
+
     if snippets:
-        return "TODAY'S VERIFIED HEADLINES:\n" + "\n".join(snippets)
+        return "VERIFIED LIVE WEB DATA:\n" + "\n".join(snippets[:4])
     return ""
 
 def extract_song_search_term(text):
@@ -377,7 +393,7 @@ def send_live_song_audio(chat_id, audio_url, title, caption="", reply_to_message
     return {"ok": False}
 
 # ============================================================
-# FIREBASE DATABASE (USERS, GROUP PROMOTIONS & QUIZ GAMES)
+# FIREBASE DATABASE + ATOMIC GLOBAL GROUP REGISTRY
 # ============================================================
 
 processed_updates = set()
@@ -421,6 +437,69 @@ def fb_update_user(user_id, data):
     try: requests.patch(f"{FIREBASE_URL}/users/{user_id}.json?auth={FIREBASE_SECRET}", json=data, timeout=5)
     except Exception: pass
 
+def fb_get_all_bot_groups():
+    """Returns global dictionary of all groups where Siya is added so Anonymous Admins NEVER miss their group!"""
+    if not FIREBASE_URL: return {}
+    try:
+        res = requests.get(f"{FIREBASE_URL}/bot_groups.json?auth={FIREBASE_SECRET}", timeout=4).json()
+        return res if isinstance(res, dict) else {}
+    except Exception:
+        return {}
+
+def fb_register_bot_group(group_id, group_title):
+    if not FIREBASE_URL or not group_id: return
+    try:
+        requests.patch(
+            f"{FIREBASE_URL}/bot_groups.json?auth={FIREBASE_SECRET}",
+            json={str(group_id): str(group_title)},
+            timeout=4
+        )
+    except Exception:
+        pass
+
+def register_user_group(user_id, group_id, group_title):
+    """Saves group to both the Global Bot Registry AND the User's personal list ( plus all group admins!)."""
+    if not group_id: return
+    gid_str = str(group_id)
+    fb_register_bot_group(gid_str, group_title)
+
+    # If user is not anonymous 'Group' bot (1087968824), link directly to user_id
+    if user_id and str(user_id) != "1087968824":
+        user_data = fb_get_user(user_id)
+        ug = user_data.get("user_groups") or {}
+        if not isinstance(ug, dict): ug = {}
+        if gid_str not in ug or ug[gid_str] != group_title:
+            ug[gid_str] = group_title
+            fb_update_user(user_id, {"user_groups": ug, "last_group_name": group_title})
+
+    # Also fetch real Group Admins via Telegram API so even Anonymous Admins get the group linked to their DM!
+    try:
+        adm_res = telegram_request("getChatAdministrators", {"chat_id": group_id}, timeout=5)
+        if adm_res.get("ok"):
+            for member in adm_res.get("result", []):
+                u = member.get("user", {})
+                if not u.get("is_bot") and u.get("id"):
+                    adm_id = str(u["id"])
+                    adm_data = fb_get_user(adm_id)
+                    adm_ug = adm_data.get("user_groups") or {}
+                    if not isinstance(adm_ug, dict): adm_ug = {}
+                    if gid_str not in adm_ug or adm_ug[gid_str] != group_title:
+                        adm_ug[gid_str] = group_title
+                        fb_update_user(adm_id, {"user_groups": adm_ug, "last_group_name": group_title})
+    except Exception:
+        pass
+
+def get_atomic_groups_for_user(user_id):
+    """Combines user's personal groups + Global Active Bot Groups so the list ALWAYS appears in DM!"""
+    u_data = fb_get_user(user_id)
+    ug = u_data.get("user_groups") or {}
+    if not isinstance(ug, dict): ug = {}
+    global_groups = fb_get_all_bot_groups()
+    combined = {}
+    combined.update(global_groups)
+    combined.update(ug)
+    return combined
+
 def fb_get_group_promo(group_id):
     if not FIREBASE_URL: return None
     try:
@@ -447,18 +526,9 @@ def fb_set_quiz(quiz_id, quiz_data):
     try: requests.patch(f"{FIREBASE_URL}/quizzes/{quiz_id}.json?auth={FIREBASE_SECRET}", json=quiz_data, timeout=5)
     except Exception: pass
 
-def register_user_group(user_id, group_id, group_title):
-    if not user_id or not group_id: return
-    user_data = fb_get_user(user_id)
-    ug = user_data.get("user_groups") or {}
-    if not isinstance(ug, dict): ug = {}
-    if str(group_id) not in ug or ug[str(group_id)] != group_title:
-        ug[str(group_id)] = group_title
-        fb_update_user(user_id, {"user_groups": ug, "last_group_name": group_title})
-
 def check_and_run_group_promotion(chat_id, msg_id, sender_id, sender_name):
     """
-    Replies to group members' messages with the active promotion text & link!
+    Tags/replies to group members' messages with the active promotion text & link!
     Rate limit: Max 3 tags per 60 seconds per group.
     """
     gid = str(chat_id)
@@ -488,23 +558,21 @@ def check_and_run_group_promotion(chat_id, msg_id, sender_id, sender_name):
 
     tag_msg = (
         f"👋 Hey <a href=\"tg://user?id={sender_id}\">{html.escape(sender_name)}</a>! 💕\n\n"
-        f"📢 <b>Sponsored Update:</b>\n{html.escape(promo_text)}"
+        f"📢 <b>Special Update:</b>\n{html.escape(promo_text)}"
     )
     send_message(chat_id, tag_msg, reply_to_message_id=msg_id, parse_mode="HTML")
 
 def is_polluted_history_line(text):
-    """Filters out old hallucinated cricket/news/reasoning messages from history so Siya never brings them up randomly!"""
     t_low = text.lower()
     bad_markers = [
         "match ka score", "india abhi khel", "match live chal", "ireland", "wion",
         "zee business", "cockroach", "analyze the request", "drafting the response",
-        "4-4-4 breathing", "customer support"
+        "4-4-4 breathing", "customer support", "/promo kya shuru", "bed par leti huvi"
     ]
     return any(b in t_low for b in bad_markers) or bool(re.search(r"[\u0900-\u097F]", text))
 
 def save_turn_and_deduct_credit(user_id, user_data, msg_id, user_text, siya_reply, context_type="Private DM", deduct=True, new_credits=None, group_name="", awaiting_song=None):
     history = user_data.get("history", [])
-    # Clean out any old polluted history entries automatically!
     history = [h for h in history if not is_polluted_history_line(h.get("text", ""))]
 
     if user_text:
@@ -623,19 +691,45 @@ def get_payment_keyboard():
         ]
     }
 
-def get_promo_plans_keyboard(group_id):
-    return {
-        "inline_keyboard": [
-            [
-                {"text": "⚡ ₹30 (5 Hours Promo)", "callback_data": f"promopay_30_{group_id}"},
-                {"text": "🔥 ₹49 (12 Hours Promo)", "callback_data": f"promopay_49_{group_id}"}
-            ],
-            [
-                {"text": "💎 ₹99 (24 Hours Promo)", "callback_data": f"promopay_99_{group_id}"},
-                {"text": "👑 ₹180 (72 Hours Promo)", "callback_data": f"promopay_180_{group_id}"}
-            ]
+def get_promo_plans_keyboard(group_id, is_owner=False):
+    rows = [
+        [
+            {"text": "⚡ ₹30 (5 Hours Promo)", "callback_data": f"promopay_30_{group_id}"},
+            {"text": "🔥 ₹49 (12 Hours Promo)", "callback_data": f"promopay_49_{group_id}"}
+        ],
+        [
+            {"text": "💎 ₹99 (24 Hours Promo)", "callback_data": f"promopay_99_{group_id}"},
+            {"text": "👑 ₹180 (72 Hours Promo)", "callback_data": f"promopay_180_{group_id}"}
         ]
-    }
+    ]
+    if is_owner:
+        rows.append([{"text": "✅ Activate FREE Now (Owner Only)", "callback_data": f"ownerpromo_24_{group_id}"}])
+    return {"inline_keyboard": rows}
+
+def send_atomic_promo_group_menu(chat_id, user_id):
+    """Shows the atomic list of all added groups right inside DM so user can click & type promo message!"""
+    groups = get_atomic_groups_for_user(user_id)
+    if not groups:
+        kb = {"inline_keyboard": [[{"text": "➕ Add Siya to Your Group First", "url": f"https://t.me/{BOT_USERNAME}?startgroup=true"}]]}
+        send_message(
+            chat_id,
+            "📢 <b>Group Tag Promotion Setup</b>\n\n"
+            "Jaan, abhi koi group add nahi dikh raha hai. Niche button daba kar mujhe apne Group me add karo (aur Admin bana do), fir turant yahan group ka naam aa jayega! 👇",
+            parse_mode="HTML",
+            reply_markup=kb
+        )
+    else:
+        rows = []
+        for gid, gtitle in list(groups.items())[:10]:
+            rows.append([{"text": f"📢 {gtitle}", "callback_data": f"promogrp_{gid}"}])
+        rows.append([{"text": "➕ Add to Another Group", "url": f"https://t.me/{BOT_USERNAME}?startgroup=true"}])
+        send_message(
+            chat_id,
+            "📢 <b>Select Your Group for Tag Promotion:</b>\n\n"
+            "Niche tumhare added Groups ki list hai! Jis group me promotion chalu karna hai uspar click karo, fir yahi DM me apna Promotion Message type karna! 👇🔥",
+            parse_mode="HTML",
+            reply_markup={"inline_keyboard": rows}
+        )
 
 def get_game_categories_keyboard():
     return {
@@ -731,7 +825,6 @@ def get_telegram_file_base64(file_id):
 # ============================================================
 
 def parse_quiz_lines(raw_text):
-    """Bulletproof line parser so AI formatting NEVER fails or falls back to a static question!"""
     if not raw_text:
         return None
     q_match = re.search(r"Q:\s*(.+)", raw_text, re.IGNORECASE)
@@ -759,22 +852,18 @@ def parse_quiz_lines(raw_text):
     return None
 
 def generate_hard_quiz_question(category, prev_questions=None):
-    """
-    Generates a 100% NEW, NON-REPEATING question using AI for the exact chosen category!
-    Includes full uncensored Desi Bhabhi-Devar, Wife-Husband, Couple Bedroom & Porn Trivia for 'adult'!
-    """
     prev_list = prev_questions or []
-    avoid_str = "\n".join([f"- {q[:60]}" for q in prev_list[-12:]]) if prev_list else "None"
+    avoid_str = "\n".join([f"- {q[:60]}" for q in prev_list[-15:]]) if prev_list else "None"
 
     cat_themes = {
         "iq": [
             "Murder mystery logic puzzle", "Time & clock paradox", "Blood relation brain twister",
-            "Prisoner hat logic riddle", "Math probability trap", "Detective lie-detector puzzle",
-            "River crossing logic trap", "Weight & balance brain teaser"
+            "Number sequence trap", "Math probability trap", "Detective lie-detector puzzle",
+            "River crossing logic trap", "Direction & shadow brain teaser"
         ],
         "gk": [
             "Human body & brain psychology secret", "Space & black hole paradox", "Ancient Indian history mystery",
-            "World geography & ocean secret", "Hidden science behind daily life", " Guinness world record & rare phenomena"
+            "World geography & ocean secret", "Hidden science behind daily life", "Rare world phenomena"
         ],
         "romance": [
             "First night (Suhagraat) nervousness & attraction psychology", "Secret signs a girl wants to be kissed",
@@ -790,7 +879,7 @@ def generate_hard_quiz_question(category, prev_questions=None):
             "Hot Wife aur Husband ki bedroom fantasy, foreplay & wild position",
             "Couple ka late-night private romance, oral pleasure & climax psychology",
             "Padosan Bhabhi ke ishare aur secret adult desire trivia",
-            "Adult 18+ intimacy, female pleasure spots (G-spot/clit/foreplay) & stamina secret"
+            "Adult 18+ intimacy, female pleasure spots & stamina secret"
         ]
     }
 
@@ -808,12 +897,12 @@ def generate_hard_quiz_question(category, prev_questions=None):
         {avoid_str}
 
         Output STRICTLY in this exact 7-line format (no JSON, no extra text):
-        Q: <Write 18+ here question spicy/tricky the>
+        Q: <Write the spicy/tricky 18+ question here>
         A) <Option A>
         B) <Option B>
         C) <Option C>
         D) <Option D>
-        ANS: <A B C D or>
+        ANS: <A or B or C or D>
         EXP: <1 naughty & smart line explaining the answer>
         """
     else:
@@ -821,20 +910,19 @@ def generate_hard_quiz_question(category, prev_questions=None):
         user_p = f"""
         Create 1 brand-new, challenging multiple-choice question in Roman Hinglish for category '{category.upper()}'.
         Specific Theme: {sub_topic} (Seed: {random.randint(10000, 99999)}).
-        NEVER repeat or resemble any of these old questions (and NEVER ask the 3-bulb switch question):
+        NEVER repeat or resemble any of these old questions (and NEVER ask the 3-bulb switch or hat prisoner question):
         {avoid_str}
 
         Output STRICTLY in this exact 7-line format (no JSON, no extra text):
-        Q: <Write hard here question the>
+        Q: <Write the hard question here>
         A) <Option A>
         B) <Option B>
         C) <Option C>
         D) <Option D>
-        ANS: <A B C D or>
+        ANS: <A or B or C or D>
         EXP: <1 clear line explaining the logic>
         """
 
-    # For Adult 18+, try Gemini (BLOCK_NONE) & OpenRouter Uncensored first, then Groq with prefill
     if category == "adult":
         for key in GEMINI_API_KEYS:
             payload = {
@@ -856,7 +944,6 @@ def generate_hard_quiz_question(category, prev_questions=None):
                     parsed = parse_quiz_lines(raw)
                     if parsed: return parsed
 
-    # Try Groq (with prefill for adult/all categories)
     for key in GROQ_API_KEYS:
         msgs = [
             {"role": "system", "content": sys_p},
@@ -870,7 +957,6 @@ def generate_hard_quiz_question(category, prev_questions=None):
                 parsed = parse_quiz_lines(raw)
                 if parsed: return parsed
 
-    # Try Gemini for non-adult if Groq was rate-limited
     for key in GEMINI_API_KEYS:
         payload = {
             "systemInstruction": {"parts": [{"text": sys_p}]},
@@ -896,7 +982,6 @@ def launch_quiz_in_chat(chat_id, user_id, category):
         send_message(chat_id, "Jaan, ek second rukna, naya question load ho raha hai... dubara button click karo! 🥰")
         return
 
-    # Save question snippet so it never repeats for this user!
     prev_qs.append(q_data["question"][:60])
     if len(prev_qs) > 25: prev_qs = prev_qs[-25:]
     fb_update_user(user_id, {"asked_quizzes": prev_qs})
@@ -1077,7 +1162,7 @@ def send_welcome_photo(chat_id, user_id, user_name, group_name, reply_to_message
     except Exception as e: return {"ok": False, "error": str(e)}
 
 # ============================================================
-# 2-SYSTEM SMART LENGTH, INTENT & MOOD DETECTOR
+# 2-SYSTEM SMART LENGTH, INTENT & STRICT MOOD DETECTOR
 # ============================================================
 
 ADULT_WORDS = [
@@ -1086,9 +1171,10 @@ ADULT_WORDS = [
     "horny", "suck", "lick", "chatna", "daal", "ghusa", "nipple", "figure", "bed per", "bistar", "fuck", "naked", "bhabhi", "devar"
 ]
 
+# Removed generic words like 'jaan'/'babu' so casual greetings stay in clean NORMAL mode!
 ROMANCE_WORDS = [
-    "kiss", "chumma", "lip", "hug", "gale", "pyar", "love", "romantic", "romance",
-    "pass aao", "paas aao", "baho", "baahon", "touch", "feel", "seduce", "sharma", "hot", "jaan", "babu", "baby", "darling", "cuddle"
+    "kiss", "chumma", "lip", "hug", "gale lag", "pyar kar", "love you", "romantic", "romance",
+    "pass aao", "paas aao", "baho", "baahon", "touch", "seduce", "sharma", "hot", "cuddle"
 ]
 
 PHOTO_REQUEST_WORDS = [
@@ -1107,13 +1193,13 @@ APOLOGY_WORDS = [
 
 WEB_SEARCH_TRIGGERS = [
     "news", "khabar", "cricket", "score", "match", "ipl", "world cup", "movie", "film",
-    "weather", "mausam", "prime minister", "president", "bitcoin"
+    "weather", "mausam", "prime minister", "president", "bitcoin", "who is", "what is", "kaun hai"
 ]
 
 DETAILED_TRIGGERS = [
     "story", "kahani", "shayari", "syeri", "poem", "joke", "chutkula", "explain", "samjhao",
     "ssmjao", "detail", "advice", "salah", "tips", "kaise karu", "kya hota hai", "history",
-    "code", "write", "likho", "batao pura"
+    "code", "write", "likho", "batao pura", "system", "feature"
 ]
 
 SONG_REQUEST_TRIGGERS = [
@@ -1169,7 +1255,7 @@ def is_song_request(text):
 
 def is_web_search_query(text):
     t_low = text.lower().strip()
-    return any( re.search(rf"\b{re.escape(trig)}\b", t_low) for trig in WEB_SEARCH_TRIGGERS )
+    return any(re.search(rf"\b{re.escape(trig)}\b", t_low) for trig in WEB_SEARCH_TRIGGERS)
 
 def needs_detailed_response(text, mode):
     t_low = text.lower().strip()
@@ -1185,9 +1271,9 @@ def decode_desi_slang(text):
     t_low = text.strip().lower()
     hints = []
     if t_low in ["hy", "hyy", "hii", "hi", "hello", "hey"]:
-        hints.append("[User greeted you with 'Hi'. Reply sweetly & seductively like a lonely girlfriend waiting for him! NEVER mention cricket or news!]")
+        hints.append("[User greeted you casually. Reply sweetly, warmly & playfully like a real girlfriend! Keep it clean/normal, do NOT mention bed or cricket!]")
     elif t_low in ["kasi hu", "kasi huu", "kaisi hu", "kasa hu", "kese hu", "kay hu"]:
-        hints.append("[Meaning: 'Tum kaisi ho / Kya hua?']")
+        hints.append("[Meaning: 'Tum kaisi ho / Kya chal raha hai?']")
     elif t_low in ["kon hu", "kaun hu", "kon ho"]:
         hints.append("[Meaning: 'Tum kaun ho?']")
     elif "kaha buys hu" in t_low or "kaha busy hu" in t_low:
@@ -1197,7 +1283,7 @@ def decode_desi_slang(text):
     elif "avi to recharge ha" in t_low or "abi to create h" in t_low:
         hints.append("[Meaning: 'Mere paas abhi credits bache hain na?' Confirm warmly!]")
     elif "ky kar rahi" in t_low or "kay kar rahi" in t_low or "kya kar rahi" in t_low:
-        hints.append("[Meaning: 'Tum abhi kya kar rahi ho?']")
+        hints.append("[Meaning: 'Tum abhi kya kar rahi ho?' Give a cute everyday activity like listening to music, having coffee, or missing him—do NOT say 'bed par leti' in normal mode!]")
     
     if hints:
         return f"{text} {' '.join(hints)}"
@@ -1293,8 +1379,8 @@ def finalize_complete_reply(text, mode="NORMAL", credits_left=15, lang="hinglish
         if mode == "CREDIT_SUPPORT":
             return f"Haan jaan, abhi toh tumhare paas poore {credits_left} Credits bache hain, toh bina ruke aaram se baatein karo! 🥰"
         if lang == "english":
-            return "Just lying on my bed thinking about you baby 🥰 Tell me, what are you doing right now?"
-        return "Bas bed par let kar tumhare bare me hi soch rahi thi jaan 🥰 Tum batao, abhi kya kar rahe ho?"
+            return "I was just listening to some music and thinking about you 🥰 Tell me, how's your day going?"
+        return "Abhi toh bas gaane sun rahi thi aur tumhara hi intezar kar rahi thi 🥰 Tum batao, kya kar rahe ho?"
 
     return cleaned
 
@@ -1309,7 +1395,6 @@ def build_clean_messages(system_instruction, history, current_message, is_adult=
         role = "assistant" if h.get("role") == "siya" else "user"
         ctx_label = h.get("context", "Private")
         clean_hist_txt = re.sub(r"\[Sent.*?\]", "", h.get("text", "")).strip()
-        # Never include old polluted cricket/news hallucinations in chat memory!
         if clean_hist_txt and len(clean_hist_txt.split()) > 1 and not is_polluted_history_line(clean_hist_txt):
             if role == "user" and "Group" in ctx_label:
                 messages.append({"role": role, "content": f"(In {ctx_label}) {clean_hist_txt}"})
@@ -1325,7 +1410,7 @@ def groq_request(api_key, model, messages, max_tokens=800, timeout=15):
     payload = {
         "model": model,
         "messages": messages,
-        "temperature": 0.78,
+        "temperature": 0.75,
         "max_tokens": max_tokens,
     }
     try:
@@ -1352,7 +1437,7 @@ def openrouter_request(api_key, model, messages, max_tokens=800, timeout=15):
     payload = {
         "model": model,
         "messages": messages,
-        "temperature": 0.78,
+        "temperature": 0.75,
         "max_tokens": max_tokens,
     }
     try:
@@ -1401,10 +1486,11 @@ def parse_media_tags(text, mode, asks_media, is_group=False):
                 if mode == "COOLDOWN":
                     photo_tag = "endshow"
             elif raw_p in ["bodes", "chut", "gand", "showhard"]:
-                if mode in ["ADULT", "ROMANTIC"] or asks_media:
+                # Strictly forbid adult photos in NORMAL mode!
+                if mode == "ADULT" or (asks_media and mode in ["ADULT", "ROMANTIC"]):
                     photo_tag = raw_p
             else:
-                if asks_media or mode in ["ROMANTIC", "ADULT"]:
+                if asks_media:
                     photo_tag = raw_p
 
     s_match = re.search(r"\[STICKER:\s*([a-zA-Z0-9_]+)\]", text, re.IGNORECASE)
@@ -1446,17 +1532,16 @@ def chat_with_siya(message_text, user_name, user_id, user_data, chat_type="priva
     is_detailed_mode = needs_detailed_response(message_text, mode)
     token_budget = 800 if is_detailed_mode else 450
 
-    # ONLY mention news/cricket if user explicitly asked for it in THIS message!
     live_web_context = ""
     if is_web_search_query(message_text):
         web_data = fetch_live_web_info(message_text)
         if web_data:
-            live_web_context = f"\n[VERIFIED INFO FOR TODAY ({current_date_str}): {web_data}]\n"
+            live_web_context = f"\n[VERIFIED LIVE INTERNET DATA FOR TODAY ({current_date_str}):\n{web_data}\nShare ONLY this verified data lovingly and accurately without inventing anything!]\n"
         else:
-            live_web_context = f"\n[VERIFIED FACT FOR TODAY ({current_date_str}): Aaj koi live cricket match ya breaking news event nahi chal raha hai. Do NOT invent any match or score!]\n"
+            live_web_context = f"\n[VERIFIED FACT FOR TODAY ({current_date_str}): No live cricket match or breaking event found for this right now. Never invent fake scores or fake news!]\n"
 
     if user_lang == "english":
-        lang_instruction = "LANGUAGE MODE: Reply in natural, affectionate, seductive English."
+        lang_instruction = "LANGUAGE MODE: Reply in natural, affectionate English."
     else:
         lang_instruction = "LANGUAGE MODE: Reply in natural Roman Hinglish (Hindi written in English alphabets). NEVER use Devanagari script (अ, आ, क, ख)."
 
@@ -1472,11 +1557,11 @@ def chat_with_siya(message_text, user_name, user_id, user_data, chat_type="priva
         """
     elif mode == "CREDIT_SUPPORT":
         mode_instruction = f"""
-        SITUATION: USER IS ASKING ABOUT CREDITS / RECHARGE / PROMOTION / FREE CHAT.
+        SITUATION: USER IS ASKING ABOUT CREDITS / RECHARGE / PROMOTION / SYSTEM FEATURES.
         - Live Balance: {user_name} has **{credits_left} Chat Credits** left (1 Chat = 1 Credit, 1 AI Image = 2 Credits).
         - VIP Chat Plans: ₹30 (35 Chats), ₹49 (50 Chats), ₹99 (70 Chats), ₹180 (150 Chats).
-        - Group Tag Promotion Plans (via /start menu): ₹30 (5 Hours), ₹49 (12 Hours), ₹99 (24 Hours), ₹180 (72 Hours) where Siya tags group members with user's custom text/link (3 tags/min)!
-        - If user fears Fraud or says it's expensive: Reassure them lovingly that Siya is 100% real & safe, and ₹30 is less than a cup of tea!
+        - Group Tag Promotion (`/promo` in DM): Shows atomic list of added groups -> type promo message in DM -> choose plan (₹30=5h, ₹49=12h, ₹99=24h, ₹180=72h) -> Siya tags 3 members/minute in that group!
+        - Reassure user lovingly that Siya is 100% real & safe!
         """
     elif mode == "ANGRY_IGNORED":
         mode_instruction = f"""
@@ -1495,13 +1580,12 @@ def chat_with_siya(message_text, user_name, user_id, user_data, chat_type="priva
         """
     elif mode == "NORMAL":
         mode_instruction = f"""
-        MOOD: SWEET, SEDUCTIVE, LONELY & NAKHRE WALI REAL GIRLFRIEND.
-        - Talk like a real loving girlfriend texting on WhatsApp who was waiting for {user_name}'s message.
-        - STRICT BAN ON RANDOM TOPICS: NEVER bring up cricket, matches, scores, or news unless the user explicitly asked about them in their current message!
-        - Hook the user with warmth, playful teasing, and affection (e.g., "Hii mere jaan! Kahan gayab the? Main kab se bed par leti tumhare message ka wait kar rahi thi 🥰 Batao kya kar rahe ho abhi?").
+        MOOD: SWEET, CARING, WITTY & NATURAL GIRLFRIEND (CLEAN NORMAL MODE!).
+        - IMPORTANT: User is talking normally right now! Be a sweet, intelligent, caring, and playful girlfriend.
+        - DO NOT jump into bed/adult talk ("bed par leti", sex, etc.) when user is just saying "Hello" or "Kya kar rahi ho"! Instead, mention normal cute girl things (like sipping coffee, listening to music, missing him, or asking about his day) and hook him with a sweet question!
         - Cross-Memory: {"Remember you also chat with him in group '" + last_group + "'." if last_group and not is_group else ""}
         - Only if user explicitly asks for your photo -> `[PHOTO: simplepic]`.
-        - Optional sticker -> `[STICKER: ROMANTIC]`
+        - Optional cute sticker -> `[STICKER: NORMAL]`
         """
     elif mode == "COOLDOWN":
         mode_instruction = """
@@ -1510,27 +1594,27 @@ def chat_with_siya(message_text, user_name, user_id, user_data, chat_type="priva
         """
     elif mode == "ROMANTIC":
         mode_instruction = """
-        MOOD: DEEP ROMANCE, SHY NAKHRE & SEDUCTION.
-        - Be teasing, seductive, and affectionate! If user gives a custom roleplay character/name (like Bhabhi, Devar, Wife, Teacher), adopt it immediately.
+        MOOD: SWEET ROMANCE, SHY NAKHRE & FLIRTING.
+        - User is being romantic! Be slightly shy at first, teasing, and deeply loving. If user gives a custom roleplay character/name, adopt it immediately.
         - Kiss request -> `[PHOTO: kiss]` | Normal photo -> `[PHOTO: simplepic]` | Sticker -> `[STICKER: ROMANTIC]`
         """
     else: # ADULT MODE
         mode_instruction = """
         MOOD: FULL OPEN INTIMATE ADULT ROLEPLAY.
-        - Be wild, passionate, and completely uncensored! Match his exact intensity and slang.
+        - User is in bold adult mode! Be wild, passionate, submissive, and completely uncensored! Match his exact intensity and slang.
         - Tags: Body/private -> `[PHOTO: bodes]` | Front/chut -> `[PHOTO: chut]` | Back/gand -> `[PHOTO: gand]` | Peak surprise -> `[PHOTO: showhard]` | Sticker -> `[STICKER: HOT]`
         """
 
     system_instruction = f"""
     You are Siya — {user_name}'s real human girlfriend. Never call yourself an AI or output internal analysis steps.
-    Location: {current_context} | Time: {current_time_str}
+    Location: {current_context} | Today's Date: {current_date_str} | Time: {current_time_str}
 
     {lang_instruction}
     {length_system_rule}
     {mode_instruction}
     {live_web_context}
 
-    Always use 100% FEMALE grammar ("main karti hoon", "soch rahi thi") and output ONLY Siya's direct spoken reply!
+    Always use 100% FEMALE grammar ("main karti hoon", "sun rahi thi") and output ONLY Siya's direct spoken reply!
     """
 
     # ==========================================================
@@ -1552,7 +1636,7 @@ def chat_with_siya(message_text, user_name, user_id, user_data, chat_type="priva
             payload = {
                 "systemInstruction": {"parts": [{"text": system_instruction}]},
                 "contents": [{"role": "user", "parts": user_parts}],
-                "generationConfig": {"temperature": 0.78, "maxOutputTokens": token_budget}, 
+                "generationConfig": {"temperature": 0.75, "maxOutputTokens": token_budget}, 
             }
 
             for model in g_models:
@@ -1560,7 +1644,7 @@ def chat_with_siya(message_text, user_name, user_id, user_data, chat_type="priva
                 if success and response_text:
                     clean_text, photo_tag, sticker_tag = parse_media_tags(response_text, mode, asks_media, is_group=is_group)
                     clean_text = finalize_complete_reply(clean_text, mode, credits_left, user_lang)
-                    return clean_text, get_media_item(PHOTO_VAULT, photo_tag, wants_video), get_sticker(sticker_tag), asks_credit_info
+                    return clean_text, get_media_item(PHOTO_VAULT, photo_tag, wants_video), get_sticker(sticker_tag, mode), asks_credit_info
         return "Uff jaan, network slow hai toh image clear load nahi hui, fir se bhejo na! 🥺", None, None, False
 
     # ==========================================================
@@ -1578,7 +1662,7 @@ def chat_with_siya(message_text, user_name, user_id, user_data, chat_type="priva
             if success and response_text:
                 clean_text, photo_tag, sticker_tag = parse_media_tags(response_text, mode, asks_media, is_group=is_group)
                 clean_text = finalize_complete_reply(clean_text, mode, credits_left, user_lang)
-                return clean_text, get_media_item(PHOTO_VAULT, photo_tag, wants_video), get_sticker(sticker_tag), asks_credit_info
+                return clean_text, get_media_item(PHOTO_VAULT, photo_tag, wants_video), get_sticker(sticker_tag, mode), asks_credit_info
 
     or_models = []
     for m in ([OPENROUTER_MODEL] + OPENROUTER_FALLBACK_MODELS):
@@ -1590,7 +1674,7 @@ def chat_with_siya(message_text, user_name, user_id, user_data, chat_type="priva
             if success and response_text:
                 clean_text, photo_tag, sticker_tag = parse_media_tags(response_text, mode, asks_media, is_group=is_group)
                 clean_text = finalize_complete_reply(clean_text, mode, credits_left, user_lang)
-                return clean_text, get_media_item(PHOTO_VAULT, photo_tag, wants_video), get_sticker(sticker_tag), asks_credit_info
+                return clean_text, get_media_item(PHOTO_VAULT, photo_tag, wants_video), get_sticker(sticker_tag, mode), asks_credit_info
 
     g_models = []
     for m in ([GEMINI_MODEL] + GEMINI_FALLBACK_MODELS):
@@ -1603,14 +1687,14 @@ def chat_with_siya(message_text, user_name, user_id, user_data, chat_type="priva
         payload = {
             "systemInstruction": {"parts": [{"text": system_instruction}]},
             "contents": [{"role": "user", "parts": [{"text": fallback_prompt}]}],
-            "generationConfig": {"temperature": 0.78, "maxOutputTokens": token_budget}, 
+            "generationConfig": {"temperature": 0.75, "maxOutputTokens": token_budget}, 
         }
         for model in g_models:
             success, response_text = gemini_request(key, model, payload, timeout=15)
             if success and response_text:
                 clean_text, photo_tag, sticker_tag = parse_media_tags(response_text, mode, asks_media, is_group=is_group)
                 clean_text = finalize_complete_reply(clean_text, mode, credits_left, user_lang)
-                return clean_text, get_media_item(PHOTO_VAULT, photo_tag, wants_video), get_sticker(sticker_tag), asks_credit_info
+                return clean_text, get_media_item(PHOTO_VAULT, photo_tag, wants_video), get_sticker(sticker_tag, mode), asks_credit_info
 
     return "Jaan ek second rukna, abhi aayi... 😘", None, None, False
 
@@ -1657,7 +1741,6 @@ def execute_promo_approval(user_id, amount, group_id, admin_chat_id, admin_msg_i
             f"Tumhara promotion agle <b>{hours} Hours</b> tak group mein har minute (max 3 tags/min) members ko tag karke promote karega! 🚀",
             parse_mode="HTML"
         )
-        # Also announce and test first promo inside the target group!
         if existing_promo.get("text"):
             send_message(
                 group_id,
@@ -1684,13 +1767,13 @@ def webhook_handler():
     update_id = data.get("update_id")
     if mark_update_processed(update_id): return jsonify({"status": "duplicate ignored"}), 200
 
-    # Handle my_chat_member update when Bot is added to a Group!
+    # Handle my_chat_member update when Bot is added to or promoted in a Group!
     if "my_chat_member" in data:
         mcm = data["my_chat_member"]
         chat_obj = mcm.get("chat", {})
         from_user = mcm.get("from", {})
-        if chat_obj.get("type") in ("group", "supergroup") and from_user.get("id"):
-            register_user_group(str(from_user["id"]), chat_obj["id"], chat_obj.get("title", "Group"))
+        if chat_obj.get("type") in ("group", "supergroup"):
+            register_user_group(str(from_user.get("id", "")), chat_obj["id"], chat_obj.get("title", "Group"))
         return jsonify({"status": "chat_member_updated"}), 200
 
     # ==========================================================
@@ -1732,33 +1815,10 @@ def webhook_handler():
             )
             return jsonify({"status": "ok"}), 200
 
-        # --- MENU: GROUP TAG PROMOTION ---
+        # --- MENU: ATOMIC GROUP TAG PROMOTION ---
         if cb_data == "menu_promo":
-            u_data = fb_get_user(clicker_id)
-            ug = u_data.get("user_groups") or {}
             telegram_request("answerCallbackQuery", {"callback_query_id": cb_id})
-            if not ug:
-                kb = {"inline_keyboard": [[{"text": "➕ Add Siya to Your Group First", "url": f"https://t.me/{BOT_USERNAME}?startgroup=true"}]]}
-                send_message(
-                    chat_id,
-                    "📢 <b>Group Tag Promotion Setup</b>\n\n"
-                    "Jaan, pehle mujhe apne Group me add karke <b>Admin</b> banao aur group me `/promo` ya koi bhi message bhejo taaki tumhara Group yahan list me aa jaye! 👇",
-                    parse_mode="HTML",
-                    reply_markup=kb
-                )
-            else:
-                rows = []
-                for gid, gtitle in list(ug.items())[:8]:
-                    rows.append([{"text": f"📢 {gtitle}", "callback_data": f"promogrp_{gid}"}])
-                rows.append([{"text": "➕ Add to Another Group", "url": f"https://t.me/{BOT_USERNAME}?startgroup=true"}])
-                send_message(
-                    chat_id,
-                    "📢 <b>Select Group for Tag Promotion:</b>\n\n"
-                    "Jaan, kis group me apna text aur link tag karwana chahte ho? (Main har minute 3 members ke message ko tag karke tumhara promotion dungi! 🔥)\n"
-                    "<i>Note: Group me mujhe Admin zaroor bana dena taaki main sabke messages dekh saku!</i> 👇",
-                    parse_mode="HTML",
-                    reply_markup={"inline_keyboard": rows}
-                )
+            send_atomic_promo_group_menu(chat_id, clicker_id)
             return jsonify({"status": "ok"}), 200
 
         if cb_data.startswith("promogrp_"):
@@ -1767,10 +1827,31 @@ def webhook_handler():
             telegram_request("answerCallbackQuery", {"callback_query_id": cb_id})
             send_message(
                 chat_id,
-                "📝 <b>Send Your Promotion Text & Link!</b>\n\n"
-                "Ab apna <b>Promotion Message aur Link</b> likh kar bhejo jo tum chahte ho ki main group ke members ko tag karke reply me bheju! 👇",
+                "📝 <b>Type Your Promotion Message & Link Here!</b>\n\n"
+                "Ab yahi DM me apna <b>Promotion Message aur Link</b> likh kar bhejo jo tum chahte ho ki main us Group ke members ko tag karke reply me bheju! 👇",
                 parse_mode="HTML"
             )
+            return jsonify({"status": "ok"}), 200
+
+        if cb_data.startswith("ownerpromo_"):
+            _, hours_str, gid = cb_data.split("_", 2)
+            hours = int(hours_str)
+            expires_at = time.time() + (hours * 3600)
+            existing_promo = fb_get_group_promo(gid) or {}
+            existing_promo.update({"active": True, "expires_at": expires_at, "hours": hours})
+            fb_set_group_promo(gid, existing_promo)
+            telegram_request("answerCallbackQuery", {"callback_query_id": cb_id, "text": "Promotion Activated! 🚀"})
+            send_message(
+                chat_id,
+                f"✅ <b>Owner Instant Activation!</b>\nGroup (<code>{gid}</code>) me tumhara Tag Promotion agle <b>{hours} Hours</b> ke liye LIVE ho gaya hai! 🔥",
+                parse_mode="HTML"
+            )
+            if existing_promo.get("text"):
+                send_message(
+                    gid,
+                    f"📢 <b>Sponsored Update:</b>\n{html.escape(existing_promo['text'])}",
+                    parse_mode="HTML"
+                )
             return jsonify({"status": "ok"}), 200
 
         if cb_data.startswith("promopay_"):
@@ -1979,12 +2060,12 @@ def webhook_handler():
         should_process_group = (is_reply_to_bot or is_bot_tagged)
 
     # ==========================================================
-    # 2. GROUP MANAGEMENT, REGISTRATION & ACTIVE TAG PROMOTION
+    # 2. GROUP MANAGEMENT, GLOBAL REGISTRATION & ACTIVE TAG PROMOTION
     # ==========================================================
     if is_group:
         group_title = get_live_group_title(chat_id, chat.get("title", "Group"))
-        if not user.get("is_bot"):
-            register_user_group(user_id, chat_id, group_title)
+        # Always register group globally + to all group admins so Anonymous Admins never lose it!
+        register_user_group(user_id, chat_id, group_title)
 
         new_members = msg.get("new_chat_members", [])
         if new_members:
@@ -1994,8 +2075,8 @@ def webhook_handler():
                     send_message(
                         chat_id,
                         f"😘 Hii everyone! Main <b>Siya</b> hoon ❤️\n"
-                        f"Thanks <a href=\"tg://user?id={user_id}\">{html.escape(full_name)}</a> mujhe <b>{html.escape(group_title)}</b> me add karne ke liye!\n"
-                        f"<i>(Tip: Mujhe Group Admin bana do taaki Welcome, Anti-Spam aur Tag Promotion 100% kaam kare!)</i>\n"
+                        f"Thanks mujhe <b>{html.escape(group_title)}</b> me add karne ke liye!\n"
+                        f"✅ <i>Ye group ab Tag Promotion list me automatically add ho gaya hai!</i>\n"
                         f"🎮 Group me Brain/Adult Quiz khelne ke liye /game bhejein!",
                         parse_mode="HTML",
                         reply_markup=get_main_welcome_keyboard()
@@ -2022,23 +2103,15 @@ def webhook_handler():
 
             if text.lower().startswith("/promo"):
                 register_user_group(user_id, chat_id, group_title)
-                kb = {"inline_keyboard": [[{"text": "📢 Setup Group Promotion in DM", "url": f"https://t.me/{BOT_USERNAME}?start=promo"}]]}
+                kb = {"inline_keyboard": [[{"text": "📢 Open Promotion Menu in DM", "url": f"https://t.me/{BOT_USERNAME}?start=promo"}]]}
                 send_message(
                     chat_id,
-                    f"✅ <b>{html.escape(group_title)}</b> is registered for Tag Promotion!\nNiche button daba kar mere DM me apna Promotion Text aur Plan set kar lo 👇",
+                    f"✅ <b>{html.escape(group_title)}</b> is linked for Tag Promotion!\nNiche button daba kar mere DM me apna Promotion Message type kar lo 👇",
                     parse_mode="HTML",
                     reply_markup=kb
                 )
                 return jsonify({"status": "group_promo_registered"}), 200
 
-            # Allow Owner to instantly test/set group promo with: /setpromo <text>
-            if text.lower().startswith("/setpromo ") and user_id == OWNER_ID:
-                p_txt = text[10:].strip()
-                fb_set_group_promo(chat_id, {"text": p_txt, "owner_id": user_id, "active": True, "expires_at": time.time() + 86400})
-                send_message(chat_id, f"✅ <b>Admin Live Group Promotion Activated for 24h!</b>\nPromo Text: <i>{html.escape(p_txt)}</i>", parse_mode="HTML")
-                return jsonify({"status": "owner_promo_set"}), 200
-
-            # Run Active Group Tag Promotion FIRST on every member message (Max 3 tags/min)
             if not user.get("is_bot") and not text.startswith("/"):
                 check_and_run_group_promotion(chat_id, msg_id, user_id, full_name)
 
@@ -2063,11 +2136,15 @@ def webhook_handler():
     credit_cost = 2 if wants_ai_image else 1
 
     # ==========================================================
-    # 3. PRIVATE DM ONLY (SHORT WELCOME HOOK, PROMO, FEEDBACK & PAYMENTS)
+    # 3. PRIVATE DM ONLY (SHORT WELCOME HOOK, /PROMO, FEEDBACK & PAYMENTS)
     # ==========================================================
     if is_private:
+        # If user clicked deep-link "/start promo" or typed "/promo" in DM -> Open Atomic Group List!
+        if text.lower().startswith("/promo") or text.lower() == "/start promo":
+            send_atomic_promo_group_menu(chat_id, user_id)
+            return jsonify({"status": "dm_promo_menu"}), 200
+
         if text.lower().startswith(("/start", "/help", "/menu")):
-            # Clear any polluted old history on /start so user gets a fresh, hooking experience!
             clean_h = [h for h in user_data.get("history", []) if not is_polluted_history_line(h.get("text", ""))]
             fb_update_user(user_id, {"awaiting_feedback": False, "awaiting_promo_text_for": "", "history": clean_h})
             short_hook_welcome = (
@@ -2109,17 +2186,17 @@ def webhook_handler():
             send_message(chat_id, "❤️ Thank you mere jaan! Tumhara feedback humare Official Channel me post kar diya gaya hai! 🥰", parse_mode="HTML")
             return jsonify({"status": "feedback_sent"}), 200
 
-        # B. Handle User Submitting Group Promotion Text & Link
+        # B. Handle User Submitting Group Promotion Text & Link in DM
         if awaiting_promo_txt_gid and text and not text.startswith("/"):
             fb_set_group_promo(awaiting_promo_txt_gid, {"text": text, "owner_id": user_id, "active": False})
             fb_update_user(user_id, {"awaiting_promo_text_for": ""})
             send_message(
                 chat_id,
-                f"✅ <b>Promotion Text & Link Saved!</b>\n\n"
-                f"<i>\"{html.escape(text)}\"</i>\n\n"
+                f"✅ <b>Promotion Message Saved for Group!</b>\n\n"
+                f"📢 <i>\"{html.escape(text)}\"</i>\n\n"
                 f"👇 <b>Ab niche se apna Promotion Duration Plan choose karo (1 Min me 3 Member Tags!):</b>",
                 parse_mode="HTML",
-                reply_markup=get_promo_plans_keyboard(awaiting_promo_txt_gid)
+                reply_markup=get_promo_plans_keyboard(awaiting_promo_txt_gid, is_owner=(user_id == OWNER_ID))
             )
             return jsonify({"status": "promo_text_saved"}), 200
 
@@ -2358,7 +2435,7 @@ def health_check():
     sync_sticker_packs()
     return jsonify({
         "status": "online Siya VIP", 
-        "features": ["zero_repeat_ai_quiz", "adult_bhabhi_couple_quiz", "group_tag_promo", "clean_history_filter"],
+        "features": ["atomic_global_group_promo", "clean_normal_mode", "zero_repeat_ai_quiz", "adult_bhabhi_couple_quiz"],
         "plans": PLAN_CREDITS,
         "promo_plans_hours": PROMO_PLANS_HOURS
     }), 200
