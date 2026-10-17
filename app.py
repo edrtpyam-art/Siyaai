@@ -129,7 +129,7 @@ PHOTO_VAULT = {
         "private1.jpg", "private2.jpg", "private3.jpg", "private4.jpg", "private5.jpg",
         "video.mp4", "video1.mp4", "video2.mp4", "video3.mp4"
     ],
-    "bodes_video": ["video.mp4", "video1.mp4", "video2.mp4", "video3.mp4"],
+    "bodes_video": ["video.mp4", "video.mp4", "video2.mp4", "video3.mp4"],
     "showhard": ["showhard.jpg", "showhard2.jpg"],
     "chut": [
         "open1.jpg", "open2.jpg", "opan3.jpg", "open3.jpg", "open4.jpg", "opan4.jpg",
