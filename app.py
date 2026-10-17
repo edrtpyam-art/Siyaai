@@ -25,28 +25,59 @@ GITHUB_BASE_URL = "https://raw.githubusercontent.com/edrtpyam-art/Siyaai/main/"
 FIREBASE_URL = os.environ.get("FIREBASE_URL", "").strip().rstrip("/")
 FIREBASE_SECRET = "8lTxEXOwEe5fjkh9zTHnBkzum6W0vrKcisbfqRf3"
 
-# --- 1. GROQ CONFIG (4 Keys - 100% Real Fast Models) ---
-GROQ_API_KEYS = [os.environ.get(f"GROQ_API_KEY{i}", "").strip() for i in ["", "2", "3", "4"]]
+# MULTI-KEY CONFIGURATION (GROQ FIRST + JAILBREAK + VISION)
+# ============================================================
+
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip()
+BOT_USERNAME = os.environ.get("BOT_USERNAME", "Siya268_bot").strip().lstrip("@")
+
+# --- 1. GROQ CONFIG (4 Keys - Primary for High Speed & High Limits) ---
+GROQ_API_KEYS = [
+    os.environ.get("GROQ_API_KEY", "").strip(),
+    os.environ.get("GROQ_API_KEY2", "").strip(),
+    os.environ.get("GROQ_API_KEY3", "").strip(),
+    os.environ.get("GROQ_API_KEY4", "").strip()
+]
 GROQ_API_KEYS = [k for k in GROQ_API_KEYS if k]
-GROQ_MODEL = "llama-3.3-70b-versatile"
+
+# Qwen & Llama on Groq follow roleplay/jailbreak best
+GROQ_MODEL = "qwen/qwen3.8-27b"
 GROQ_FALLBACK_MODELS = [
-    "llama-3.1-8b-instant",
-    "meta-llama/llama-4-scout-17b-16e-instruct",
-    "meta-llama/llama-4-maverick-17b-128e-instruct"
+    "llama-3.3-70b-versatile",
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b"
 ]
 
-# --- 2. OPENROUTER CONFIG (2 Keys) ---
-OPENROUTER_API_KEYS = [os.environ.get(f"OPENROUTER_API_KEY{i}", "").strip() for i in ["", "2"]]
+# --- 2. OPENROUTER CONFIG (2 Keys - Uncensored Models) ---
+OPENROUTER_API_KEYS = [
+    os.environ.get("OPENROUTER_API_KEY", "").strip(),
+    os.environ.get("OPENROUTER_API_KEY2", "").strip()
+]
 OPENROUTER_API_KEYS = [k for k in OPENROUTER_API_KEYS if k]
+
 OPENROUTER_MODEL = "nousresearch/hermes-3-llama-3.1-405b:free"
-OPENROUTER_FALLBACK_MODELS = ["meta-llama/llama-3.3-70b-instruct:free", "qwen/qwen-2.5-72b-instruct:free"]
+OPENROUTER_FALLBACK_MODELS = [
+    "cognitivecomputations/dolphin3.0-r1-mistral-24b:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "qwen/qwen-2.5-72b-instruct:free",
+    "openrouter/free"
+]
 
-# --- 3. GEMINI CONFIG (3 Keys - 100% Real Official Models, Zero 404!) ---
-GEMINI_API_KEYS = [os.environ.get(f"GEMINI_API_KEY{i}", "").strip() for i in ["", "2", "3"]]
+# --- 3. GEMINI CONFIG (3 Keys - Vision + Safety Filter OFF) ---
+GEMINI_API_KEYS = [
+    os.environ.get("GEMINI_API_KEY", "").strip(),
+    os.environ.get("GEMINI_API_KEY2", "").strip(),
+    os.environ.get("GEMINI_API_KEY3", "").strip()
+]
 GEMINI_API_KEYS = [k for k in GEMINI_API_KEYS if k]
-GEMINI_MODEL = "gemini-3.8-flash"
-GEMINI_FALLBACK_MODELS = ["gemini-2.5-flash-lite", "gemini-3.5-flash-lite","gemini-3.6-flash"]
 
+GEMINI_MODEL = "gemini-3.8-flash"
+GEMINI_FALLBACK_MODELS = [
+    "gemini-3.5-flash-lite",
+    "gemini-2.5-flash"
+]
+
+# Gemini ke saare safety filters (adult/sex/harassment) OFF karne ki setting
 GEMINI_SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
     {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
