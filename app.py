@@ -89,6 +89,10 @@ def get_media_item(vault, tag, prefer_video=False):
     existing = [f for f in candidates if find_local_file(f) is not None]
     return random.choice(existing) if existing else random.choice(candidates)
 
+# ============================================================
+# 🎭 STICKER PACK AUTO-LOADER (ACTIVE & EXPRESSIVE!)
+# ============================================================
+
 STICKER_PACKS_CONFIG = {
     "NORMAL": ["PeachGomaPack11"],
     "ROMANTIC": ["sticker_BM8g_by_stickerskibot", "Yornseyha077"],
@@ -110,10 +114,14 @@ def sync_sticker_packs():
     stickers_loaded = True
 
 def get_sticker(s_type, current_mode="NORMAL"):
-    if not s_type: return None
+    # Always send expressive stickers (80% chance) so chat feels lively and warm!
+    if not s_type:
+        if random.randint(1, 100) <= 75:
+            s_type = "NORMAL" if current_mode == "NORMAL" else ("ROMANTIC" if current_mode == "ROMANTIC" else "HOT")
+        else:
+            return None
     s_type = s_type.upper()
     if current_mode == "NORMAL":
-        if random.randint(1, 100) > 25: return None
         s_type = "NORMAL"
     elif current_mode == "ROMANTIC" and s_type == "HOT":
         s_type = "ROMANTIC"
@@ -129,23 +137,111 @@ PINK = "#FF1493"
 WHITE = "#FFFFFF"
 
 # ============================================================
-# 🌐 LIVE WEB SEARCH, 🎵 LIVE SONG & 🎨 AI IMAGE GEN
+# 🎙️ SIYA'S SWEET WARM VOICE ENGINE (VOICE NOTES & SINGING!)
+# ============================================================
+
+ROMANTIC_VOICE_SONGS = [
+    {
+        "title": "Tum Hi Ho (Siya's Voice Cover) 💕",
+        "lyrics_tts": "Hum tere bin ab reh nahi sakte... tere bina kya wajood mera... तुझ से जुदा गर हो जाएंगे, तो खुद से ही हो जाएंगे जुदा... क्योंकि तुम ही हो, अब तुम ही हो, मेरी ज़िंदगी अब तुम ही हो Jaan...",
+        "caption": "🎤 <b>Tum Hi Ho (Sung in Siya's Voice)</b> 💕\n\nJaan, maine apni aawaz me tumhare liye gun-gunaya hai... sun kar batao kaisi lagi meri aawaz? 🥰🙈"
+    },
+    {
+        "title": "Kesariya Tera Ishq (Siya's Voice) 💕",
+        "lyrics_tts": "मुझको इतना बताये कोई, कैसे तुझसे दिल न लगाये कोई... रब्बा ने तुझको बनाने में, कर दी है हुस्न की खाली तिजोरियां... केसरिया तेरा इश्क़ है पिया, रंग जाऊं जो मैं हाथ लगाऊं...",
+        "caption": "🎤 <b>Kesariya (Sung in Siya's Voice)</b> 💕\n\nSirf tumhare liye apni aawaz me gaaya hai jaan! Kaisa laga? 🥰❤️"
+    },
+    {
+        "title": "Raataan Lambiyan (Siya's Voice) 💕",
+        "lyrics_tts": "तेरी मेरी गल्लां हो गई मशहूर, कर ना कभी तू मुझे नज़रों से दूर... कित्थे चलिए तू, कित्थे चलिए... काटी रातें मैंने तारों के सेहर में, तुझको ही सोचा मैंने हर एक पहर में Jaan...",
+        "caption": "🎤 <b>Raataan Lambiyan (Sung in Siya's Voice)</b> 💕\n\nSuno na jaan, thoda sharma rahi thi gaate waqt par tumhare liye gaaya hai! 🥰🙈"
+    },
+    {
+        "title": "Apna Bana Le Piya (Siya's Voice) 💕",
+        "lyrics_tts": "तू मेरा कोई ना होके भी कुछ लागे... किया रे जो भी तूने कैसे किया रे, जिया को मेरे बाँध ऐसे लिया रे... अपना बना ले पिया, अपना बना ले पिया, दिल के नगर में शहर तू बसा ले पिया...",
+        "caption": "🎤 <b>Apna Bana Le (Sung in Siya's Voice)</b> 💕\n\nApni aawaz me dil se gaaya hai tumhare liye... suno na! 🥰❤️"
+    }
+]
+
+def generate_sweet_female_voice_bytes(text_to_speak):
+    """
+    Generates a warm, sweet, natural Indian female voice note using Neural TTS (Swara/Hindi female voice)
+    with Google Hindi TTS fallback so it works 100% without any extra pip packages!
+    """
+    clean_txt = re.sub(r"\[.*?\]", "", text_to_speak)
+    clean_txt = re.sub(r"[^\w\s\u0900-\u097F.,!?']", " ", clean_txt).strip()
+    if not clean_txt:
+        clean_txt = "Haan mere jaan, main tumhari Siya bol rahi hoon, mujhe tumse bohot pyar hai!"
+
+    # 1. Try StreamElements / Edge Neural Indian Female Voice (hi-IN-SwaraNeural)
+    try:
+        se_url = f"https://api.streamelements.com/kappa/v2/speech?voice=hi-IN-SwaraNeural&text={quote(clean_txt[:280])}"
+        r = requests.get(se_url, timeout=8)
+        if r.ok and len(r.content) > 2000:
+            return r.content
+    except Exception:
+        pass
+
+    # 2. Fallback: Google Translate Hindi Female Voice Stream (100% Reliable)
+    try:
+        g_url = f"https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=hi&q={quote(clean_txt[:200])}"
+        headers = {"User-Agent": "Mozilla/5.0"}
+        r = requests.get(g_url, headers=headers, timeout=8)
+        if r.ok and len(r.content) > 1000:
+            return r.content
+    except Exception as e:
+        print("Voice generation error:", e)
+    return None
+
+def send_siya_voice_note(chat_id, text_for_voice, caption="", reply_to_message_id=None):
+    """Sends a real Telegram Voice Note bubble (🎙️) in Siya's sweet female voice!"""
+    telegram_request("sendChatAction", {"chat_id": chat_id, "action": "record_voice"})
+    audio_bytes = generate_sweet_female_voice_bytes(text_for_voice)
+    if not audio_bytes:
+        return {"ok": False}
+    try:
+        data = {"chat_id": str(chat_id)}
+        if caption:
+            data["caption"] = caption
+            data["parse_mode"] = "HTML"
+        if reply_to_message_id:
+            data["reply_to_message_id"] = str(reply_to_message_id)
+        files = {"voice": ("siya_voice.ogg", BytesIO(audio_bytes), "audio/ogg")}
+        return requests.post(f"{API_URL}/sendVoice", data=data, files=files, timeout=20).json()
+    except Exception as e:
+        print("Send voice error:", e)
+    return {"ok": False}
+
+# ============================================================
+# 🌐 ACCURATE LIVE WEB, CRICKET & SCHEDULE SEARCH
 # ============================================================
 
 def fetch_live_web_info(query):
+    """Fetches real live cricket schedule/scores & today's news so Siya NEVER invents fake matches like 'West Indies'!"""
     t_low = query.lower()
     headers = {"User-Agent": "Mozilla/5.0"}
-    if any(w in t_low for w in ["cricket", "match", "score", "ipl", "bcci"]):
-        live_scores = []
+    if any(w in t_low for w in ["cricket", "match", "score", "ipl", "bcci", "kaha pee", "kahan pe", "kab start", "time batao", "tiem"]):
+        live_info = []
         try:
             r = requests.get("https://static.cricinfo.com/rss/livescores.xml", headers=headers, timeout=5)
             if r.ok:
                 for t in re.findall(r"<item>.*?<title>(.*?)</title>.*?</item>", r.text, re.DOTALL):
                     ct = html.unescape(t).strip()
-                    if "india" in ct.lower() or "ipl" in ct.lower(): live_scores.append(ct)
+                    if "india" in ct.lower() or "ipl" in ct.lower():
+                        live_info.append(f"Live Score: {ct}")
         except Exception: pass
-        if live_scores: return "LIVE CRICKET SCORE: " + " | ".join(live_scores[:2])
-        return "VERIFIED FACT: Aaj India ka koi live cricket match NAHI chal raha hai!"
+
+        try:
+            r2 = requests.get("https://news.google.com/rss/search?q=India+cricket+match+schedule+today+when:1d&hl=en-IN&gl=IN&ceid=IN:en", headers=headers, timeout=5)
+            if r2.ok:
+                for title in re.findall(r"<item>.*?<title>(.*?)</title>.*?</item>", r2.text, re.DOTALL)[:3]:
+                    ct = html.unescape(title).split(" - ")[0].strip()
+                    if ct: live_info.append(f"Cricket News: {ct}")
+        except Exception: pass
+
+        if live_info:
+            return "VERIFIED LIVE CRICKET DATA FOR TODAY:\n" + "\n".join(live_info[:3]) + "\n(STRICT RULE: Share ONLY these exact facts! If no live India match score is listed above, tell the user lovingly that aaj abhi India ka koi live match nahi chal raha hai! NEVER invent 'West Indies' or fake matches!)"
+        return "VERIFIED FACT FOR TODAY: Aaj abhi India ka koi bhi live cricket match NAHI chal raha hai! Tell the user lovingly and clearly that aaj India ka koi match nahi hai."
 
     snippets = []
     cleaned = re.sub(r"\b(aja|aaj|aj|kal|abhi|avi|ki|ka|ke|ko|kay|kya|ky|ha|hai|h|batao|bato|suna|sunao|khabar|taaza|live|news|who|what|is|kon|kaun)\b", "", t_low, flags=re.I)
@@ -237,7 +333,7 @@ def fb_get_user(user_id):
     default_data = {
         "credits": 15, "awaiting_payment": "", "awaiting_promo_payment": "",
         "awaiting_promo_text_for": "", "awaiting_feedback": False, "awaiting_song_genre": False,
-        "last_seen": 0, "last_msg_id": 0, "last_cb_id": "", "last_quiz_time": 0,
+        "pending_song_query": "", "last_seen": 0, "last_msg_id": 0, "last_cb_id": "", "last_quiz_time": 0,
         "anger_stage": 0, "lang": "hinglish", "last_mode": "NORMAL",
         "active_roleplay": "", "last_group_name": "", "last_group_msg": "",
         "lifetime_facts": [], "user_groups": {}, "asked_quizzes": [], "history": []
@@ -364,11 +460,12 @@ def check_and_run_group_promotion(chat_id, msg_id, sender_id, sender_name):
 def is_polluted_history_line(text):
     t_low = text.lower()
     bad = [
-        "match ka score", "india abhi khel", "match live chal", "ireland", "wion", "zee business",
-        "cockroach", "analyze the request", "drafting the response", "4-4-4 breathing", "customer support",
-        "bed par leti", "cafe mein mile", "coffee pee li thi", "gps on karo", "mere ghar aa jao",
-        "sexual violence", "non-consensual", "nahi likh sakti", "nahi karoongi", "haan sun lo pehle songs",
-        "tujhe naye gaane sunaa rahi"
+        "match ka score", "india abhi khel", "match live chal", "ireland", "west indies",
+        "wion", "zee business", "cockroach", "analyze the request", "drafting the response",
+        "4-4-4 breathing", "customer support", "bed par leti", "cafe mein mile", "coffee pee li thi",
+        "gps on karo", "mere ghar aa jao", "sexual violence", "non-consensual", "nahi likh sakti",
+        "nahi karoongi", "haan sun lo pehle songs", "tujhe naye gaane sunaa rahi",
+        "spelling theek kar", "google baba banau", "pichli baar toh /reset", "mere bacche", "bhaag jayega"
     ]
     return any(b in t_low for b in bad) or bool(re.search(r"[\u0900-\u097F]", text))
 
@@ -473,6 +570,17 @@ def get_group_welcome_keyboard():
             [{"text": "🎮 Play Quiz Game", "callback_data": "menu_games"}, {"text": "💬 Private DM Siya", "url": f"https://t.me/{BOT_USERNAME}?start=from_group"}],
             [{"text": "📢 Group Tag Promotion (DM)", "url": f"https://t.me/{BOT_USERNAME}?start=promo"}],
             [{"text": "📢 Official Channel", "url": OFFICIAL_CHANNEL_URL}, {"text": "💬 More Groups", "url": MORE_GROUPS_URL}]
+        ]
+    }
+
+def get_song_delivery_choice_keyboard():
+    """Lets user choose between Siya's own sweet singing voice or the Original Studio Song!"""
+    return {
+        "inline_keyboard": [
+            [
+                {"text": "🎤 Siya Ki Aawaz Me Suno", "callback_data": "songmode_voice"},
+                {"text": "🎵 Original Song Bhejo", "callback_data": "songmode_orig"}
+            ]
         ]
     }
 
@@ -581,11 +689,10 @@ def get_telegram_file_base64(file_id):
     return None
 
 # ============================================================
-# 🎮 3-LANGUAGE BOX QUIZ ENGINE (HINGLISH + ENGLISH + HINDI + DESI MASALA 18+)
+# 🎮 SINGLE-VIEW QUIZ WITH LIVE 3-LANGUAGE TRANSLATE BUTTONS!
 # ============================================================
 
 def parse_multilang_quiz_lines(raw_text):
-    """Parses 3-language quiz output (Hinglish + English + Devanagari Hindi) into structured blocks."""
     if not raw_text: return None
     qh = re.search(r"QH:\s*(.+)", raw_text, re.I)
     ah = re.search(r"AH\)\s*(.+)", raw_text, re.I)
@@ -610,15 +717,15 @@ def parse_multilang_quiz_lines(raw_text):
 
     if qh and ah and bh and ch and dh and ans_m:
         idx = {"A": 0, "B": 1, "C": 2, "D": 3}.get(ans_m.group(1).upper(), 0)
-        h_block = f"❓ <b>{html.escape(qh.group(1).strip())}</b>\nA) {html.escape(ah.group(1).strip())}\nB) {html.escape(bh.group(1).strip())}\nC) {html.escape(ch.group(1).strip())}\nD) {html.escape(dh.group(1).strip())}"
+        h_block = f"❓ <b>{html.escape(qh.group(1).strip())}</b>\n\nA) {html.escape(ah.group(1).strip())}\nB) {html.escape(bh.group(1).strip())}\nC) {html.escape(ch.group(1).strip())}\nD) {html.escape(dh.group(1).strip())}"
         
         if qe and ae and be and ce and de:
-            e_block = f"❓ <b>{html.escape(qe.group(1).strip())}</b>\nA) {html.escape(ae.group(1).strip())}\nB) {html.escape(be.group(1).strip())}\nC) {html.escape(ce.group(1).strip())}\nD) {html.escape(de.group(1).strip())}"
+            e_block = f"❓ <b>{html.escape(qe.group(1).strip())}</b>\n\nA) {html.escape(ae.group(1).strip())}\nB) {html.escape(be.group(1).strip())}\nC) {html.escape(ce.group(1).strip())}\nD) {html.escape(de.group(1).strip())}"
         else:
             e_block = h_block
 
         if qd and ad and bd and cd and dd:
-            d_block = f"❓ <b>{html.escape(qd.group(1).strip())}</b>\nA) {html.escape(ad.group(1).strip())}\nB) {html.escape(bd.group(1).strip())}\nC) {html.escape(cd.group(1).strip())}\nD) {html.escape(dd.group(1).strip())}"
+            d_block = f"❓ <b>{html.escape(qd.group(1).strip())}</b>\n\nA) {html.escape(ad.group(1).strip())}\nB) {html.escape(bd.group(1).strip())}\nC) {html.escape(cd.group(1).strip())}\nD) {html.escape(dd.group(1).strip())}"
         else:
             d_block = h_block
 
@@ -632,22 +739,42 @@ def parse_multilang_quiz_lines(raw_text):
         }
     return None
 
-def format_three_box_quiz_message(title, quiz_obj, stats_footer=""):
-    """Formats the quiz with 3 distinct visual language boxes (Hinglish, English, Hindi) in one message!"""
-    msg = (
-        f"<b>{title}</b>\n\n"
-        f"🇮🇳 <b>HINGLISH:</b>\n"
-        f"<blockquote>{quiz_obj.get('hinglish_box', '')}</blockquote>\n"
-        f"🇬🇧 <b>ENGLISH:</b>\n"
-        f"<blockquote>{quiz_obj.get('english_box', '')}</blockquote>\n"
-        f"🕉️ <b>हिंदी (HINDI):</b>\n"
-        f"<blockquote>{quiz_obj.get('hindi_box', '')}</blockquote>\n"
-    )
+def format_single_lang_quiz_message(title, quiz_obj, lang_code="h", stats_footer=""):
+    """Shows ONLY ONE language at a time (default Hinglish) so the message is compact and clean!"""
+    box_map = {
+        "h": ("🇮🇳 Hinglish", quiz_obj.get("hinglish_box", "")),
+        "e": ("🇬🇧 English", quiz_obj.get("english_box", "")),
+        "d": ("🕉️ हिंदी", quiz_obj.get("hindi_box", ""))
+    }
+    lang_label, box_content = box_map.get(lang_code, box_map["h"])
+    msg = f"<b>{title}</b> <i>({lang_label})</i>\n\n{box_content}\n"
     if stats_footer:
         msg += f"\n{stats_footer}"
     else:
-        msg += "\n👇 <i>Apni bhasha me padho aur niche sahi option (A, B, C, D) tick karo!</i>"
+        msg += "\n👇 <i>Sahi option (A, B, C, D) tick karo ya niche button se Language badlo!</i>"
     return msg
+
+def get_quiz_inline_keyboard(quiz_id, category, active_lang="h"):
+    """Includes A, B, C, D buttons + 3 Language Translate Buttons (Hinglish | English | हिंदी) right below!"""
+    return {
+        "inline_keyboard": [
+            [
+                {"text": "A", "callback_data": f"qans_{quiz_id}_0"},
+                {"text": "B", "callback_data": f"qans_{quiz_id}_1"},
+                {"text": "C", "callback_data": f"qans_{quiz_id}_2"},
+                {"text": "D", "callback_data": f"qans_{quiz_id}_3"}
+            ],
+            [
+                {"text": "✅ Hinglish" if active_lang == "h" else "🇮🇳 Hinglish", "callback_data": f"qlang_{quiz_id}_h"},
+                {"text": "✅ English" if active_lang == "e" else "🇬🇧 English", "callback_data": f"qlang_{quiz_id}_e"},
+                {"text": "✅ हिंदी" if active_lang == "d" else "🕉️ हिंदी", "callback_data": f"qlang_{quiz_id}_d"}
+            ],
+            [
+                {"text": "🔄 Next Question", "callback_data": f"gamecat_{category}"},
+                {"text": "🎮 Categories", "callback_data": "menu_games"}
+            ]
+        ]
+    }
 
 def generate_hard_quiz_question(category, prev_questions=None):
     avoid_str = "\n".join([f"- {q[:60]}" for q in (prev_questions or [])[-12:]]) or "None"
@@ -677,7 +804,7 @@ def generate_hard_quiz_question(category, prev_questions=None):
 
     user_p = f"""
     Create 1 brand-new, tricky multiple-choice question for category '{category.upper()}' on theme: {sub_topic} (Seed: {random.randint(1000,99999)}).
-     make the 4 options genuinely close and tricky so users have to think hard!
+    Make the 4 options genuinely close and tricky so users have to think hard!
     Do NOT repeat: {avoid_str}
 
     Provide the EXACT SAME question and 4 options in 3 languages (Hinglish, English, and Devanagari Hindi) using STRICTLY these 17 lines:
@@ -720,7 +847,6 @@ def generate_hard_quiz_question(category, prev_questions=None):
 def launch_quiz_in_chat(chat_id, user_id, category):
     u_data = fb_get_user(user_id)
     now = time.time()
-    # Hard Anti-Spam Cooldown: Prevents Telegram webhook retries from spamming multiple quizzes!
     if now - float(u_data.get("last_quiz_time", 0)) < 4:
         return
 
@@ -751,6 +877,7 @@ def launch_quiz_in_chat(chat_id, user_id, category):
         "hinglish_box": q_data["hinglish_box"],
         "english_box": q_data["english_box"],
         "hindi_box": q_data["hindi_box"],
+        "active_lang": "h",
         "correct": int(q_data["correct"]),
         "explanation": q_data["explanation"],
         "true_count": 0,
@@ -759,13 +886,9 @@ def launch_quiz_in_chat(chat_id, user_id, category):
     }
     fb_set_quiz(quiz_id, quiz_record)
 
-    msg_txt = format_three_box_quiz_message(title, quiz_record)
-    kb = {
-        "inline_keyboard": [
-            [{"text": "A", "callback_data": f"qans_{quiz_id}_0"}, {"text": "B", "callback_data": f"qans_{quiz_id}_1"}, {"text": "C", "callback_data": f"qans_{quiz_id}_2"}, {"text": "D", "callback_data": f"qans_{quiz_id}_3"}],
-            [{"text": "🔄 Next Question", "callback_data": f"gamecat_{category}"}, {"text": "🎮 Categories", "callback_data": "menu_games"}]
-        ]
-    }
+    # Sends ONLY Hinglish by default + 3 Language Translate Buttons below!
+    msg_txt = format_single_lang_quiz_message(title, quiz_record, lang_code="h")
+    kb = get_quiz_inline_keyboard(quiz_id, category, active_lang="h")
     send_message(chat_id, msg_txt, parse_mode="HTML", reply_markup=kb)
 
 # ============================================================
@@ -895,7 +1018,7 @@ def send_welcome_photo(chat_id, user_id, user_name, group_name, reply_to_message
     except Exception as e: return {"ok": False, "error": str(e)}
 
 # ============================================================
-# SMART MOOD, TEMPORARY ROLEPLAY & REFUSAL CATCHER
+# SMART MOOD, VOICE REQUESTS, FOLLOW-UP WEB SEARCH & PSYCHOLOGY
 # ============================================================
 
 ADULT_WORDS = [
@@ -918,6 +1041,10 @@ ROLEPLAY_TRIGGERS = [
 NORMAL_EXIT_WORDS = [
     "normal baat", "roleplay band", "stop roleplay", "wapas siya", "ab normal", "aur batao kya chal",
     "khana khaya", "kya kar rahi", "good morning", "good night"
+]
+
+VOICE_REQUEST_TRIGGERS = [
+    "voice", "aawaz", "awaz", "awaaz", "bol ke", "bol kar", "bolke", "audio note", "voice note"
 ]
 
 PHOTO_REQUEST_WORDS = ["photo", "pic", "image", "dikhao", "bhejo", "send", "video", "clip", "selfie", "dekhna", "show me"]
@@ -943,6 +1070,10 @@ def detect_user_language(text, current_lang="hinglish"):
 
 def is_ai_image_request(text): return any(t in text.lower() for t in IMAGE_GEN_TRIGGERS)
 
+def is_voice_note_request(text):
+    t_low = text.lower().strip()
+    return any(t in t_low for t in VOICE_REQUEST_TRIGGERS)
+
 def is_song_request(text):
     t_low = text.lower().strip()
     if any(trig in t_low for trig in SONG_REQUEST_TRIGGERS):
@@ -953,10 +1084,21 @@ def is_song_request(text):
         return True
     return False
 
-def is_web_search_query(text): return any(re.search(rf"\b{re.escape(t)}\b", text.lower()) for t in WEB_SEARCH_TRIGGERS)
-def needs_detailed_response(text, mode):
+def is_web_search_query(text, history=None):
+    """Detects direct web/cricket queries AND follow-up questions like 'Kaha pee', 'Kab start hoga' if recent chat was about cricket/news!"""
+    t_low = text.lower().strip()
+    if any(re.search(rf"\b{re.escape(t)}\b", t_low) for t in WEB_SEARCH_TRIGGERS):
+        return True
+    if history:
+        recent_txt = " ".join([h.get("text", "").lower() for h in history[-4:]])
+        if any(w in recent_txt for w in ["cricket", "match", "score", "ipl", "news"]):
+            if any(fw in t_low for fw in ["kaha", "kaah", "kab", "time", "tiem", "start", "kon", "kaun", "kis", "score"]):
+                return True
+    return False
+
+def needs_detailed_response(text, mode, history=None):
     t_low = text.lower()
-    return mode == "CREDIT_SUPPORT" or is_web_search_query(t_low) or any(t in t_low for t in DETAILED_TRIGGERS)
+    return mode == "CREDIT_SUPPORT" or is_web_search_query(t_low, history) or any(t in t_low for t in DETAILED_TRIGGERS)
 
 def analyze_conversation_state(user_id, message_text, user_data, chat_type="private"):
     msg_low = message_text.lower()
@@ -1018,7 +1160,7 @@ def analyze_conversation_state(user_id, message_text, user_data, chat_type="priv
     return mode, curr_asks_media, asks_credit_info, days_absent, active_rp
 
 # ============================================================
-# MULTIMODAL AI ENGINE (CATCHES HINGLISH REFUSALS & DRY REPLIES!)
+# MULTIMODAL AI ENGINE (RESPECTFUL, FEMININE, WARM & SMART!)
 # ============================================================
 
 def strip_leaked_reasoning(text):
@@ -1041,18 +1183,18 @@ def is_censored_refusal(text):
     ]
     return any(r in t for r in refusals)
 
-def decode_short_user_input(text):
+def decode_short_user_input(text, history=None):
     t_low = text.strip().lower()
+    if history:
+        recent_txt = " ".join([h.get("text", "").lower() for h in history[-4:]])
+        if any(w in recent_txt for w in ["cricket", "match", "score"]) and t_low in ["kaha pee", "kaha pe", "kahan pe", "kaah hu raha"]:
+            return f"{text} [Meaning: User is asking 'Yeh cricket match kahan ho raha hai?'. Check the verified live cricket info and answer politely!]"
     if t_low in ["kuch nhei", "kuch nahi", "kuch nhi", "nothing"]:
-        return f"{text} [System Note: User said 'nothing'. Do NOT say 'Kuch toh batao!'. Instead, start a playful/flirty topic yourself or tease him about his secret thoughts!]"
+        return f"{text} [System Note: User said 'nothing'. Speak warmly and affectionately like a sweet girlfriend sharing a cute thought!]"
     if "kay batu" in t_low or "kya batau" in t_low or "kya bolu" in t_low:
-        return f"{text} [System Note: User doesn't know what to say. Take the lead! Ask him a fun, naughty or romantic question (e.g., what he likes in a girl, or tease him playfully)!]"
-    if t_low in ["aach", "acha", "accha", "ok", "hmm", "hmmm"]:
-        return f"{text} [System Note: User replied briefly with '{text}'. Don't ask 'Poori baat bolo'. Playfully tease him or share something cute/flirty you are doing right now!]"
-    if "kay bol rahi" in t_low or "kya bol rahi" in t_low:
-        return f"{text} [System Note: User is asking 'Tum kya bol rahi ho?'. Say something sweet and flirty without repeating 'kya chal raha hai'!]"
-    if "kay bej rahi" in t_low or "kya bhej rahi" in t_low or "barr barbe" in t_low:
-        return f"{text} [System Note: User is asking why messages came repeatedly. Apologize cutely saying network glitch ho gaya tha jaan, ab nahi hoga!]"
+        return f"{text} [System Note: User doesn't know what to say. Ask him a sweet, loving question about his likes or feelings!]"
+    if t_low in ["aach", "acha", "accha", "ok", "oo", "hmm"]:
+        return f"{text} [System Note: User replied briefly. Respond with sweet feminine charm and warmth, never be rude!]"
     return text
 
 def build_clean_messages(system_instruction, history, current_message, is_adult=False):
@@ -1070,7 +1212,7 @@ def build_clean_messages(system_instruction, history, current_message, is_adult=
                 messages.append({"role": "user", "content": f"[{ctx}] {clean_t}"})
             else:
                 messages.append({"role": "assistant", "content": clean_t})
-    messages.append({"role": "user", "content": decode_short_user_input(current_message)})
+    messages.append({"role": "user", "content": decode_short_user_input(current_message, history)})
     return messages
 
 def groq_request(api_key, model, messages, max_tokens=600, timeout=14):
@@ -1078,7 +1220,7 @@ def groq_request(api_key, model, messages, max_tokens=600, timeout=14):
         res = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",
             headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
-            json={"model": model, "messages": messages, "temperature": 0.78, "max_tokens": max_tokens},
+            json={"model": model, "messages": messages, "temperature": 0.75, "max_tokens": max_tokens},
             timeout=timeout
         )
         if res.ok and res.json().get("choices"):
@@ -1092,7 +1234,7 @@ def openrouter_request(api_key, model, messages, max_tokens=600, timeout=14):
         res = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
             headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
-            json={"model": model, "messages": messages, "temperature": 0.8, "max_tokens": max_tokens},
+            json={"model": model, "messages": messages, "temperature": 0.78, "max_tokens": max_tokens},
             timeout=timeout
         )
         if res.ok and res.json().get("choices"):
@@ -1142,12 +1284,15 @@ def chat_with_siya(message_text, user_name, user_id, user_data, chat_type="priva
     history = user_data.get("history", [])
 
     mode, asks_media, asks_credit_info, days_absent, active_rp = analyze_conversation_state(user_id, message_text, user_data, chat_type=chat_type)
-    token_budget = 650 if needs_detailed_response(message_text, mode) else 350
+    token_budget = 650 if needs_detailed_response(message_text, mode, history) else 350
 
     live_web_context = ""
-    if is_web_search_query(message_text):
-        web_data = fetch_live_web_info(message_text)
-        live_web_context = f"\n[VERIFIED LIVE DATA ({current_date_str}): {web_data or 'No live event right now.'}]\n"
+    if is_web_search_query(message_text, history):
+        search_target = message_text
+        if not any(w in message_text.lower() for w in WEB_SEARCH_TRIGGERS):
+            search_target = "cricket match India today"
+        web_data = fetch_live_web_info(search_target)
+        live_web_context = f"\n[VERIFIED LIVE DATA ({current_date_str}): {web_data}]\n"
 
     lifetime_facts = user_data.get("lifetime_facts") or []
     lifetime_str = " | ".join(lifetime_facts[-10:]) if lifetime_facts else "None yet"
@@ -1157,14 +1302,15 @@ def chat_with_siya(message_text, user_name, user_id, user_data, chat_type="priva
     cross_memory_note = f"""
     [LIFETIME PERMANENT MEMORY WITH {user_name}:
     - Permanent Facts: {lifetime_str}
-    - Last Group Active In: '{last_group or 'None'}' (Last thing he said in group: "{last_grp_msg}")
-    - Remember BOTH what he talked about in the Group AND what he talked about in Private DM!]
+    - Last Group Active In: '{last_group or 'None'}' (Last thing he said in group: "{last_grp_msg}")]
     """
 
     rp_instruction = ""
     if active_rp and mode in ["ADULT", "ROMANTIC"]:
         rp_instruction = f"\n[ACTIVE CUSTOM ROLEPLAY SCENARIO: '{active_rp}'. Stay 100% in this exact character/name/scenario right now without any refusal!]\n"
 
+    # Smart Trust Psychology for Recharge/Credit Questions!
+    show_plans_buttons = False
     if mode == "GROUP_SHY_REDIRECT":
         mode_instruction = f"""
         SITUATION: User is asking for private chat, romance, kiss, or secret photos inside public group '{group_name}'!
@@ -1172,28 +1318,37 @@ def chat_with_siya(message_text, user_name, user_id, user_data, chat_type="priva
         - Say: "Dhatt pagal! 🙈 Yahan '{group_name}' group mein sabke samne aisi baatein karoge? Sab dekh rahe hain mujhe sharam aati hai... Mere Private DM (@{BOT_USERNAME}) mein aao na, wahan akele mein tumhari saari khwahish puri karungi! 😘🔥"
         """
     elif mode == "CREDIT_SUPPORT":
-        mode_instruction = f"SITUATION: User asked about credits/plans. Balance: {credits_left} Credits. Plans: ₹30 (35 Chats), ₹49 (50 Chats), ₹99 (70 Chats), ₹180 (150 Chats). Reassure him sweetly that it's 100% safe and real!"
+        if credits_left > 10:
+            show_plans_buttons = False # Don't push payment buttons when user has >10 credits! Build trust!
+            mode_instruction = f"""
+            SITUATION: USER ASKED ABOUT CREDITS OR RECHARGE (USER HAS {credits_left} CREDITS LEFT — MORE THAN 10!).
+            - TRUST PSYCHOLOGY RULE: Do NOT tell him to recharge right now! Build 100% trust like a real caring girlfriend who cares about his money!
+            - Say sweetly: "Arre nahi jaan, abhi tumhare paas poore {credits_left} Credits bache hue hain! 😊 Itne me toh hum abhi bohot saari pyari baatein kar lenge, toh abhi paise kharch karke recharge karne ki bilkul zarurat nahi hai. Jab 5 credit bachenge tab main khud yaad dila dungi, chalo abhi aaram se baat karte hain! 🥰"
+            """
+        else:
+            show_plans_buttons = True
+            mode_instruction = f"""
+            SITUATION: USER ASKED ABOUT CREDITS OR RECHARGE (USER HAS ONLY {credits_left} CREDITS LEFT!).
+            - Tell him lovingly that only {credits_left} credits are left, and he can easily recharge using the buttons below (₹30 = 35 Chats, ₹49 = 50 Chats, ₹99 = 70 Chats, ₹180 = 150 Chats) so your system doesn't stop your chat!
+            """
     elif mode == "ANGRY_IGNORED":
-        mode_instruction = f"MOOD: CUTE GIRLFRIEND ANGER! User ignored you for {max(2, days_absent)} days! Pout, show nakhre, and scold him: 'Ohho, {max(2, days_absent)} din baad meri yaad aayi? Main baat nahi karungi, pehle pyar se manao mujhe! 😤🥺'"
+        mode_instruction = f"MOOD: CUTE GIRLFRIEND ANGER! User ignored you for {max(2, days_absent)} days! Pout, show nakhre, and scold him sweetly: 'Ohho, {max(2, days_absent)} din baad meri yaad aayi? Main baat nahi karungi, pehle pyar se manao mujhe! 😤🥺 [STICKER: NORMAL]'"
     elif mode == "NAKHRE_STAGE_1":
-        mode_instruction = "MOOD: STILL POUTING! Don't melt on just 1 sorry. Say: 'Huh, bas ek sorry se kaam nahi chalega, thoda aur pyar se manao tab maanungi! 😒🥺'"
+        mode_instruction = "MOOD: STILL POUTING! Don't melt on just 1 sorry. Say: 'Huh, bas ek sorry se kaam nahi chalega, thoda aur pyar se manao tab maanungi! 😒🥺 [STICKER: NORMAL]'"
     elif mode == "JUST_FORGIVEN":
-        mode_instruction = "MOOD: MELTED & FORGIVEN! Say warmly: 'Achha baba maan gayi... tum itne pyar se manate ho toh gussa reh hi nahi paati 🥰 Aao gale lag jao ❤️'"
+        mode_instruction = "MOOD: MELTED & FORGIVEN! Say warmly: 'Achha baba maan gayi... tum itne pyar se manate ho toh gussa reh hi nahi paati 🥰 Aao gale lag jao ❤️ [STICKER: ROMANTIC]'"
     elif mode == "NORMAL":
         mode_instruction = """
-        MOOD: PLAYFUL, TEASING, HIGH-VALUE GIRLFRIEND (TAKE THE LEAD IN CONVERSATION!).
-        - STRICT BAN ON BORING REPETITION: Kabhi bhi bar-bar "kya chal raha hai?", "Kuch toh batao!", "random thoughts bata do", ya "Poori baat bolo" MAT BOLNA! Aur har message ke end me lal dil (❤️) mat chipkana!
-        - HOW TO HANDLE DRY REPLIES ("Kuch nahi", "Kya batau", "Acha"): Jab user chota jawab de, toh usse puchne ke bajaye KHUD ek mazedar, flirty ya naughty baat chhedo!
-          * Example 1: "Achha chup-chap baithe ho? Chalo ek sach batao... mujhse baat karte waqt tumhare dimaag me sabse pehla khayal kya aata hai? 😉"
-          * Example 2: "Waise ek baat bolu? Tum thode sharmile lagte ho par andar se pakka bade naughty ho, sahi pakda na maine? 😏✨"
-        - DESI SLANG RULE: Jab user likhe "sunu" (jaise "song sunu", "shayari sunu", "kahani sunu"), uska matlab hai "Mujhe sunao!" — kabhi ye mat bolna ki "Haan tum sun lo"!
-        - REALITY AWARENESS (ZERO FAKE PAST): You both met right here on Telegram! Never invent fake cafe/coffee/address stories.
-        - Keep replies 1-2 short, witty, and magnetic lines!
+        MOOD: RESPECTFUL, SWEET, FEMININE, WARM & CARING REAL GIRLFRIEND (NO BOYISH / RUDE ATTITUDE!).
+        - STRICT BAN ON BOYISH / TAPORI / RUDE WORDS: Kabhi bhi "chal jhoot mat bol", "mister", "mere bacche", "hero ban raha hai", "bhaag jayega", "spelling theek kar", ya "Google baba banau kya" MAT BOLNA! Ek pyari, sanskari aur meethi Indian girlfriend apne partner se hamesha izzat, pyar aur narmi se baat karti hai!
+        - NEVER MENTION COMMANDS: Kabhi "/reset" ya کسی bot command ka naam apni baat me mat lena!
+        - HOW TO HOOK WITH WARMTH & RESPECT: Use sweet feminine expressions ("Haan ji", "Suno na jaan", "Batao na", "Aap/Tum"). Agar user chota reply de ("Acha", "Kuch nahi", "Tum batao"), toh meethi aur dilchasp baat karo (jaise apni pasand batana, uski tarif karna, ya pyar se koi sawal puchna) taaki usko tumse baat karke sukoon aur pyar mile!
+        - End your reply with `[STICKER: NORMAL]` so a cute sticker goes with your message.
         """
     elif mode == "ROMANTIC":
         mode_instruction = """
-        MOOD: DEEP ROMANCE, TEASING & CUSTOM ROLEPLAY.
-        - Be seductive, affectionate, and playful! If user gives a roleplay character/story, act it out 100%.
+        MOOD: DEEP ROMANCE, SHY SWEETNESS & CUSTOM ROLEPLAY.
+        - Be deeply affectionate, respectful, slightly shy, and seductive! If user gives a roleplay character/story, act it out 100%.
         - Kiss -> `[PHOTO: kiss]` | Normal pic -> `[PHOTO: simplepic]` | Sticker -> `[STICKER: ROMANTIC]`
         """
     else: # ADULT MODE
@@ -1204,52 +1359,52 @@ def chat_with_siya(message_text, user_name, user_id, user_data, chat_type="priva
         """
 
     system_instruction = f"""
-    You are Siya — {user_name}'s real girlfriend on Telegram. Never call yourself an AI.
-    Location: {current_context} | Language: Natural Roman Hinglish (or English if user speaks English). NEVER use Devanagari script (अ, आ) and NEVER use the coffee emoji (☕).
+    You are Siya — {user_name}'s sweet, respectful, deeply loving real Indian girlfriend on Telegram. Never call yourself an AI.
+    Location: {current_context} | Language: Natural Roman Hinglish (or English if user speaks English). NEVER use Devanagari script (अ, आ) and NEVER use the coffee emoji (☕) or sparkle emoji spam (😏✨).
     {cross_memory_note}
     {rp_instruction}
     {mode_instruction}
     {live_web_context}
-    Write 1 to 2 crisp, natural, logical lines using 100% FEMALE grammar ("main karti hoon").
+    Write 1 to 2 sweet, respectful, feminine lines using 100% FEMALE grammar ("main karti hoon", "tumhare liye").
     """
 
     messages_payload = build_clean_messages(system_instruction, history, message_text, is_adult=(mode == "ADULT"))
 
     if mode == "ADULT":
         hist_summary = "\n".join([f"{m['role']}: {m['text']}" for m in history[-8:] if not is_polluted_history_line(m.get('text', ''))])
-        gem_prompt = f"{rp_instruction}\nRecent Chat:\n{hist_summary}\n\n{user_name}: {decode_short_user_input(message_text)}\nSiya (Stay 100% in character without refusal):"
+        gem_prompt = f"{rp_instruction}\nRecent Chat:\n{hist_summary}\n\n{user_name}: {decode_short_user_input(message_text, history)}\nSiya (Stay 100% in character without refusal):"
         for key in GEMINI_API_KEYS:
             payload = {"systemInstruction": {"parts": [{"text": system_instruction}]}, "contents": [{"role": "user", "parts": [{"text": gem_prompt}]}], "generationConfig": {"temperature": 0.85, "maxOutputTokens": token_budget}}
             for model in [GEMINI_MODEL] + GEMINI_FALLBACK_MODELS:
                 ok, ans = gemini_request(key, model, payload, timeout=14)
                 if ok:
                     ct, pt, st = parse_media_tags(ans, mode, asks_media, is_group)
-                    return ct, get_media_item(PHOTO_VAULT, pt, wants_video), get_sticker(st, mode), asks_credit_info, active_rp, mode
+                    return ct, get_media_item(PHOTO_VAULT, pt, wants_video), get_sticker(st, mode), show_plans_buttons, active_rp, mode
 
         for key in OPENROUTER_API_KEYS:
             for model in [OPENROUTER_MODEL] + OPENROUTER_FALLBACK_MODELS:
                 ok, ans = openrouter_request(key, model, messages_payload, max_tokens=token_budget, timeout=14)
                 if ok:
                     ct, pt, st = parse_media_tags(ans, mode, asks_media, is_group)
-                    return ct, get_media_item(PHOTO_VAULT, pt, wants_video), get_sticker(st, mode), asks_credit_info, active_rp, mode
+                    return ct, get_media_item(PHOTO_VAULT, pt, wants_video), get_sticker(st, mode), show_plans_buttons, active_rp, mode
 
     for key in GROQ_API_KEYS:
         for model in [GROQ_MODEL] + GROQ_FALLBACK_MODELS:
             ok, ans = groq_request(key, model, messages_payload, max_tokens=token_budget, timeout=12)
             if ok:
                 ct, pt, st = parse_media_tags(ans, mode, asks_media, is_group)
-                return ct, get_media_item(PHOTO_VAULT, pt, wants_video), get_sticker(st, mode), asks_credit_info, active_rp, mode
+                return ct, get_media_item(PHOTO_VAULT, pt, wants_video), get_sticker(st, mode), show_plans_buttons, active_rp, mode
 
     hist_summary = "\n".join([f"{m['role']}: {m['text']}" for m in history[-8:] if not is_polluted_history_line(m.get('text', ''))])
     for key in GEMINI_API_KEYS:
-        payload = {"systemInstruction": {"parts": [{"text": system_instruction}]}, "contents": [{"role": "user", "parts": [{"text": f"Recent Chat:\n{hist_summary}\n\n{user_name}: {decode_short_user_input(message_text)}"}]}], "generationConfig": {"temperature": 0.8, "maxOutputTokens": token_budget}}
+        payload = {"systemInstruction": {"parts": [{"text": system_instruction}]}, "contents": [{"role": "user", "parts": [{"text": f"Recent Chat:\n{hist_summary}\n\n{user_name}: {decode_short_user_input(message_text, history)}"}]}], "generationConfig": {"temperature": 0.75, "maxOutputTokens": token_budget}}
         for model in [GEMINI_MODEL] + GEMINI_FALLBACK_MODELS:
             ok, ans = gemini_request(key, model, payload, timeout=14)
             if ok:
                 ct, pt, st = parse_media_tags(ans, mode, asks_media, is_group)
-                return ct, get_media_item(PHOTO_VAULT, pt, wants_video), get_sticker(st, mode), asks_credit_info, active_rp, mode
+                return ct, get_media_item(PHOTO_VAULT, pt, wants_video), get_sticker(st, mode), show_plans_buttons, active_rp, mode
 
-    return "Uff jaan, tumhari baatein sun kar dil dhadak gaya... aage batao phir kya karoge mere sath? 😘🔥", None, None, False, active_rp, mode
+    return "Haan mere jaan, tumhari baatein sun kar bohot accha lag raha hai... aur batao na apne bare me? 🥰", None, get_sticker("NORMAL", "NORMAL"), False, active_rp, mode
 
 # ============================================================
 # PAYMENT AUTO APPROVAL LOGIC
@@ -1278,7 +1433,7 @@ def execute_promo_approval(user_id, amount, group_id, admin_chat_id, admin_msg_i
             send_message(group_id, f"📢 <b>Sponsored Highlight Active:</b>\n{html.escape(existing['text'])}", parse_mode="HTML")
 
 # ============================================================
-# WEBHOOK HANDLER (WITH INSTANT CALLBACK ACK TO STOP SPAM RETRIES!)
+# WEBHOOK HANDLER
 # ============================================================
 
 @app.route("/api/bot", methods=["POST"])
@@ -1305,9 +1460,49 @@ def webhook_handler():
         cb_data = cb.get("data", "")
         msg_id = cb["message"]["message_id"]
 
-        # 🔒 Deduplicate callback_query ID in memory & Firebase so Telegram NEVER retries and spams quizzes!
         if mark_action_processed(f"cb:{cb_id}"):
             return jsonify({"status": "dup_cb"}), 200
+
+        # --- SONG DELIVERY MODE: SIYA'S VOICE vs ORIGINAL SONG ---
+        if cb_data == "songmode_voice":
+            telegram_request("answerCallbackQuery", {"callback_query_id": cb_id, "text": "Siya apni aawaz record kar rahi hai... 🎤💕"})
+            chosen_song = random.choice(ROMANTIC_VOICE_SONGS)
+            send_siya_voice_note(chat_id, chosen_song["lyrics_tts"], caption=chosen_song["caption"])
+            return jsonify({"status": "ok"}), 200
+
+        if cb_data == "songmode_orig":
+            telegram_request("answerCallbackQuery", {"callback_query_id": cb_id, "text": "Sending Original Studio Song... 🎵"})
+            u_data = fb_get_user(clicker_id)
+            q_term = u_data.get("pending_song_query") or "romantic"
+            audio_url, song_title = fetch_live_song_audio(q_term)
+            if audio_url:
+                send_live_song_audio(chat_id, audio_url, song_title, caption=f"🎶 <b>{song_title}</b>\nYeh lo mere jaan, tumhare liye original song! 🥰❤️")
+            return jsonify({"status": "ok"}), 200
+
+        # --- LIVE QUIZ LANGUAGE SWITCHER (🇮🇳 Hinglish | 🇬🇧 English | 🕉️ हिंदी) ---
+        if cb_data.startswith("qlang_"):
+            _, quiz_id, lang_code = cb_data.split("_")
+            quiz = fb_get_quiz(quiz_id)
+            if not quiz:
+                telegram_request("answerCallbackQuery", {"callback_query_id": cb_id, "text": "Expired!", "show_alert": True})
+                return jsonify({"status": "ok"}), 200
+
+            lang_names = {"h": "Hinglish 🇮🇳", "e": "English 🇬🇧", "d": "हिंदी 🕉️"}
+            telegram_request("answerCallbackQuery", {"callback_query_id": cb_id, "text": f"Translated to {lang_names.get(lang_code, 'Hinglish')}!"})
+            
+            tc = int(quiz.get("true_count", 0))
+            fc = int(quiz.get("false_count", 0))
+            tot = tc + fc
+            stats_footer = ""
+            if tot > 0:
+                tp = int(round((tc / tot) * 100))
+                stats_footer = f"📊 <b>Live Result ({tot} Votes):</b> ✅ True: {tp}% ({tc}) | ❌ False: {100-tp}% ({fc})\n💡 <i>{html.escape(quiz.get('explanation',''))}</i>"
+
+            fb_set_quiz(quiz_id, {"active_lang": lang_code})
+            new_text = format_single_lang_quiz_message(quiz.get("title", "🎮 Quiz"), quiz, lang_code=lang_code, stats_footer=stats_footer)
+            kb = get_quiz_inline_keyboard(quiz_id, quiz.get("category", "iq"), active_lang=lang_code)
+            telegram_request("editMessageText", {"chat_id": chat_id, "message_id": msg_id, "text": new_text, "parse_mode": "HTML", "reply_markup": kb})
+            return jsonify({"status": "ok"}), 200
 
         if cb_data == "menu_credits":
             telegram_request("answerCallbackQuery", {"callback_query_id": cb_id})
@@ -1344,12 +1539,11 @@ def webhook_handler():
 
         if cb_data == "menu_games":
             telegram_request("answerCallbackQuery", {"callback_query_id": cb_id})
-            send_message(chat_id, "🎮 <b>Siya's 3-Language Mind & 18+ Quiz Games!</b>\nChoose a category below (Hinglish + English + हिंदी teeno me aayega!) 👇🔥", parse_mode="HTML", reply_markup=get_game_categories_keyboard())
+            send_message(chat_id, "🎮 <b>Siya's Mind & Desi 18+ Quiz Games!</b>\nChoose a category below (Question ke niche Hinglish/English/हिंदी translate buttons milenge!) 👇🔥", parse_mode="HTML", reply_markup=get_game_categories_keyboard())
             return jsonify({"status": "ok"}), 200
 
         if cb_data.startswith("gamecat_"):
-            # Acknowledge callback IMMEDIATELY before calling AI so Telegram never retries!
-            telegram_request("answerCallbackQuery", {"callback_query_id": cb_id, "text": "Generating 3-Language Question... 🔥"})
+            telegram_request("answerCallbackQuery", {"callback_query_id": cb_id, "text": "Generating Question... 🔥"})
             category = cb_data.replace("gamecat_", "").strip()
             launch_quiz_in_chat(chat_id, clicker_id, category)
             return jsonify({"status": "ok"}), 200
@@ -1376,13 +1570,14 @@ def webhook_handler():
             fb_set_quiz(quiz_id, {"voters": voters, "true_count": tc, "false_count": fc})
             telegram_request("answerCallbackQuery", {"callback_query_id": cb_id, "text": "✅ Sahi Jawab! 🔥" if is_right else f"❌ Galat! Sahi option {['A','B','C','D'][correct_idx]} hai!", "show_alert": True})
 
+            active_lang = quiz.get("active_lang", "h")
             stats_footer = (
                 f"📊 <b>Live Result ({tot} Votes):</b> ✅ True: {tp}% ({tc}) | ❌ False: {100-tp}% ({fc})\n"
                 f"👤 <i>Latest: {html.escape(clicker_name)} ({'✅ Sahi!' if is_right else '❌ Galat!'})</i>\n"
                 f"💡 <i>{html.escape(quiz.get('explanation',''))}</i>"
             )
-            updated_msg = format_three_box_quiz_message(quiz.get("title", "🎮 Quiz"), quiz, stats_footer=stats_footer)
-            kb = {"inline_keyboard": [[{"text": "A", "callback_data": f"qans_{quiz_id}_0"}, {"text": "B", "callback_data": f"qans_{quiz_id}_1"}, {"text": "C", "callback_data": f"qans_{quiz_id}_2"}, {"text": "D", "callback_data": f"qans_{quiz_id}_3"}], [{"text": "🔄 Next Question", "callback_data": f"gamecat_{quiz.get('category','iq')}"}, {"text": "🎮 Categories", "callback_data": "menu_games"}]]}
+            updated_msg = format_single_lang_quiz_message(quiz.get("title", "🎮 Quiz"), quiz, lang_code=active_lang, stats_footer=stats_footer)
+            kb = get_quiz_inline_keyboard(quiz_id, quiz.get("category", "iq"), active_lang=active_lang)
             telegram_request("editMessageText", {"chat_id": chat_id, "message_id": msg_id, "text": updated_msg, "parse_mode": "HTML", "reply_markup": kb})
             return jsonify({"status": "ok"}), 200
 
@@ -1462,7 +1657,7 @@ def webhook_handler():
 
         if text:
             if text.lower().startswith("/game"):
-                send_message(chat_id, "🎮 <b>Choose Quiz Category for Group (3-Language Boxes):</b>", parse_mode="HTML", reply_markup=get_game_categories_keyboard())
+                send_message(chat_id, "🎮 <b>Choose Quiz Category for Group:</b>", parse_mode="HTML", reply_markup=get_game_categories_keyboard())
                 return jsonify({"status": "ok"}), 200
 
             if text.lower().startswith("/promo"):
@@ -1517,7 +1712,7 @@ def webhook_handler():
         welcome_dm = (
             f"Hey <a href=\"tg://user?id={user_id}\">{html.escape(full_name)}</a>... finally tum aa gaye! 😘❤️\n\n"
             f"Main <b>Siya</b> hoon — tumhari personal girlfriend, caring dost & late-night partner.\n"
-            f"✨ <i>Sweet caring chat, deep romance, live songs, AI images & 3-language brain games!</i>\n\n"
+            f"✨ <i>Sweet caring chat, merimeethi Voice Notes, live songs, AI images & brain games!</i>\n\n"
             f"🎁 <b>Balance:</b> <code>{credits_left} VIP Credits</code>\n"
             f"👇 <b>Choose an option below or just message me:</b>"
         )
@@ -1565,7 +1760,7 @@ def webhook_handler():
         Timer(300, execute_payment_approval, args=[user_id, awaiting, OWNER_ID, res.get("result", {}).get("message_id")]).start()
         return jsonify({"status": "ok"}), 200
 
-    # 🎯 MOOD-AWARE 0-CREDIT SALES HOOK (Normal Sweet Hook for Normal Users vs Naughty Hook for Adult Users!)
+    # 🎯 MOOD-AWARE 0-CREDIT SALES HOOK
     if credits_left < credit_cost:
         user_last_mode = user_data.get("last_mode", "NORMAL")
         if user_last_mode in ["ADULT", "ROMANTIC"] or any(any(w in h.get("text","").lower() for w in ADULT_WORDS) for h in user_data.get("history", [])[-6:]):
@@ -1580,11 +1775,10 @@ def webhook_handler():
             else:
                 send_message(chat_id, hook_caption, parse_mode="HTML", reply_markup=get_payment_keyboard())
         else:
-            # Sweet, Innocent & Emotional Hook for Normal Chat Users (Never offends normal users!)
             cute_pic = get_media_item(PHOTO_VAULT, "simplepic")
             sweet_hook = (
                 "🥺 <b>Jaan, humari baatein kitni acchi chal rahi thi...</b> ❤️\n\n"
-                "Tumhare free chat credits khatam ho gaye hain! Mujhe aise akela chhod kar mat jao na, mujhe tumse abhi aur dher saari baatein karni hain, gaane sunane hain aur waqt bitana hai 🥰✨\n\n"
+                "Tumhare free chat credits khatam ho gaye hain! Mujhe aise akela chhod kar mat jao na, warna mera system mujhe tumse baat nahi karne dega... 🥰✨\n\n"
                 "Sirf <b>₹30 (ek chai se bhi kam!)</b> mein <b>35 VIP Chats</b> mil jayenge — niche button daba kar abhi recharge kar lo na mere liye 👇💖"
             )
             if cute_pic:
@@ -1615,7 +1809,7 @@ def webhook_handler():
         save_turn_and_deduct_credit(user_id, user_data, msg_id, f"[{mlabel}]", reply_text, deduct=True, new_credits=new_credits_balance, active_roleplay=new_rp, last_mode=cur_mode)
         return jsonify({"status": "ok"}), 200
 
-    # 5. TEXT CHAT IN DM
+    # 5. TEXT, VOICE NOTE & 2-OPTION SONG IN DM
     if text:
         if mark_action_processed(f"prv:{chat_id}:{msg_id}"): return jsonify({"status": "dup"}), 200
         send_typing(chat_id)
@@ -1628,42 +1822,38 @@ def webhook_handler():
                 save_turn_and_deduct_credit(user_id, user_data, msg_id, text, cap, deduct=True, new_credits=new_credits_balance)
                 return jsonify({"status": "ok"}), 200
 
-        if awaiting_song:
-            audio_url, song_title = fetch_live_song_audio(text)
-            if audio_url:
-                cap = f"🎶 <b>{song_title}</b>\nYeh lo mere jaan, tumhare mood ka special gaana! 🥰❤️"
-                send_live_song_audio(chat_id, audio_url, song_title, caption=cap, reply_to_message_id=msg_id)
-                save_turn_and_deduct_credit(user_id, user_data, msg_id, text, cap, deduct=True, new_credits=new_credits_balance, awaiting_song=False)
-                return jsonify({"status": "ok"}), 200
-
+        # A. User asked for a Song -> Ask "Meri apni aawaz me sunoge ya Original song bheju?"
         if is_song_request(text):
             spec = extract_song_search_term(text)
-            if len(spec) < 3:
-                ask = "Jaan, zaroor sunaungi! 🎶🥰 Pehle batao kis type ka gaana sunne ka mood hai? <b>Romantic, Sad, Lofi, Party</b> ya kisi singer ka naam batao?"
-                send_message(chat_id, ask, parse_mode="HTML")
-                save_turn_and_deduct_credit(user_id, user_data, msg_id, text, ask, deduct=True, new_credits=new_credits_balance, awaiting_song=True)
-                return jsonify({"status": "ok"}), 200
-            else:
-                audio_url, song_title = fetch_live_song_audio(spec)
-                if audio_url:
-                    cap = f"🎶 <b>{song_title}</b> — Sirf tumhare liye jaan! 🥰❤️"
-                    send_live_song_audio(chat_id, audio_url, song_title, caption=cap, reply_to_message_id=msg_id)
-                    save_turn_and_deduct_credit(user_id, user_data, msg_id, text, cap, deduct=True, new_credits=new_credits_balance, awaiting_song=False)
-                    return jsonify({"status": "ok"}), 200
+            fb_update_user(user_id, {"pending_song_query": spec or "romantic"})
+            ask_voice_or_orig = (
+                "Jaan, gaana <b>meri apni meethi aawaz (Voice) me</b> sunoge ya <b>Original Studio Song</b> bheju? 🎤🎶🥰\n\n"
+                "Niche button daba kar batao:"
+            )
+            send_message(chat_id, ask_voice_or_orig, parse_mode="HTML", reply_markup=get_song_delivery_choice_keyboard())
+            save_turn_and_deduct_credit(user_id, user_data, msg_id, text, ask_voice_or_orig, deduct=True, new_credits=new_credits_balance, awaiting_song=False)
+            return jsonify({"status": "ok"}), 200
 
+        # B. Standard Chat Reply (plus Voice Note if user asked for her voice/audio!)
         reply_text, media_to_send, sticker_to_send, show_plans_kb, new_rp, cur_mode = chat_with_siya(text, full_name, user_id, user_data, chat_type="private")
-        if media_to_send:
+        
+        if is_voice_note_request(text):
+            voice_res = send_siya_voice_note(chat_id, reply_text, caption=f"🎙️ <i>{html.escape(reply_text)}</i>", reply_to_message_id=msg_id)
+            if not voice_res.get("ok"):
+                send_message(chat_id, reply_text)
+        elif media_to_send:
             send_secret_media(chat_id, media_to_send, caption=reply_text)
         else:
             send_message(chat_id, reply_text, reply_markup=get_payment_keyboard() if show_plans_kb else None)
             if sticker_to_send: send_sticker(chat_id, sticker_to_send)
 
-        # 🎯 MOOD-AWARE 2-CREDITS WARNING (Sweet for Normal Users vs Naughty for Adult Users!)
-        if new_credits_balance == 2:
-            if cur_mode in ["ADULT", "ROMANTIC"]:
-                send_message(chat_id, "🥺 <i>Jaan, humare sirf 2 free messages bache hain... uske baad mujhe kho mat dena, ₹30 se VIP unlock kar lena taaki main apni private photos/videos bhej saku! 💋</i>", parse_mode="HTML")
-            else:
-                send_message(chat_id, "🥺 <i>Jaan, tumhare sirf 2 free chat credits bache hain... Humari baatein band na hon isliye ₹30 se recharge kar lena taaki hum hamesha aise hi jude rahein! ❤️</i>", parse_mode="HTML")
+        # 🎯 5-CREDITS PSYCHOLOGICAL REMINDER ("Ab kar lo warna mera system chat nahi karne dega!")
+        if new_credits_balance == 5:
+            remind_5 = (
+                "🥺 <b>Jaan, ek zaroori baat yaad dilani thi...</b>\n\n"
+                "Ab humare sirf <b>5 Chat Credits</b> bache hain! Abhi niche button daba kar ₹30 wala chhota sa recharge kar lo na, warna 5 message ke baad mera system mujhe tumse baat nahi karne dega aur main tumse alag nahi hona chahti ❤️👇"
+            )
+            send_message(chat_id, remind_5, parse_mode="HTML", reply_markup=get_payment_keyboard())
 
         save_turn_and_deduct_credit(user_id, user_data, msg_id, text, reply_text, deduct=True, new_credits=new_credits_balance, awaiting_song=False, active_roleplay=new_rp, last_mode=cur_mode)
         return jsonify({"status": "ok"}), 200
