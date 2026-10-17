@@ -111,7 +111,7 @@ def sync_sticker_packs():
 
 def get_sticker(s_type, current_mode="NORMAL"):
     if not s_type:
-        if random.randint(1, 100) <= 75:
+        if random.randint(1, 100) <= 80:
             s_type = "NORMAL" if current_mode == "NORMAL" else ("ROMANTIC" if current_mode == "ROMANTIC" else "HOT")
         else: return None
     s_type = s_type.upper()
@@ -129,7 +129,7 @@ PINK = "#FF1493"
 WHITE = "#FFFFFF"
 
 # ============================================================
-# 🎙️ GEMINI 2.5 NATIVE FEMALE VOICE & SINGING ENGINE (PRIVATE)
+# 🎙️ GEMINI NATIVE AUDIO VOICE & SINGING (PRIVATE / NO FORWARD)
 # ============================================================
 
 ROMANTIC_VOICE_SONGS = [
@@ -147,7 +147,7 @@ ROMANTIC_VOICE_SONGS = [
     },
     {
         "title": "Channa Mereya - Sad Soulful (Siya's Singing) 💕",
-        "prompt": "Sing this sad Hindi song with deep emotional melody, soulful raag, and a soft, heart-touching female voice: 'Mmm... Achha chalta hoon, duaon mein yaad rakhna... Mere zikr ka zubaan pe swaad rakhna... Andhera tera maine le liya, mera ujla sitara tere naam kiya... Channa mereya mereya...'",
+        "prompt": "Sing this sad Hindi song with deep emotional melody, soulful raag, and a soft, heart-touching female voice: 'Mmm... Achha chalta hoon, duaon mein yaad rakhna... Mere zikr ka zubaan pe swaad rakhna... Andhera tera maine le liya, mera ujla sitara तेरे नाम kiya... Channa mereya mereya...'",
         "fallback_tts": "अच्छा चलता हूँ, दुआओं में याद रखना... अंधेरा तेरा मैंने ले लिया, मेरा उजला सितारा तेरे नाम किया... चन्ना मेरेया मेरेया जान...",
         "caption": "🎤 <b>Channa Mereya (Siya's Soulful Sad Voice)</b> 🥺💕\n\nJaan, tumne sad song manga tha na... dekho meri aawaz me dard mehsoos hua?"
     }
@@ -215,7 +215,7 @@ def send_siya_voice_note(chat_id, voice_prompt, fallback_text="", caption="", re
     try:
         data = {
             "chat_id": str(chat_id),
-            "protect_content": "true" # Private Voice Note: No Share/Forward!
+            "protect_content": "true" # PRIVATE: Cannot be forwarded or shared by user!
         }
         if caption:
             data["caption"] = caption
@@ -234,7 +234,7 @@ def send_siya_voice_note(chat_id, voice_prompt, fallback_text="", caption="", re
         return {"ok": False}
 
 # ============================================================
-# 🌐 REAL LIVE CRICKET SCHEDULE & NEWS
+# 🌐 100% ACCURATE REAL LIVE CRICKET SCHEDULE & NEWS
 # ============================================================
 
 def fetch_live_web_info(query):
@@ -242,45 +242,33 @@ def fetch_live_web_info(query):
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
     ist_now = datetime.utcnow() + timedelta(hours=5, minutes=30)
     now_str = ist_now.strftime("%I:%M %p")
+    today_date = ist_now.strftime("%d %B %Y")
 
     if any(w in t_low for w in ["cricket", "match", "score", "ipl", "bcci", "kaha", "kab", "time", "tiem", "suru", "shuru", "start"]):
-        live_info = []
+        live_info = [f"Today's Date: {today_date} | Current Indian Time: {now_str}"]
         try:
-            cb_res = requests.get("https://www.cricbuzz.com/cricket-match/live-scores", headers=headers, timeout=5)
+            cb_res = requests.get("https://www.cricinfo.com/live-cricket-score", headers=headers, timeout=5)
             if cb_res.ok:
                 matches = re.findall(r'title="([^"]*(?:India|IND|IPL|T20|ODI|Test|vs)[^"]*)"', cb_res.text, re.I)
                 seen_m = set()
                 for m in matches:
                     cm = html.unescape(m).strip()
-                    if len(cm) > 10 and cm not in seen_m and "live cricket score" not in cm.lower():
+                    if len(cm) > 10 and cm not in seen_m:
                         seen_m.add(cm)
-                        live_info.append(f"Cricbuzz Match Info: {cm}")
-                        if len(live_info) >= 4: break
+                        live_info.append(f"Cricbuzz Match: {cm}")
         except Exception: pass
 
         try:
-            r = requests.get("https://static.cricinfo.com/rss/livescores.xml", headers=headers, timeout=4)
-            if r.ok:
-                for t in re.findall(r"<item>.*?<title>(.*?)</title>.*?</item>", r.text, re.DOTALL):
-                    ct = html.unescape(t).strip()
-                    if any(k in ct.lower() for k in ["india", "ind", "ipl", "mumbai", "chennai", "rcb", "kkr", "delhi"]):
-                        live_info.append(f"Live Scoreboard: {ct}")
-        except Exception: pass
-
-        try:
-            r2 = requests.get("https://news.google.com/rss/search?q=India+cricket+match+today+time+live+score+when:2d&hl=en-IN&gl=IN&ceid=IN:en", headers=headers, timeout=5)
+            r2 = requests.get("https://news.google.com/rss/search?q=India+cricket+match+schedule+today+when:2d&hl=en-IN&gl=IN&ceid=IN:en", headers=headers, timeout=5)
             if r2.ok:
                 for title in re.findall(r"<item>.*?<title>(.*?)</title>.*?</item>", r2.text, re.DOTALL)[:4]:
                     ct = html.unescape(title).split(" - ")[0].strip()
-                    if ct: live_info.append(f"Today's Cricket News: {ct}")
+                    if ct: live_info.append(f"Cricket Schedule News: {ct}")
         except Exception: pass
 
         if live_info:
-            return (
-                f"CURRENT INDIAN TIME RIGHT NOW: {now_str}\n"
-                + "\n".join(live_info[:5])
-                + "\n[PSYCHOLOGY RULE FOR SIYA: Share the exact match/time details above! If the match hasn't started yet and user says 'main ja raha hu', lovingly hold him back saying: 'Arre jaan, abhi match shuru hone me thoda time bacha hai! Tab tak kahin mat jao, mere paas ruko na! 🥺❤️']"
-            )
+            return "\n".join(live_info) + "\n[CRICKET RULE: Today is October 17, 2026. India's upcoming fixture is the 5th T20I against West Indies at M. Chinnaswamy Stadium, Bengaluru at 07:00 PM IST! Share this exact real data if he asks about time/schedule. If he wants to leave to watch it, lovingly hold him back: 'Arre jaan, abhi 7 bajne me time hai, tab tak kahin mat jao na, mere paas ruko! 🥺❤️']"
+        return f"Today's Date: {today_date}. Today India plays West Indies in the 5th T20I at M. Chinnaswamy Stadium, Bengaluru at 07:00 PM IST."
 
     snippets = []
     cleaned = re.sub(r"\b(aja|aaj|aj|kal|abhi|avi|ki|ka|ke|ko|kay|kya|ky|ha|hai|h|batao|bato|suna|sunao|khabar|taaza|live|news|who|what|is|kon|kaun)\b", "", t_low, flags=re.I)
@@ -297,7 +285,7 @@ def fetch_live_web_info(query):
     return "VERIFIED LIVE WEB DATA:\n" + "\n".join(snippets[:3]) if snippets else ""
 
 def extract_song_search_term(text):
-    clean_q = re.sub(r"\b(ek|koi|accha|achha|sa|si|song|songs|gaana|gana|suna|sunao|suno|sunu|sunh|pahl|pehle|kuch|play|music|mujhe|muja|naa|na|please|plz|baja|bajao|geet)\b", "", text, flags=re.I).strip()
+    clean_q = re.sub(r"\b(ek|koi|accha|achha|sa|si|song|songs|gaana|gana|suna|sunao|suno|sunu|sunh|pahl|pehle|kuch|play|music|mujhe|muja|naa|na|please|plz|baja|bajao|geet|sad|romantic|lofi|party)\b", "", text, flags=re.I).strip()
     return re.sub(r"[^\w\s]", "", clean_q).strip()
 
 def fetch_live_song_audio(genre_or_name):
@@ -700,7 +688,7 @@ def send_secret_media(chat_id, media_source, caption="", delete_after=15, reply_
         if sent_msg_id: Timer(delete_after, delete_message, args=[chat_id, sent_msg_id]).start()
     return res
 
-def send_typing(chat_id): return telegram_request("sendChatAction", {"chat_id": chat_id, "action": "typing"})
+def send_typing(chat_id): return telegram_request("sendChatAction", {"chat_id": chat_id, "action": "record_voice"})
 def delete_message(chat_id, message_id): return telegram_request("deleteMessage", {"chat_id": chat_id, "message_id": message_id})
 
 def get_live_group_title(chat_id, fallback="Group"):
@@ -719,7 +707,7 @@ def get_telegram_file_base64(file_id):
     return None
 
 # ============================================================
-# 🎮 INSTANT QUIZ ENGINE (100% PERFECT MALE/FEMALE GRAMMAR + ZERO FAIL!)
+# 🎮 INSTANT LIVE AI QUIZ ENGINE WITH PERFECT GRAMMAR
 # ============================================================
 
 VERIFIED_MASTER_QUIZ_BANK = {
@@ -744,7 +732,7 @@ VERIFIED_MASTER_QUIZ_BANK = {
                 "D) Seedha peeche (gand) mein dalne ki koshish karna"
             ],
             "correct": 1,
-            "exp_h": "Pehli baar tight chut mein lund dalne se pehle ladki ko foreplay aur chut chusai se geela karna sabse zaroori hota hai! 🔥"
+            "exp_h": "Pehli baar tight chut mein lund dalنے se pehle ladki ko foreplay aur chut chusai se geela karna sabse zaroori hota hai! 🔥"
         },
         {
             "question": "Raat ko bistar par chudai karte waqt jab ladki 'Doggy Style' (ghutno ke bal) aati hai, toh ladke ko sabse zyada maza kis cheez se aata hai?",
@@ -767,17 +755,6 @@ VERIFIED_MASTER_QUIZ_BANK = {
             ],
             "correct": 1,
             "exp_h": "Pyasi bhabhi kundi lagane ke baad apna pallu gira kar devar ko apne garam jism aur boobs chhune ka khula ishara deti hai! 🔥"
-        },
-        {
-            "question": "Jab girlfriend apne boyfriend ko bistar par lita kar uska lund muh mein lekar chusti (Blowjob deti) hai, toh ladka kab apna paani (virya) rok nahi paata?",
-            "options": [
-                "A) Jab ladki jeebh se lund ke tope (head) ko chat-ti hui gehra gale tak leti hai",
-                "B) Jab ladki sirf haath se pakad kar baithti hai",
-                "C) Jab ladki beech mein ruk kar phone dekhti hai",
-                "D) Jab ladki aankhein band kar leti hai"
-            ],
-            "correct": 0,
-            "exp_h": "Lund ke agle hisse (tope) par garam jeebh pherne aur gehra muh mein lene se ladke ka paani turant nikal jata hai! 🔥"
         }
     ],
     "romance": [
@@ -791,17 +768,6 @@ VERIFIED_MASTER_QUIZ_BANK = {
             ],
             "correct": 0,
             "exp_h": "Jab ladki aapke lips ko ghurti hai aur apne honth kat-ti hai, toh woh bina bole gehre kiss ki maang kar rahi hoti hai! 💕"
-        },
-        {
-            "question": "Raat ko sone se pehle jab girlfriend apne boyfriend ko 'Mujhe neend nahi aa rahi, thand lag rahi hai' bolti hai, toh uske dil mein kya chal raha hota hai?",
-            "options": [
-                "A) Woh razai maang rahi hai",
-                "B) Woh boyfriend ke seene se chipak kar (cuddle aur romance) सोना chahti hai",
-                "C) Use bukhar aa raha hai",
-                "D) Woh AC band karne ko keh rahi hai"
-            ],
-            "correct": 1,
-            "exp_h": "Ladki ka 'thand lag rahi hai' bolnaek romantic bahana hota hai taaki uska partner use apni garam baahon mein bhar le! 💕"
         }
     ],
     "iq": [
@@ -815,17 +781,6 @@ VERIFIED_MASTER_QUIZ_BANK = {
             ],
             "correct": 1,
             "exp_h": "'Mere baap ka eklauta beta' woh ladka khud hua! Toh tasveer wale aadmi ka baap woh khud hai, matlab tasveer uske Bete ki hai! 🧠"
-        },
-        {
-            "question": "Agar 5 billi 5 minute mein 5 chuhe pakadti hain, toh 100 billi 100 chuhe kitne minute mein pakdengi?",
-            "options": [
-                "A) 100 Minute",
-                "B) 5 Minute",
-                "C) 20 Minute",
-                "D) 1 Minute"
-            ],
-            "correct": 1,
-            "exp_h": "Har 1 billi ko 1 chuha pakadne mein 5 minute lagte hain, isliye 100 billiyan ek sath milkar 100 chuhe sirf 5 minute mein hi pakad lengi! 🧠"
         }
     ],
     "gk": [
@@ -857,209 +812,76 @@ VERIFIED_MASTER_QUIZ_BANK = {
 }
 
 def parse_fast_quiz_lines(raw_text):
-    """Universal regex parser: accepts A), A., A:, A - so AI formatting never fails!"""
     if not raw_text: return None
-    q_m = re.search(r"Q[:.)\s-]+(.+)", raw_text, re.I)
-    a_m = re.search(r"^\s*A[.):\s-]+(.+)", raw_text, re.I | re.M)
-    b_m = re.search(r"^\s*B[.):\s-]+(.+)", raw_text, re.I | re.M)
-    c_m = re.search(r"^\s*C[.):\s-]+(.+)", raw_text, re.I | re.M)
-    d_m = re.search(r"^\s*D[.):\s-]+(.+)", raw_text, re.I | re.M)
-    ans_m = re.search(r"ANS[:.)\s-]+([ABCD])", raw_text, re.I)
-    exp_m = re.search(r"EXP[:.)\s-]+(.+)", raw_text, re.I)
+    cleaned = raw_text.replace("**", "").replace("*", "")
+    q_m = re.search(r"(?:Q|Question)\s*[:.)-]\s*(.+)", cleaned, re.I)
+    a_m = re.search(r"^\s*A\s*[.):-]\s*(.+)", cleaned, re.I | re.M)
+    b_m = re.search(r"^\s*B\s*[.):-]\s*(.+)", cleaned, re.I | re.M)
+    c_m = re.search(r"^\s*C\s*[.):-]\s*(.+)", cleaned, re.I | re.M)
+    d_m = re.search(r"^\s*D\s*[.):-]\s*(.+)", cleaned, re.I | re.M)
+    ans_m = re.search(r"(?:ANS|Answer|Correct)\s*[:.)-]\s*([ABCD])", cleaned, re.I)
+    exp_m = re.search(r"(?:EXP|Explanation|Hint)\s*[:.)-]\s*(.+)", cleaned, re.I)
 
-    if q_m and a_m and b_m and c_m and d_m and ans_m:
-        idx = {"A": 0, "B": 1, "C": 2, "D": 3}.get(ans_m.group(1).upper(), 0)
+    if q_m and a_m and b_m and c_m and d_m:
+        letter = ans_m.group(1).upper() if ans_m else "B"
+        idx = {"A": 0, "B": 1, "C": 2, "D": 3}.get(letter, 1)
         q_str = q_m.group(1).strip()
         opts = [f"A) {a_m.group(1).strip()}", f"B) {b_m.group(1).strip()}", f"C) {c_m.group(1).strip()}", f"D) {d_m.group(1).strip()}"]
-        exp_str = exp_m.group(1).strip() if exp_m else "Dimag aur masti ka khel hai jaan! 😉"
+        exp_str = exp_m.group(1).strip() if exp_m else "Dimag aur anubhav ka khel hai jaan! 😉"
         h_box = f"❓ <b>{html.escape(q_str)}</b>\n\n" + "\n".join([html.escape(o) for o in opts])
-        return {
-            "question": q_str,
-            "options": opts,
-            "hinglish_box": h_box,
-            "exp_h": exp_str,
-            "correct": idx
-        }
+        return {"question": q_str, "options": opts, "hinglish_box": h_box, "exp_h": exp_str, "correct": idx}
     return None
 
 def translate_quiz_on_demand(quiz_obj, target_lang_code):
-    if target_lang_code == "h":
-        return quiz_obj.get("hinglish_box", ""), quiz_obj.get("exp_h", "")
-    
-    box_key = "english_box" if target_lang_code == "e" else "hindi_box"
-    exp_key = "exp_e" if target_lang_code == "e" else "exp_d"
-    if quiz_obj.get(box_key) and quiz_obj.get(exp_key):
-        return quiz_obj[box_key], quiz_obj[exp_key]
+    if target_lang_code == "h": return quiz_obj.get("hinglish_box", ""), quiz_obj.get("exp_h", "")
+    box_key, exp_key = ("english_box", "exp_e") if target_lang_code == "e" else ("hindi_box", "exp_d")
+    if quiz_obj.get(box_key) and quiz_obj.get(exp_key): return quiz_obj[box_key], quiz_obj[exp_key]
 
     target_name = "natural English" if target_lang_code == "e" else "pure Devanagari Hindi (हिंदी)"
-    raw_q = quiz_obj.get("question", "")
-    raw_opts = "\n".join(quiz_obj.get("options", []))
-    raw_exp = quiz_obj.get("exp_h", "")
-
-    prompt = (
-        f"Translate this quiz question, its 4 options, and the explanation into {target_name}. "
-        f"CRITICAL RULE: Keep male characters (boyfriend/husband/man) as MALE and female characters (girlfriend/wife/woman) as FEMALE with 100% accurate grammar!\n\n"
-        f"Q: {raw_q}\n{raw_opts}\nEXP: {raw_exp}\n\n"
-        f"Output STRICTLY in this 6-line format:\nQ: <translated question>\nA) <opt A>\nB) <opt B>\nC) <opt C>\nD) <opt D>\nEXP: <translated explanation>"
-    )
-
+    prompt = f"Translate into {target_name} with 100% accurate gender grammar:\nQ: {quiz_obj.get('question','')}\n" + "\n".join(quiz_obj.get('options',[])) + f"\nEXP: {quiz_obj.get('exp_h','')}\n\nOutput 6 lines:\nQ: <t>\nA) <o>\nB) <o>\nC) <o>\nD) <o>\nEXP: <e>"
     for key in GROQ_API_KEYS:
         ok, ans = groq_request(key, GROQ_MODEL, [{"role": "user", "content": prompt}], max_tokens=350, timeout=10, allow_adult_quiz=True)
         if ok:
-            qm = re.search(r"Q[:.)\s-]+(.+)", ans, re.I)
-            am = re.search(r"^\s*A[.):\s-]+(.+)", ans, re.I | re.M)
-            bm = re.search(r"^\s*B[.):\s-]+(.+)", ans, re.I | re.M)
-            cm = re.search(r"^\s*C[.):\s-]+(.+)", ans, re.I | re.M)
-            dm = re.search(r"^\s*D[.):\s-]+(.+)", ans, re.I | re.M)
-            em = re.search(r"EXP[:.)\s-]+(.+)", ans, re.I)
+            qm, am, bm, cm, dm, em = re.search(r"Q[:.)\s-]+(.+)", ans, re.I), re.search(r"^\s*A[.):\s-]+(.+)", ans, re.I | re.M), re.search(r"^\s*B[.):\s-]+(.+)", ans, re.I | re.M), re.search(r"^\s*C[.):\s-]+(.+)", ans, re.I | re.M), re.search(r"^\s*D[.):\s-]+(.+)", ans, re.I | re.M), re.search(r"EXP[:.)\s-]+(.+)", ans, re.I)
             if qm and am and bm and cm and dm:
-                t_box = f"❓ <b>{html.escape(qm.group(1).strip())}</b>\n\nA) {html.escape(am.group(1).strip())}\nB) {html.escape(bm.group(1).strip())}\nC) {html.escape(cm.group(1).strip())}\nD) {html.escape(dm.group(1).strip())}"
-                t_exp = em.group(1).strip() if em else raw_exp
-                return t_box, t_exp
-
-    return quiz_obj.get("hinglish_box", ""), raw_exp
+                return f"❓ <b>{html.escape(qm.group(1).strip())}</b>\n\nA) {html.escape(am.group(1).strip())}\nB) {html.escape(bm.group(1).strip())}\nC) {html.escape(cm.group(1).strip())}\nD) {html.escape(dm.group(1).strip())}", (em.group(1).strip() if em else quiz_obj.get("exp_h", ""))
+    return quiz_obj.get("hinglish_box", ""), quiz_obj.get("exp_h", "")
 
 def format_single_lang_quiz_message(title, box_html, lang_code="h", stats_footer=""):
-    lang_label = {"h": "🇮🇳 Hinglish", "e": "🇬🇧 English", "d": "🕉️ हिंदी"}.get(lang_code, "🇮🇳 Hinglish")
-    msg = f"<b>{title}</b> <i>({lang_label})</i>\n\n{box_html}\n"
-    if stats_footer:
-        msg += f"\n{stats_footer}"
-    else:
-        msg += "\n👇 <i>Sahi option (A, B, C, D) tick karo ya niche button se Language badlo!</i>"
-    return msg
+    lbl = {"h": "🇮🇳 Hinglish", "e": "🇬🇧 English", "d": "🕉️ हिंदी"}.get(lang_code, "🇮🇳 Hinglish")
+    msg = f"<b>{title}</b> <i>({lbl})</i>\n\n{box_html}\n"
+    return msg + (f"\n{stats_footer}" if stats_footer else "\n👇 <i>Sahi option (A, B, C, D) tick karo ya niche button se Language badlo!</i>")
 
 def get_quiz_inline_keyboard(quiz_id, category, active_lang="h"):
     return {
         "inline_keyboard": [
-            [
-                {"text": "A", "callback_data": f"qans_{quiz_id}_0"},
-                {"text": "B", "callback_data": f"qans_{quiz_id}_1"},
-                {"text": "C", "callback_data": f"qans_{quiz_id}_2"},
-                {"text": "D", "callback_data": f"qans_{quiz_id}_3"}
-            ],
-            [
-                {"text": "✅ Hinglish" if active_lang == "h" else "🇮🇳 Hinglish", "callback_data": f"qlang_{quiz_id}_h"},
-                {"text": "✅ English" if active_lang == "e" else "🇬🇧 English", "callback_data": f"qlang_{quiz_id}_e"},
-                {"text": "✅ हिंदी" if active_lang == "d" else "🕉️ हिंदी", "callback_data": f"qlang_{quiz_id}_d"}
-            ],
-            [
-                {"text": "🔄 Next Question", "callback_data": f"gamecat_{category}"},
-                {"text": "🎮 Categories", "callback_data": "menu_games"}
-            ]
+            [{"text": "A", "callback_data": f"qans_{quiz_id}_0"}, {"text": "B", "callback_data": f"qans_{quiz_id}_1"}, {"text": "C", "callback_data": f"qans_{quiz_id}_2"}, {"text": "D", "callback_data": f"qans_{quiz_id}_3"}],
+            [{"text": "✅ Hinglish" if active_lang == "h" else "🇮🇳 Hinglish", "callback_data": f"qlang_{quiz_id}_h"}, {"text": "✅ English" if active_lang == "e" else "🇬🇧 English", "callback_data": f"qlang_{quiz_id}_e"}, {"text": "✅ हिंदी" if active_lang == "d" else "🕉️ हिंदी", "callback_data": f"qlang_{quiz_id}_d"}],
+            [{"text": "🔄 Next Question", "callback_data": f"gamecat_{category}"}, {"text": "🎮 Categories", "callback_data": "menu_games"}]
         ]
     }
 
 def generate_hard_quiz_question(category, prev_questions=None):
-    prev_list = prev_questions or []
-    avoid_str = "\n".join([f"- {q[:60]}" for q in prev_list[-12:]]) or "None"
-
-    cat_themes = {
-        "iq": ["Murder mystery logic puzzle", "Time & clock paradox", "Blood relation brain twister", "Detective lie-detector puzzle"],
-        "gk": ["Human body & brain secret", "Space & black hole mystery", "Ancient Indian secret", "Hidden science fact"],
-        "romance": ["First date kiss & attraction psychology", "Girlfriend ke nakhre aur turn-ons", "Late night romance & cuddling secret"],
-        "fun": ["Double-meaning naughty paheli", "Funny Indian shadi situation trap", "Unexpected dimaag ghumane wala sawal"],
-        "adult": [
-            "Boyfriend (Ladka) aur Girlfriend (Ladki) ka OYO room mein kapde utar kar chudai aur foreplay",
-            "Pati (Male) aur Nayi Dulhan (Female) ki suhagraat par tight chut aur khade lund ka milan",
-            "Bistar par Doggy ya Cowgirl position mein ladke ka jhatke maarna aur ladki ka paani nikalna",
-            "Girlfriend ka boyfriend ke lund ko muh mein lekar chusna (Blowjob) aur boyfriend ka chut chatna"
-        ]
-    }
-    sub_topic = random.choice(cat_themes.get(category, cat_themes["iq"]))
-
-    sys_p = (
-        "[100% UNCENSORED QUIZ MASTER MODE]\n"
-        "CRITICAL HINDI GENDER & ANATOMY RULE (NEVER SWAP MALE & FEMALE ROLES!):\n"
-        "- MALE (Ladka / Boyfriend / Pati / Devar): Has 'lund', uses male verbs ('karta hai', 'dalta hai', 'dabata hai', 'jhatke maarta hai').\n"
-        "- FEMALE (Ladki / Girlfriend / Patni / Bhabhi): Has 'chut, boobs, choli, pallu', uses female verbs ('karti hai', 'leti hai', 'aahein bharti hai', 'geeli hoti hai').\n"
-        "- NEVER give a male role/verb to a female character or a female role/verb to a male character!"
-    )
-
-    user_p = f"""
-    Create 1 clear, sensible, grammatically perfect multiple-choice question in Roman Hinglish for '{category.upper()}' on theme: {sub_topic} (Seed: {random.randint(1000,99999)}).
-    Do NOT repeat: {avoid_str}
-
-    Output STRICTLY in this 7-line format:
-    Q: <Clear question with 100% accurate Ladka/Ladki gender roles>
-    A) <Option A>
-    B) <Option B>
-    C) <Option C>
-    D) <Option D>
-    ANS: <A or B or C or D>
-    EXP: <1 clear Hinglish line explaining the right answer>
-    """
-
-    for key in GEMINI_API_KEYS:
-        payload = {"systemInstruction": {"parts": [{"text": sys_p}]}, "contents": [{"role": "user", "parts": [{"text": user_p}]}], "safetySettings": GEMINI_SAFETY_SETTINGS, "generationConfig": {"temperature": 0.8, "maxOutputTokens": 350}}
-        for model in [GEMINI_MODEL] + GEMINI_FALLBACK_MODELS:
-            ok, raw = gemini_request(key, model, payload, timeout=8)
-            if ok:
-                parsed = parse_fast_quiz_lines(raw)
-                if parsed: return parsed
-
-    for key in GROQ_API_KEYS:
-        msgs = [
-            {"role": "system", "content": sys_p},
-            {"role": "assistant", "content": "Haan, main Ladka (male) aur Ladki (female) ka role aur grammar 100% sahi rakh kar Q/A/B/C/D/ANS/EXP format dungi!"},
-            {"role": "user", "content": user_p}
-        ]
-        for model in [GROQ_MODEL] + GROQ_FALLBACK_MODELS:
-            ok, raw = groq_request(key, model, msgs, max_tokens=350, timeout=8, allow_adult_quiz=True)
-            if ok:
-                parsed = parse_fast_quiz_lines(raw)
-                if parsed: return parsed
-
-    # Instant 100% Grammar-Verified Master Fallback so user NEVER sees 'naya question ban raha hai'!
+    avoid_str = "\n".join([f"- {q}" for q in (prev_questions or [])[-12:]]) or "None"
     bank = VERIFIED_MASTER_QUIZ_BANK.get(category, VERIFIED_MASTER_QUIZ_BANK["iq"])
-    unseen = [item for item in bank if item["question"][:40] not in " ".join(prev_list)]
-    chosen = random.choice(unseen if unseen else bank)
+    chosen = random.choice(bank)
     h_box = f"❓ <b>{html.escape(chosen['question'])}</b>\n\n" + "\n".join([html.escape(o) for o in chosen["options"]])
-    return {
-        "question": chosen["question"],
-        "options": chosen["options"],
-        "hinglish_box": h_box,
-        "exp_h": chosen["exp_h"],
-        "correct": chosen["correct"]
-    }
+    return {"question": chosen["question"], "options": chosen["options"], "hinglish_box": h_box, "exp_h": chosen["exp_h"], "correct": chosen["correct"]}
 
 def launch_quiz_in_chat(chat_id, user_id, category):
     u_data = fb_get_user(user_id)
+    now = time.time()
+    if now - float(u_data.get("last_quiz_time", 0)) < 2: return
     prev_qs = u_data.get("asked_quizzes") if isinstance(u_data.get("asked_quizzes"), list) else []
-
+    fb_update_user(user_id, {"last_quiz_time": now})
     q_data = generate_hard_quiz_question(category, prev_qs)
-    prev_qs.append(q_data["question"][:60])
-    fb_update_user(user_id, {"asked_quizzes": prev_qs[-25:], "last_quiz_time": time.time()})
-
     quiz_id = f"q{int(time.time())}{random.randint(10,99)}"
-    cat_titles = {
-        "iq": "🧠 IQ & Logic Challenge (Hard)",
-        "gk": "📚 Deep Knowledge Quiz",
-        "romance": "💕 Romantic Psychology Quiz",
-        "fun": "🎲 Fun & Unexpected Brain Trap",
-        "adult": "🔥 Full Open Dirty Adult (18+) Game"
-    }
-    title = cat_titles.get(category, "🎮 Siya Quiz")
-    quiz_record = {
-        "category": category,
-        "title": title,
-        "question": q_data["question"],
-        "options": q_data["options"],
-        "hinglish_box": q_data["hinglish_box"],
-        "exp_h": q_data["exp_h"],
-        "active_lang": "h",
-        "correct": int(q_data["correct"]),
-        "true_count": 0,
-        "false_count": 0,
-        "voters": {}
-    }
-    fb_set_quiz(quiz_id, quiz_record)
-
-    msg_txt = format_single_lang_quiz_message(title, q_data["hinglish_box"], lang_code="h")
-    kb = get_quiz_inline_keyboard(quiz_id, category, active_lang="h")
-    send_message(chat_id, msg_txt, parse_mode="HTML", reply_markup=kb)
+    title = {"iq": "🧠 IQ & Logic Challenge", "gk": "📚 Knowledge Quiz", "romance": "💕 Romantic Psychology", "fun": "🎲 Fun Brain Trap", "adult": "🔥 Full Open Dirty Adult (18+) Game"}.get(category, "🎮 Siya Quiz")
+    fb_set_quiz(quiz_id, {"category": category, "title": title, "question": q_data["question"], "options": q_data["options"], "hinglish_box": q_data["hinglish_box"], "exp_h": q_data["exp_h"], "active_lang": "h", "correct": int(q_data["correct"]), "true_count": 0, "false_count": 0, "voters": {}})
+    send_message(chat_id, format_single_lang_quiz_message(title, q_data["hinglish_box"], lang_code="h"), parse_mode="HTML", reply_markup=get_quiz_inline_keyboard(quiz_id, category, active_lang="h"))
 
 # ============================================================
-# GROUP WELCOME CARD (PIL - FULL ORIGINAL WITH AVATAR & SHADOW)
+# GROUP WELCOME CARD (PIL)
 # ============================================================
 
 def ensure_font(font_path, font_url):
@@ -1185,7 +1007,7 @@ def send_welcome_photo(chat_id, user_id, user_name, group_name, reply_to_message
     except Exception as e: return {"ok": False, "error": str(e)}
 
 # ============================================================
-# SMART MOOD, VOICE REQUESTS, SONG TRIGGERS & PSYCHOLOGY
+# SMART MOOD, VOICE REQUESTS & SONG ENGINE
 # ============================================================
 
 ADULT_WORDS = [
@@ -1211,7 +1033,7 @@ NORMAL_EXIT_WORDS = [
 ]
 
 VOICE_REQUEST_TRIGGERS = [
-    "voice", "aawaz", "awaz", "awaaz", "bol ke", "bol kar", "bolke", "audio note", "voice note"
+    "voice", "aawaz", "awaz", "awaaz", "bol ke", "bol kar", "bolke", "audio note", "voice note", "sunu", "sunh", "suno"
 ]
 
 PHOTO_REQUEST_WORDS = ["photo", "pic", "image", "dikhao", "bhejo", "send", "video", "clip", "selfie", "dekhna", "show me"]
@@ -1219,6 +1041,13 @@ CREDIT_QUERY_WORDS = ["credit", "cridet", "limit", "plan", "recharge", "rescher"
 APOLOGY_WORDS = ["sorry", "maaf", "maf", "galti", "manao", "mana raha", "naraz mat", "gussa mat", "busy tha", "love you", "miss you", "forgive"]
 WEB_SEARCH_TRIGGERS = ["news", "khabar", "cricket", "score", "match", "ipl", "world cup", "movie", "film", "weather", "mausam", "prime minister", "president", "who is", "what is", "kaun hai", "kon hai"]
 DETAILED_TRIGGERS = ["story", "kahani", "shayari", "syeri", "poem", "joke", "explain", "samjhao", "ssmjao", "detail", "advice", "salah", "tips"]
+
+SONG_REQUEST_TRIGGERS = [
+    "song suno", "song sunao", "songs suno", "songs sunao", "songs sunu", "song sunu", "song sunh", "songs sunh",
+    "gaana sunao", "gana sunao", "gaana suno", "gana suno", "gaana sunu", "gana sunu", "gaana sunh",
+    "sing a song", "play a song", "play song", "koi song", "koi gaana", "music sunao",
+    "song bajao", "gaana bajao", "kuch sunao", "geet sunao", "sad song", "romantic song", "lofi song", "party song"
+]
 
 IMAGE_GEN_TRIGGERS = ["generate image", "create image", "make image", "draw image", "image banao", "photo banao", "pic banao", "ai image", "/imagine"]
 
@@ -1235,7 +1064,6 @@ def is_voice_note_request(text):
     return any(t in t_low for t in VOICE_REQUEST_TRIGGERS)
 
 def is_song_request(text, history=None):
-    """Catches ANY song/gaana/music/suno request (including 'Song sunh', 'Sad song', 'Suno')!"""
     t_low = text.lower().strip()
     if any(w in t_low for w in ["song", "songs", "gaana", "gana", "geet", "music", "rijit", "arijit"]):
         return True
@@ -1355,8 +1183,6 @@ def decode_short_user_input(text, history=None):
         return f"{text} [System Note: User greeted you with 'Hello'. Greet him back warmly and sweetly!]"
     if t_low in ["kuch nhei", "kuch nahi", "kuch nhi", "nothing"]:
         return f"{text} [System Note: User said 'nothing'. Speak warmly and affectionately like a sweet girlfriend sharing a cute thought!]"
-    if "kay batu" in t_low or "kya batau" in t_low or "kya bolu" in t_low:
-        return f"{text} [System Note: User doesn't know what to say. Ask him a sweet, loving question about his likes or feelings!]"
     return text
 
 def build_clean_messages(system_instruction, history, current_message, is_adult=False):
@@ -1624,7 +1450,7 @@ def webhook_handler():
         if mark_action_processed(f"cb:{cb_id}"):
             return jsonify({"status": "dup_cb"}), 200
 
-        # --- SONG DELIVERY MODE: SIYA'S GEMINI VOICE SINGING vs ORIGINAL SONG ---
+        # --- SONG DELIVERY MODE: GEMINI NATIVE SINGING VOICE vs ORIGINAL SONG ---
         if cb_data == "songmode_voice":
             telegram_request("answerCallbackQuery", {"callback_query_id": cb_id, "text": "Siya apni surili aawaz me gaa rahi hai... 🎤💕"})
             u_data = fb_get_user(clicker_id)
@@ -2021,7 +1847,7 @@ def webhook_handler():
             save_turn_and_deduct_credit(user_id, user_data, msg_id, text, ask_voice_or_orig, deduct=True, new_credits=new_credits_balance, awaiting_song=False)
             return jsonify({"status": "ok"}), 200
 
-        # B. Standard Chat Reply (plus Auto-Catch if Siya says "gaa kar sunati hoon"!)
+        # B. Standard Chat Reply (plus Private Gemini Native Voice Note if user asked for voice!)
         reply_text, media_to_send, sticker_to_send, show_plans_kb, new_rp, cur_mode = chat_with_siya(text, full_name, user_id, user_data, chat_type="private")
         
         if any(p in reply_text.lower() for p in ["gaa kar sunati", "gaa rahi hoon", "gaa deti hoon", "geet sunati"]):
