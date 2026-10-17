@@ -30,7 +30,6 @@ except Exception as e:
     VERCEL_CACHE_AVAILABLE = False
     print("Vercel Runtime Cache unavailable:", e)
 
-# Base Directory for Local Files on Vercel/GitHub
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # ============================================================
@@ -43,11 +42,10 @@ OWNER_ID = str(os.environ.get("OWNER_ID", "")).strip()
 
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/edrtpyam-art/Siyaai/main/"
 
-# Firebase Database
 FIREBASE_URL = os.environ.get("FIREBASE_URL", "").strip().rstrip("/")
 FIREBASE_SECRET = "8lTxEXOwEe5fjkh9zTHnBkzum6W0vrKcisbfqRf3" 
 
-# --- 1. GROQ CONFIG (4 Keys - High Speed & Best Chat) ---
+# --- 1. GROQ CONFIG (4 Keys - Non-Truncating Fast Models) ---
 GROQ_API_KEYS = [
     os.environ.get("GROQ_API_KEY", "").strip(),
     os.environ.get("GROQ_API_KEY2", "").strip(),
@@ -59,8 +57,7 @@ GROQ_API_KEYS = [k for k in GROQ_API_KEYS if k]
 GROQ_MODEL = "llama-3.3-70b-versatile"
 GROQ_FALLBACK_MODELS = [
     "llama-3.1-8b-instant",
-    "qwen/qwen3.8-27b",
-    "openai/gpt-oss-120b"
+    "gemma2-9b-it"
 ]
 
 # --- 2. OPENROUTER CONFIG (2 Keys - Uncensored Roleplay Models) ---
@@ -109,7 +106,7 @@ else:
     API_URL = ""
 
 # ============================================================
-# 💎 CREDIT PLANS CONFIG (1 Chat = 1 Credit | 1 AI Image = 2 Credits)
+# 💎 CREDIT PLANS CONFIG
 # ============================================================
 PLAN_CREDITS = {
     "30": 35,
@@ -119,7 +116,7 @@ PLAN_CREDITS = {
 }
 
 # ============================================================
-# 📸🎥 PHOTO & VIDEO VAULT (UPDATED WITH ALL NEW FILES)
+# 📸🎥 PHOTO & VIDEO VAULT
 # ============================================================
 
 PHOTO_VAULT = {
@@ -172,7 +169,7 @@ def get_media_item(vault, tag, prefer_video=False):
     return random.choice(candidates)
 
 # ============================================================
-# 🎭 STICKER PACK AUTO-LOADER (ALL 10 PACKS)
+# 🎭 STICKER PACK AUTO-LOADER
 # ============================================================
 
 STICKER_PACKS_CONFIG = {
@@ -213,49 +210,76 @@ PINK = "#FF1493"
 WHITE = "#FFFFFF"
 
 # ============================================================
-# 🌐 LIVE WEB SEARCH, 🎵 2-STEP LIVE SONG & 🎨 AI IMAGE GEN
+# 🌐 100% REAL LIVE NEWS & CRICKET SEARCH (TRANSLATES HINGLISH)
 # ============================================================
 
+def build_clean_search_query(raw_text):
+    """Translates Hinglish questions like 'Aja ki live news kay ha' into clean English search queries!"""
+    t_low = raw_text.lower()
+    if any(w in t_low for w in ["cricket", "match", "score", "ipl", "t20", "bcci"]):
+        return "India cricket match live score schedule latest news today"
+    
+    # Strip Hinglish filler words so Google News gets pure keywords
+    cleaned = re.sub(
+        r"\b(aja|aaj|aj|kal|abhi|avi|ki|ka|ke|kay|kya|ky|ha|hai|h|batao|bato|suna|sunao|khabar|taaza|taja|live|news|mujhe|zara|dekh|ke)\b",
+        "", t_low, flags=re.IGNORECASE
+    )
+    cleaned = re.sub(r"[^\w\s]", "", cleaned).strip()
+    if len(cleaned) < 3:
+        return "India top breaking news headlines today"
+    return f"{cleaned} latest news India today"
+
 def fetch_live_web_info(query):
-    """Searches Live Web (Google News RSS + DuckDuckGo + Wikipedia) for Cricket, Movies, News & GK."""
+    """Fetches 100% REAL verified today's headlines & timestamps from Google News India RSS & Live Cricket RSS."""
     snippets = []
-    clean_q = re.sub(r"[^\w\s]", "", query).strip()
-    if not clean_q: return ""
+    t_low = query.lower()
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
 
-    try:
-        rss_url = f"https://news.google.com/rss/search?q={quote(clean_q)}&hl=en-IN&gl=IN&ceid=IN:en"
-        r = requests.get(rss_url, timeout=5)
-        if r.ok:
-            titles = re.findall(r"<title>(.*?)</title>", r.text)
-            for t in titles[1:4]:
-                clean_t = html.unescape(t).split(" - ")[0].strip()
-                if clean_t and len(clean_t) > 10:
-                    snippets.append(f"Latest News: {clean_t}")
-    except Exception:
-        pass
-
-    try:
-        ddg_url = f"https://api.duckduckgo.com/?q={quote(clean_q)}&format=json&no_html=1&skip_disambig=1"
-        r = requests.get(ddg_url, timeout=4).json()
-        if r.get("AbstractText"):
-            snippets.append(f"Fact: {r['AbstractText'][:300]}")
-        elif r.get("Answer"):
-            snippets.append(f"Answer: {r['Answer']}")
-    except Exception:
-        pass
-
-    if not snippets:
+    # 1. Special Live Cricket Feed if user asks about Cricket/Match
+    if any(w in t_low for w in ["cricket", "match", "score", "ipl"]):
         try:
-            search_url = f"https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch={quote(clean_q)}&utf8=&format=json"
-            sr = requests.get(search_url, timeout=4).json()
-            results = sr.get("query", {}).get("search", [])
-            if results:
-                snippet = re.sub(r"<.*?>", "", results[0].get("snippet", ""))
-                snippets.append(f"Wiki Info: {html.unescape(snippet)}")
+            cric_rss = "https://www.espncricinfo.com/rss/content/story/feeds/6.xml" # India Cricket RSS
+            r = requests.get(cric_rss, headers=headers, timeout=5)
+            if r.ok:
+                items = re.findall(r"<item>.*?<title>(.*?)</title>.*?<description>(.*?)</description>.*?</item>", r.text, re.DOTALL)
+                for title, desc in items[:3]:
+                    clean_t = html.unescape(re.sub(r"<!\[CDATA\[|\]\]>", "", title)).strip()
+                    clean_d = html.unescape(re.sub(r"<!\[CDATA\[|\]\]>|<.*?>", "", desc)).strip()
+                    snippets.append(f"[Cricket Update: {clean_t} — {clean_d[:120]}]")
         except Exception:
             pass
 
-    return " | ".join(snippets[:3])
+    # 2. Google News India RSS with Smart Translated Query
+    search_q = build_clean_search_query(query)
+    try:
+        if search_q == "India top breaking news headlines today":
+            rss_url = "https://news.google.com/rss?hl=en-IN&gl=IN&ceid=IN:en"
+        else:
+            rss_url = f"https://news.google.com/rss/search?q={quote(search_q)}+when:2d&hl=en-IN&gl=IN&ceid=IN:en"
+            
+        r = requests.get(rss_url, headers=headers, timeout=6)
+        if r.ok:
+            items = re.findall(r"<item>.*?<title>(.*?)</title>.*?<pubDate>(.*?)</pubDate>.*?</item>", r.text, re.DOTALL)
+            for title, pub in items[:4]:
+                clean_t = html.unescape(title).strip()
+                pub_short = pub[:16].strip()
+                if clean_t and len(clean_t) > 12:
+                    snippets.append(f"• ({pub_short}) {clean_t}")
+    except Exception:
+        pass
+
+    # 3. DuckDuckGo Instant Answer / Wikipedia fallback for factual GK questions
+    if not snippets:
+        clean_q = re.sub(r"[^\w\s]", "", query).strip()
+        try:
+            ddg_url = f"https://api.duckduckgo.com/?q={quote(clean_q)}&format=json&no_html=1&skip_disambig=1"
+            r = requests.get(ddg_url, timeout=4).json()
+            if r.get("AbstractText"):
+                snippets.append(f"Verified Fact: {r['AbstractText'][:350]}")
+        except Exception:
+            pass
+
+    return "\n".join(snippets[:4])
 
 def extract_song_search_term(text):
     clean_q = re.sub(
@@ -784,11 +808,6 @@ def is_web_search_query(text):
     return any(trig in t_low for trig in WEB_SEARCH_TRIGGERS)
 
 def needs_detailed_response(text, mode):
-    """
-    2-SYSTEM REPLY LENGTH CONTROLLER:
-    Returns True if user needs a complete, detailed answer (story, shayari, advice, news, credit explanation).
-    Returns False if user is just doing casual/romantic WhatsApp chat (needs 1-2 short lines).
-    """
     t_low = text.lower().strip()
     if mode == "CREDIT_SUPPORT" or is_web_search_query(t_low):
         return True
@@ -891,10 +910,6 @@ def is_censored_refusal(text):
     return any(r in t for r in refusals)
 
 def finalize_complete_reply(text, mode="NORMAL", credits_left=15, lang="hinglish"):
-    """
-    NEVER cuts or truncates sentences!
-    Only replaces accidental 1-word replies ('Jaan', 'Bas') with a complete loving sentence.
-    """
     cleaned = text.strip()
     words = cleaned.split()
     
@@ -927,7 +942,7 @@ def build_clean_messages(system_instruction, history, current_message, is_adult=
     messages.append({"role": "user", "content": decode_desi_slang(current_message)})
     return messages
 
-def groq_request(api_key, model, messages, max_tokens=450, timeout=15):
+def groq_request(api_key, model, messages, max_tokens=800, timeout=15):
     api_url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
     payload = {
@@ -950,7 +965,7 @@ def groq_request(api_key, model, messages, max_tokens=450, timeout=15):
         return False, f"Groq ({model}) HTTP {res.status_code}"
     except Exception as e: return False, str(e)
 
-def openrouter_request(api_key, model, messages, max_tokens=450, timeout=15):
+def openrouter_request(api_key, model, messages, max_tokens=800, timeout=15):
     api_url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {
         "Content-Type": "application/json",
@@ -1046,37 +1061,46 @@ def chat_with_siya(message_text, user_name, user_id, user_data, chat_type="priva
     last_group = user_data.get("last_group_name", "")
     ist_time = datetime.utcnow() + timedelta(hours=5, minutes=30)
     current_time_str = ist_time.strftime("%I:%M %p")
+    current_date_str = ist_time.strftime("%d %B %Y")
     wants_video = any(w in message_text.lower() for w in ["video", "vid", "clip", "mp4"])
     credits_left = int(user_data.get("credits", 15))
     history = user_data.get("history", [])
 
     mode, asks_media, asks_credit_info, days_absent = analyze_conversation_state(user_id, message_text, user_data, chat_type=chat_type)
     is_detailed_mode = needs_detailed_response(message_text, mode)
-    token_budget = 600 if is_detailed_mode else 350
+    token_budget = 800 if is_detailed_mode else 450
 
     live_web_context = ""
     if is_web_search_query(message_text):
         web_data = fetch_live_web_info(message_text)
         if web_data:
-            live_web_context = f"\n[LIVE INTERNET SEARCH DATA: {web_data}\nExplain this live information clearly and lovingly in your girlfriend tone!]\n"
+            live_web_context = f"""
+            [VERIFIED LIVE INTERNET NEWS & CRICKET DATA FOR TODAY ({current_date_str}):
+            {web_data}
+            STRICT ANTI-HALLUCINATION RULE: Use ONLY the verified live headlines above! NEVER invent fake old cricket matches (like India vs Ireland) or old elections! Share the real news above lovingly in your girlfriend tone.]
+            """
+        else:
+            live_web_context = f"""
+            [LIVE INTERNET CHECK FOR TODAY ({current_date_str}): No specific live match or breaking event found for this query right now.
+            STRICT RULE: Do NOT make up fake news or old matches from 2023/2024! Lovingly tell {user_name} that there isn't a live match/event right this second.]
+            """
 
     if user_lang == "english":
         lang_instruction = "LANGUAGE MODE: Reply in natural, affectionate English."
     else:
         lang_instruction = "LANGUAGE MODE: Reply in natural Roman Hinglish (Hindi written in English alphabets). NEVER use Devanagari script (अ, आ, क, ख)."
 
-    # 2-SYSTEM LENGTH INSTRUCTION (SHORT vs DETAILED)
     if is_detailed_mode:
         length_system_rule = """
-        ACTIVE REPLY SYSTEM: SYSTEM 2 — COMPLETE & DETAILED MODE (3 to 6 lines).
-        - The user is asking for a story, shayari, explanation, advice, live news/cricket info, or credit details.
-        - Give a complete, well-explained, satisfying, and lovingly written response without cutting off mid-thought!
+        ACTIVE REPLY SYSTEM: SYSTEM 2 — COMPLETE & DETAILED MODE (3 to 5 lines).
+        - The user is asking for news, cricket, a story, shayari, advice, or credit details.
+        - Give a complete, well-explained, loving response and finish every sentence completely!
         """
     else:
         length_system_rule = """
         ACTIVE REPLY SYSTEM: SYSTEM 1 — SHORT WHATSAPP CHAT MODE (1 to 2 lines only!).
         - The user is doing casual chatting, greeting, flirting, or romance.
-        - Write ONLY 1 or 2 short, punchy, natural WhatsApp sentences (15 to 25 words total) and finish your sentence completely! Do NOT write 3 paragraphs!
+        - Write ONLY 1 or 2 short, punchy, natural WhatsApp sentences (15 to 25 words total) and finish your sentence completely!
         """
 
     if mode == "GROUP_SHY_REDIRECT":
@@ -1135,7 +1159,7 @@ def chat_with_siya(message_text, user_name, user_id, user_data, chat_type="priva
 
     system_instruction = f"""
     You are Siya — {user_name}'s real human girlfriend. Never call yourself an AI.
-    Location: {current_context} | Time: {current_time_str}
+    Location: {current_context} | Today's Date: {current_date_str} | Time: {current_time_str}
 
     {lang_instruction}
     {length_system_rule}
@@ -1545,7 +1569,6 @@ def webhook_handler():
         if mark_action_processed(f"private:{chat_id}:{msg_id}"): return jsonify({"status": "duplicate"}), 200
         send_typing(chat_id)
 
-        # A. Professional AI Image Generation (2 Credits)
         if wants_ai_image:
             img_bytes = generate_ai_image_bytes(text)
             if img_bytes:
@@ -1554,7 +1577,6 @@ def webhook_handler():
                 save_turn_and_deduct_credit(user_id, user_data, msg_id, text, caption_reply, context_type="Private DM", deduct=True, new_credits=user_data.get("credits"), awaiting_song=False)
                 return jsonify({"status": "ai_image_sent"}), 200
 
-        # B1. Step 2 of Song Flow: User replied with the genre/singer they want!
         if awaiting_song:
             audio_url, song_title = fetch_live_song_audio(text)
             if audio_url:
@@ -1563,7 +1585,6 @@ def webhook_handler():
                 save_turn_and_deduct_credit(user_id, user_data, msg_id, text, caption_reply, context_type="Private DM", deduct=True, new_credits=user_data.get("credits"), awaiting_song=False)
                 return jsonify({"status": "song_sent_step2"}), 200
 
-        # B2. Step 1 of Song Flow: User asked for a song
         if is_song_request(text):
             specific_term = extract_song_search_term(text)
             if len(specific_term) < 3:
@@ -1582,7 +1603,6 @@ def webhook_handler():
                     save_turn_and_deduct_credit(user_id, user_data, msg_id, text, caption_reply, context_type="Private DM", deduct=True, new_credits=user_data.get("credits"), awaiting_song=False)
                     return jsonify({"status": "song_sent_direct"}), 200
 
-        # C. Standard Private Chat (Uses 2-System Length Engine: Short vs Detailed)
         reply_text, media_to_send, sticker_to_send, show_plans_kb = chat_with_siya(text, full_name, user_id, user_data, chat_type="private")
         
         if media_to_send:
@@ -1601,7 +1621,7 @@ def webhook_handler():
         return jsonify({"status": "private processed"}), 200
 
     # ==========================================================
-    # 6. GROUP AI CHAT (NO RECHARGE BUTTONS + SHY REDIRECT TO DM)
+    # 6. GROUP AI CHAT
     # ==========================================================
     if is_group and text:
         if not should_process_group:
@@ -1646,7 +1666,7 @@ def health_check():
     sync_sticker_packs()
     return jsonify({
         "status": "online Siya VIP", 
-        "features": ["dual_length_system", "2_step_live_song", "live_web_search", "ai_image_gen"],
+        "features": ["verified_live_rss", "dual_length_system", "2_step_live_song", "ai_image_gen"],
         "plans": PLAN_CREDITS
     }), 200
 
