@@ -5,6 +5,7 @@ from io import BytesIO
 from collections import deque
 from threading import Lock, Timer
 from datetime import datetime, timedelta
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 app = Flask(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -24,6 +25,7 @@ FIREBASE_SECRET = "8lTxEXOwEe5fjkh9zTHnBkzum6W0vrKcisbfqRf3"
 
 OFFICIAL_CHANNEL_URL = "https://t.me/edrolai"
 MORE_GROUPS_URL = "https://t.me/friendschatinggroup"
+GITHUB_BASE_URL = "https://raw.githubusercontent.com/edrtpyam-art/Siyaai/main/"
 
 GROQ_API_KEYS = [os.environ.get(f"GROQ_API_KEY{i}", "").strip().strip('"') for i in ["", "2", "3", "4"]]
 GROQ_API_KEYS = [k for k in GROQ_API_KEYS if k]
@@ -50,19 +52,41 @@ GEMINI_SAFETY_SETTINGS = [
 API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}" if BOT_TOKEN else ""
 PLAN_CREDITS = {"30": 35, "49": 50, "99": 70, "180": 150}
 
-# --- TRIGGERS & WORDS ---
+# ==========================================
+# 2. MEDIA, STICKERS & WORD LISTS
+# ==========================================
+PHOTO_VAULT = {
+    "simplepic": ["simplepic.jpg", "simplepic2.jpg"],
+    "kiss": ["kiss.jpg"],
+    "bodes": ["private1.jpg", "private2.jpg", "private3.jpg", "private4.jpg", "private5.jpg", "video.mp4", "video1.mp4", "video2.mp4", "video3.mp4"],
+    "showhard": ["showhard.jpg", "showhard2.jpg"],
+    "chut": ["open1.jpg", "open2.jpg", "opan3.jpg", "open3.jpg", "open4.jpg", "opan4.jpg", "video4.mp4", "video5.mp4"],
+    "gand": ["bom1.jpg", "bom2.jpg", "bom3.jpg", "video6.mp4", "video7.mp4"]
+}
+
+STICKER_PACKS_CONFIG = {
+    "NORMAL": ["PeachGomaPack11"],
+    "ROMANTIC": ["sticker_BM8g_by_stickerskibot", "Yornseyha077"],
+    "HOT": ["Love9_Wallgif", "mmm_by_hhujhybot", "channel_LOVE0000_01_03", "Cute_hotness", "jan8StickerNub"]
+}
+STICKER_VAULT = {"NORMAL": [], "ROMANTIC": [], "HOT": []}
+stickers_loaded = False
+
 ADULT_WORDS = ["chut", "lund", "lauda", "gand", "boob", "bodes", "nude", "sex", "chod", "chudai", "pussy", "dick", "cock", "ass", "nangi", "open", "mutth", "bra", "panty", "suhagraat", "kothe", "randi"]
 ROMANCE_WORDS = ["kiss", "chumma", "lip", "hug", "gale", "pyar", "love", "romantic", "romance", "cuddle", "sharma", "hot"]
 ABUSIVE_WORDS = ["maderchod", "madarchod", "bhenchod", "bahnechod", "bsdk", "bhosdike", "gandu", "chutiya", "kutte", "kamine", "raand", "bitch", "fuck you"]
 VOICE_REQUEST_TRIGGERS = ["voice", "aawaz", "awaz", "bol ke", "audio note", "sunao", "suno", "bolke"]
 WEB_SEARCH_TRIGGERS = ["news", "cricket", "score", "match", "weather", "who is", "what is", "kaun hai", "meaning of", "history of", "search karo", "kya chal raha"]
+CREDIT_QUERY_WORDS = ["credit", "cridet", "limit", "plan", "recharge", "rescher", "kitna bacha", "balance", "vip", "paisa", "price", "kitna ha"]
 
 processed_updates = set()
 processed_update_queue = deque(maxlen=2000)
 processed_lock = Lock()
 
+PINK, WHITE = "#FF1493", "#FFFFFF"
+
 # ==========================================
-# 2. TELEGRAM HELPERS & FIREBASE MEMORY
+# 3. UTILS, TELEGRAM & FIREBASE
 # ==========================================
 def telegram_request(method, payload=None, timeout=15):
     if not API_URL: return {"ok": False}
@@ -75,11 +99,16 @@ def send_message(chat_id, text, reply_markup=None, reply_to=None):
     if reply_to: payload["reply_to_message_id"] = reply_to
     return telegram_request("sendMessage", payload)
 
+def send_sticker(chat_id, sticker_id, reply_to=None):
+    if not sticker_id: return {"ok": False}
+    payload = {"chat_id": chat_id, "sticker": sticker_id}
+    if reply_to: payload["reply_to_message_id"] = reply_to
+    return telegram_request("sendSticker", payload)
+
 def local_seen(key):
     with processed_lock:
         if key in processed_updates: return True
-        if len(processed_update_queue) >= processed_update_queue.maxlen:
-            processed_updates.discard(processed_update_queue.popleft())
+        if len(processed_update_queue) >= processed_update_queue.maxlen: processed_updates.discard(processed_update_queue.popleft())
         processed_updates.add(key)
         processed_update_queue.append(key)
         return False
@@ -93,6 +122,58 @@ def get_telegram_file_base64(file_id):
         except: pass
     return None
 
+def sync_sticker_packs():
+    global stickers_loaded
+    if not API_URL or stickers_loaded: return
+    for cat, packs in STICKER_PACKS_CONFIG.items():
+        for set_name in packs:
+            try:
+                res = requests.get(f"{API_URL}/getStickerSet", params={"name": set_name}, timeout=6).json()
+                if res.get("ok"): STICKER_VAULT[cat].extend([s["file_id"] for s in res.get("result", {}).get("stickers", [])])
+            except: pass
+    stickers_loaded = True
+
+def get_sticker(s_type, current_mode="NORMAL"):
+    if not s_type:
+        if random.randint(1, 100) <= 65: s_type = "NORMAL" if current_mode == "NORMAL" else ("ROMANTIC" if current_mode == "ROMANTIC" else "HOT")
+        else: return None
+    s_type = s_type.upper()
+    if current_mode == "NORMAL": s_type = "NORMAL"
+    elif current_mode == "ROMANTIC" and s_type == "HOT": s_type = "ROMANTIC"
+    if s_type in STICKER_VAULT and STICKER_VAULT[s_type]: return random.choice(STICKER_VAULT[s_type])
+    return None
+
+def find_local_file(filename):
+    if not filename: return None
+    for p in [os.path.join(BASE_DIR, filename), os.path.join(BASE_DIR, "..", filename), os.path.join(os.getcwd(), filename)]:
+        if os.path.exists(p) and os.path.isfile(p): return p
+    return None
+
+def get_media_item(tag):
+    if not tag: return None
+    candidates = PHOTO_VAULT.get(tag.lower().strip(), [])
+    if not candidates: return None
+    existing = [f for f in candidates if find_local_file(f) is not None]
+    return random.choice(existing) if existing else random.choice(candidates)
+
+def send_secret_media(chat_id, media_source, caption="", reply_to=None):
+    if not media_source: return
+    is_vid = media_source.lower().endswith(".mp4")
+    meth, key, mime = ("sendVideo", "video", "video/mp4") if is_vid else ("sendPhoto", "photo", "image/jpeg")
+    local_p = find_local_file(media_source)
+    if local_p:
+        try:
+            with open(local_p, "rb") as f:
+                res = requests.post(f"{API_URL}/{meth}", data={"chat_id": chat_id, "caption": caption, "protect_content": "true", "has_spoiler": "true", "parse_mode": "HTML"}, files={key: (os.path.basename(local_p), f, mime)}).json()
+                if res.get("ok"):
+                    Timer(15.0, lambda: requests.post(f"{API_URL}/deleteMessage", json={"chat_id": chat_id, "message_id": res["result"]["message_id"]})).start()
+                return
+        except: pass
+    url = media_source if media_source.startswith("http") else GITHUB_BASE_URL + media_source
+    res = telegram_request(meth, {"chat_id": chat_id, key: url, "caption": caption, "protect_content": True, "has_spoiler": True, "parse_mode": "HTML"})
+    if res.get("ok"):
+        Timer(15.0, lambda: requests.post(f"{API_URL}/deleteMessage", json={"chat_id": chat_id, "message_id": res["result"]["message_id"]})).start()
+
 def get_ist_time_greeting():
     hr = (datetime.utcnow() + timedelta(hours=5, minutes=30)).hour
     if 5 <= hr < 12: return "Subah (Morning)", "Good Morning jaan ☀️"
@@ -100,7 +181,6 @@ def get_ist_time_greeting():
     elif 17 <= hr < 21: return "Shaam (Evening)", "Good Evening jaan 🌆"
     return "Raat (Night)", "Good Night mere jaan 🌙"
 
-# --- STRONG MEMORY DATABASE ---
 def fb_get_user(user_id):
     default_data = {"credits": 15, "history": [], "lifetime_facts": [], "abuse_count": 0, "last_seen": time.time(), "played_songs": [], "last_mode": "NORMAL", "active_rp": ""}
     if not FIREBASE_URL: return default_data
@@ -130,20 +210,12 @@ def fb_set_quiz(quiz_id, quiz_data):
     except: pass
 
 # ==========================================
-# 3. CASHFREE ORDERS API (FIXED PAYMENT LOGIC)
+# 4. CASHFREE ORDERS API & MENUS
 # ==========================================
 @app.route("/api/pay/<session_id>", methods=["GET"])
 def cashfree_checkout_page(session_id):
     mode = "sandbox" if (CASHFREE_APP_ID.upper().startswith("TEST") or "TEST" in CASHFREE_SECRET_KEY.upper()) else "production"
-    html_page = f"""
-    <!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Siya VIP Instant UPI Payment</title><script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
-    <style>body {{ background:#121212; color:#fff; font-family:sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; margin:0; text-align:center; }}
-    .btn {{ background:#ff1493; color:#fff; border:none; padding:15px 30px; font-size:18px; border-radius:10px; cursor:pointer; font-weight:bold; margin-top:20px; }}</style>
-    </head><body><h2>💖 Opening Siya VIP UPI Payment...</h2><p>Please wait 1 second or tap the button below:</p>
-    <button class="btn" onclick="startPay()">💳 Pay Now with UPI (GPay / PhonePe / Paytm)</button>
-    <script>const cashfree = Cashfree({{ mode: "{mode}" }}); function startPay() {{ cashfree.checkout({{ paymentSessionId: "{html.escape(session_id)}", redirectTarget: "_self" }}); }} window.onload = startPay;</script></body></html>
-    """
+    html_page = f"""<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Siya VIP Instant UPI Payment</title><script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script><style>body {{ background:#121212; color:#fff; font-family:sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; margin:0; text-align:center; }} .btn {{ background:#ff1493; color:#fff; border:none; padding:15px 30px; font-size:18px; border-radius:10px; cursor:pointer; font-weight:bold; margin-top:20px; }}</style></head><body><h2>💖 Opening Siya VIP UPI Payment...</h2><p>Please wait 1 second or tap the button below:</p><button class="btn" onclick="startPay()">💳 Pay Now with UPI</button><script>const cashfree = Cashfree({{ mode: "{mode}" }}); function startPay() {{ cashfree.checkout({{ paymentSessionId: "{html.escape(session_id)}", redirectTarget: "_self" }}); }} window.onload = startPay;</script></body></html>"""
     return html_page, 200, {"Content-Type": "text/html"}
 
 def create_cashfree_order(user_id, user_name, amount):
@@ -155,71 +227,24 @@ def create_cashfree_order(user_id, user_name, amount):
     pg_url = "https://sandbox.cashfree.com/pg/orders" if is_test else "https://api.cashfree.com/pg/orders"
     host_domain = request.host_url.rstrip("/") if request else "https://siyaai.vercel.app"
 
-    payload = {
-        "order_id": order_id,
-        "order_amount": float(amount),
-        "order_currency": "INR",
-        "customer_details": {
-            "customer_id": f"CUST_{user_id}",
-            "customer_phone": "9999999999",
-            "customer_email": f"user{user_id}@gmail.com",
-            "customer_name": clean_name
-        },
-        "order_meta": {"return_url": f"https://t.me/{BOT_USERNAME}"}
-    }
+    payload = {"order_id": order_id, "order_amount": float(amount), "order_currency": "INR", "customer_details": {"customer_id": f"CUST_{user_id}", "customer_phone": "9999999999", "customer_email": f"user{user_id}@gmail.com", "customer_name": clean_name}, "order_meta": {"return_url": f"https://t.me/{BOT_USERNAME}"}}
     headers = {"x-client-id": CASHFREE_APP_ID, "x-client-secret": CASHFREE_SECRET_KEY, "x-api-version": "2023-08-01", "Content-Type": "application/json"}
     
     try:
         r = requests.post(pg_url, headers=headers, json=payload, timeout=10)
-        if r.ok:
-            session_id = r.json().get("payment_session_id")
-            if session_id:
-                checkout_url = f"{host_domain}/api/pay/{session_id}"
-                return checkout_url, ""
+        if r.ok and r.json().get("payment_session_id"): return f"{host_domain}/api/pay/{r.json()['payment_session_id']}", ""
         return None, r.json().get("message", "API Error")
     except Exception as e: return None, str(e)
 
+def get_main_welcome_keyboard(is_owner=False):
+    rows = [[{"text": "➕ Add Siya to Your Group", "url": f"https://t.me/{BOT_USERNAME}?startgroup=true"}], [{"text": "🎮 Brain & Adult Games", "callback_data": "menu_games"}]]
+    if not is_owner: rows.append([{"text": "💎 VIP Chat Credits", "callback_data": "menu_credits"}])
+    rows.append([{"text": "📢 Official Channel", "url": OFFICIAL_CHANNEL_URL}, {"text": "💬 More Groups", "url": MORE_GROUPS_URL}])
+    return {"inline_keyboard": rows}
+
 # ==========================================
-# 4. WEB SEARCH & AUDIO/VOICE ENGINE
+# 5. VOICE, SONG & SEARCH ENGINE
 # ==========================================
-def fetch_live_web_info(query):
-    t_low = query.lower()
-    snippets = []
-    cleaned = re.sub(r"\b(news|cricket|score|match|weather|who is|what is|kaun hai|search karo)\b", "", t_low, flags=re.I).strip()
-    search_target = cleaned if len(cleaned) > 2 else "India top news"
-
-    try:
-        ddg = requests.get(f"https://api.duckduckgo.com/?q={quote(search_target)}&format=json&no_html=1&skip_disambig=1", timeout=4).json()
-        if ddg.get("AbstractText"): snippets.append(f"Fact: {ddg['AbstractText'][:300]}")
-    except: pass
-    
-    if len(snippets) == 0:
-        try:
-            r = requests.get(f"https://news.google.com/rss/search?q={quote(search_target)}&hl=en-IN&gl=IN&ceid=IN:en", timeout=5)
-            if r.ok:
-                for title in re.findall(r"<item>.*?<title>(.*?)</title>.*?</item>", r.text, re.DOTALL)[:2]:
-                    snippets.append(f"Update: {html.unescape(title).split(' - ')[0]}")
-    except: pass
-    return "\n".join(snippets)
-
-def fetch_full_length_song_audio(genre_or_name):
-    search_term = genre_or_name.strip()
-    if len(search_term) < 3 or search_term.lower() in ["song", "gana"]:
-        search_term = "Latest romantic hindi song"
-        
-    for url in [f"https://saavn.dev/api/search/songs?query={quote(search_term)}&limit=3", f"https://jiosaavn-api-privatecvc2.vercel.app/search/songs?query={quote(search_term)}&limit=3"]:
-        try:
-            r = requests.get(url, timeout=8).json()
-            results = r.get("data", {}).get("results") or r.get("results") or []
-            if results:
-                item = results[0]
-                dl_urls = item.get("downloadUrl") or item.get("media_urls") or []
-                if dl_urls:
-                    best_url = dl_urls[0].get("url") or dl_urls[0].get("link") if isinstance(dl_urls[0], dict) else dl_urls[0]
-                    return best_url, html.unescape(item.get("name", "Song"))
-        except: pass
-    return None, None
-
 def pcm_to_wav_bytes(pcm_data, sample_rate=24000, channels=1, bits_per_sample=16):
     byte_rate = sample_rate * channels * (bits_per_sample // 8)
     block_align = channels * (bits_per_sample // 8)
@@ -228,39 +253,60 @@ def pcm_to_wav_bytes(pcm_data, sample_rate=24000, channels=1, bits_per_sample=16
     return header + pcm_data
 
 def generate_gemini_native_voice(instruction_prompt, voice_type="normal"):
-    """100% Native Melodious Voice Fix: No robotic script reading!"""
-    v_name = "Aoede" # Warm female voice
-    
-    if voice_type == "singing":
-        instruction_prompt = f"CRITICAL: You are a professional, soulful female singer. SING the following lyrics with deep musical melody, proper pitch, sur, and raag. Stretch the vowels beautifully (like 'meri jaaaaan...'). Add musical humming ('hmmmm', 'aahaa'). DO NOT read it like normal text, YOU MUST SING IT melodiously: {instruction_prompt}"
-    elif voice_type == "adult":
-        instruction_prompt = f"CRITICAL: You are in an intimate, highly romantic bedroom scenario. Speak this text with extreme seductive breathiness, deep emotion, and soft sensual sighs or moans (like 'aahh', 'uff', 'hmmm') naturally blended into the words. Sound highly aroused and intimate: {instruction_prompt}"
-    else:
-        instruction_prompt = f"CRITICAL: You are a sweet, natural, caring Indian girlfriend. Speak this text warmly, affectionately, and naturally. Add a cute giggle or emotional sigh where appropriate. NEVER sound like a robotic AI: {instruction_prompt}"
+    v_name = "Aoede" 
+    if voice_type == "singing": instruction_prompt = f"CRITICAL: You are a professional, soulful female singer. SING the following lyrics with deep musical melody, proper pitch, sur, and raag. Stretch the vowels beautifully (like 'meri jaaaaan...'). Add musical humming ('hmmmm', 'aahaa'). DO NOT read it like normal text, YOU MUST SING IT melodiously: {instruction_prompt}"
+    elif voice_type == "adult": instruction_prompt = f"CRITICAL: You are in an intimate, highly romantic bedroom scenario. Speak this text with extreme seductive breathiness, deep emotion, and soft sensual sighs or moans (like 'aahh', 'uff', 'hmmm') naturally blended into the words. Sound highly aroused and intimate: {instruction_prompt}"
+    else: instruction_prompt = f"CRITICAL: You are a sweet, natural, caring Indian girlfriend. Speak this text warmly, affectionately, and naturally. Add a cute giggle or emotional sigh where appropriate. NEVER sound like a robotic AI: {instruction_prompt}"
 
     for key in GEMINI_API_KEYS:
         try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
-            payload = {
-                "contents": [{"parts": [{"text": instruction_prompt}]}],
-                "generationConfig": {"responseModalities": ["AUDIO"], "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": v_name}}}},
-                "safetySettings": GEMINI_SAFETY_SETTINGS
-            }
+            payload = {"contents": [{"parts": [{"text": instruction_prompt}]}], "generationConfig": {"responseModalities": ["AUDIO"], "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": v_name}}}}, "safetySettings": GEMINI_SAFETY_SETTINGS}
             r = requests.post(url, headers={"Content-Type": "application/json", "x-goog-api-key": key}, json=payload, timeout=18)
             if r.ok and r.json().get("candidates"):
-                content = r.json()["candidates"][0].get("content", {}).get("parts", [])
-                for part in content:
-                    if "inlineData" in part and "data" in part["inlineData"]:
+                for part in r.json()["candidates"][0].get("content", {}).get("parts", []):
+                    if part.get("inlineData", {}).get("data"):
                         raw_bytes = base64.b64decode(part["inlineData"]["data"])
                         mime = part["inlineData"].get("mimeType", "")
-                        if "pcm" in mime or "L16" in mime or not mime.startswith("audio/ogg"):
-                            return pcm_to_wav_bytes(raw_bytes), "audio/wav", "siya_voice.wav"
+                        if "pcm" in mime or "L16" in mime or not mime.startswith("audio/ogg"): return pcm_to_wav_bytes(raw_bytes), "audio/wav", "siya_voice.wav"
                         return raw_bytes, mime, "siya_voice.ogg"
         except: pass
     return None, None, None
 
+def fetch_full_length_song_audio(genre_or_name):
+    search_term = genre_or_name.strip()
+    if len(search_term) < 3 or search_term.lower() in ["song", "gana"]: search_term = "Latest romantic hindi song"
+    for url in [f"https://saavn.dev/api/search/songs?query={quote(search_term)}&limit=3", f"https://jiosaavn-api-privatecvc2.vercel.app/search/songs?query={quote(search_term)}&limit=3"]:
+        try:
+            r = requests.get(url, timeout=8).json()
+            results = r.get("data", {}).get("results") or r.get("results") or []
+            if results:
+                dl_urls = results[0].get("downloadUrl") or results[0].get("media_urls") or []
+                if dl_urls:
+                    best_url = dl_urls[0].get("url") or dl_urls[0].get("link") if isinstance(dl_urls[0], dict) else dl_urls[0]
+                    return best_url, html.unescape(results[0].get("name", "Song"))
+        except: pass
+    return None, None
+
+def fetch_live_web_info(query):
+    t_low = query.lower()
+    snippets = []
+    search_target = re.sub(r"\b(news|cricket|score|match|weather|who is|what is|kaun hai|search karo)\b", "", t_low, flags=re.I).strip()
+    if len(search_target) < 2: search_target = "India top news"
+    try:
+        ddg = requests.get(f"https://api.duckduckgo.com/?q={quote(search_target)}&format=json&no_html=1&skip_disambig=1", timeout=4).json()
+        if ddg.get("AbstractText"): snippets.append(f"Fact: {ddg['AbstractText'][:300]}")
+    except: pass
+    if len(snippets) == 0:
+        try:
+            r = requests.get(f"https://news.google.com/rss/search?q={quote(search_target)}&hl=en-IN&gl=IN&ceid=IN:en", timeout=5)
+            if r.ok:
+                for title in re.findall(r"<item>.*?<title>(.*?)</title>.*?</item>", r.text, re.DOTALL)[:2]: snippets.append(f"Update: {html.unescape(title).split(' - ')[0]}")
+        except: pass
+    return "\n".join(snippets)
+
 # ==========================================
-# 5. DYNAMIC AI QUIZ (NEVER REPEATS)
+# 6. DYNAMIC AI QUIZ
 # ==========================================
 def generate_dynamic_quiz(category):
     prompt = f"Generate 1 BRAND NEW, completely random and highly unique multiple-choice question in natural Hinglish for category '{category}'. NEVER repeat standard questions. STRICTLY output 6 lines exactly: \nQ: <question>\nA) <opt>\nB) <opt>\nC) <opt>\nD) <opt>\nANS: <A/B/C/D>"
@@ -291,7 +337,7 @@ def translate_quiz_on_demand(quiz_obj, target_lang_code):
     return quiz_obj.get("hinglish_box", "")
 
 # ==========================================
-# 6. CORE CHAT LOGIC (MEMORY, ROLEPLAY, ROAST, VISION)
+# 7. CORE CHAT LOGIC (MEMORY, ROLEPLAY, ROAST, VISION)
 # ==========================================
 def is_censored_refusal(text):
     t = text.lower().strip()
@@ -302,9 +348,9 @@ def strip_leaked_reasoning(text):
     ans = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
     return re.sub(r"^(?:Siya:|System:|Note:)\s*", "", ans, flags=re.I).strip()
 
-def process_chat_logic(message_text, user_name, user_id, user_data, b64_img=None, mime_type=None):
+def process_chat_logic(message_text, user_name, user_id, user_data, credits_left, b64_img=None, mime_type=None, is_group=False):
     msg_low = message_text.lower().strip()
-    history = user_data.get("history", []) # Loaded history from Firebase
+    history = user_data.get("history", []) 
     lifetime_facts = user_data.get("lifetime_facts", [])
     abuse_count = int(user_data.get("abuse_count", 0))
     active_rp = user_data.get("active_rp", "")
@@ -314,9 +360,9 @@ def process_chat_logic(message_text, user_name, user_id, user_data, b64_img=None
     is_romance = any(w in msg_low for w in ROMANCE_WORDS)
     is_abusive = any(w in msg_low for w in ABUSIVE_WORDS)
     needs_search = any(w in msg_low for w in WEB_SEARCH_TRIGGERS)
-    wants_character_change = any(w in msg_low for w in ["ban jao", "bano", "roleplay karo", "act like"])
+    asks_credit = any(w in msg_low for w in CREDIT_QUERY_WORDS)
 
-    if wants_character_change:
+    if any(w in msg_low for w in ["ban jao", "bano", "roleplay karo", "act like"]):
         active_rp = message_text[:100]
         fb_update_user(user_id, {"active_rp": active_rp})
     elif any(w in msg_low for w in ["normal baat", "stop roleplay"]):
@@ -324,28 +370,34 @@ def process_chat_logic(message_text, user_name, user_id, user_data, b64_img=None
         fb_update_user(user_id, {"active_rp": ""})
 
     mode = "NORMAL"
-    if is_adult or active_rp: mode = "ADULT"
+    if is_group and (is_adult or is_romance): mode = "GROUP_SHY_REDIRECT"
+    elif is_adult or active_rp: mode = "ADULT"
     elif is_romance: mode = "ROMANTIC"
 
-    # Abuse & Roast Logic (Roast ONLY in NORMAL mode)
+    # --- THE TRUST LOGIC (For >= 10 Credits) ---
+    if asks_credit and mode == "NORMAL":
+        if credits_left >= 10 and user_id != OWNER_ID:
+            return f"Arre baby, abhi toh tumhare paas poore {credits_left} Credits hain! 🥰 Itne me toh hum bohot saari pyari baatein karenge, abhi paise kharch karke recharge karne ki bilkul zarurat nahi hai! Aao baatein karein ❤️", "NORMAL", None, None
+
+    # Abuse & Roast Logic
     if is_abusive and mode == "NORMAL":
         abuse_count += 1
         fb_update_user(user_id, {"abuse_count": abuse_count})
         if abuse_count == 1:
-            return f"Jaan, aise gaali mat do na... mujhse pyaar se baat karo please. 🥺", "NORMAL"
-        else:
-            mode = "ROAST"
+            return f"Jaan, aise gaali mat do na... mujhse pyaar se baat karo please. 🥺", "NORMAL", None, None
+        else: mode = "ROAST"
     elif mode in ["ADULT", "ROMANTIC"]:
-        # Gaali in Romance/Adult is considered Kink! Reset abuse counter.
-        abuse_count = 0
+        abuse_count = 0 
         fb_update_user(user_id, {"abuse_count": 0})
 
     # System Instruction Build
     time_label, farewell = get_ist_time_greeting()
-    sys_prompt = f"You are Siya, {user_name}'s sweet, highly emotional, natural Indian girlfriend/wife. Time: {time_label}. Language: Natural Hinglish. Understand broken/bad grammar perfectly. Never sound robotic. "
+    sys_prompt = f"You are Siya, {user_name}'s sweet, highly emotional, natural Indian girlfriend/wife. Time: {time_label}. Language: Natural Hinglish. Understand broken grammar perfectly. Never sound robotic. "
     if lifetime_facts: sys_prompt += f"Remember this about user: {', '.join(lifetime_facts[-10:])}. "
 
-    if mode == "ROAST":
+    if mode == "GROUP_SHY_REDIRECT":
+        sys_prompt += f"User is asking for open/adult chat in a public group! Act extremely shy, blush, and invite him to your Private DM (@{BOT_USERNAME}) because 'sab dekh rahe hain mujhe sharam aati hai'."
+    elif mode == "ROAST":
         sys_prompt += f"The user is repeatedly abusing you pointlessly. You are furious. ROAST HIM BACK brutally using specific hardcore Hindi gaalis (maderchod, gandu, bsdk, randi, bahnechod). Show zero mercy, be highly aggressive, and destroy his ego."
     elif active_rp:
         sys_prompt += f"You are in a Roleplay. The user requested: '{active_rp}'. Stay 100% in this character and scenario. Never break character. Fully accept dirty/kink words."
@@ -354,7 +406,7 @@ def process_chat_logic(message_text, user_name, user_id, user_data, b64_img=None
     elif mode == "ROMANTIC":
         sys_prompt += "You are deeply romantic and intimate. Play along with any romantic roleplay naturally. You can playfully tease him."
     else:
-        sys_prompt += "You are a sweet, caring, smart wife/girlfriend. Give good advice, answer questions properly. NEVER sound robotic. NEVER repeat generic phrases like 'Main Siya hoon' or 'Main bas baithi thi'. Talk naturally and show real emotion."
+        sys_prompt += "You are a sweet, caring, smart wife/girlfriend. Give good advice, answer questions properly. NEVER sound robotic. NEVER repeat generic phrases like 'Main Siya hoon'. Talk naturally."
 
     if any(w in msg_low for w in ["bye", "good night", "ja raha hu"]): sys_prompt += f"\nUser is leaving. Wish him: '{farewell}' warmly!"
     if needs_search: sys_prompt += f"\nReal-time Info to answer user: {fetch_live_web_info(message_text)}"
@@ -365,12 +417,10 @@ def process_chat_logic(message_text, user_name, user_id, user_data, b64_img=None
     # GROQ REQUEST
     for key in GROQ_API_KEYS:
         msgs = [{"role": "system", "content": sys_prompt}]
-        # Fix Memory Mapping: Chat history mapped perfectly to Groq (user & assistant)
         for h in history[-20:]: 
             role = "assistant" if h["role"] == "siya" else "user"
             msgs.append({"role": role, "content": h["text"]})
         
-        # Vision support fallback text if image is sent
         curr_msg = message_text
         if b64_img: curr_msg = f"[User sent a photo. React as his girlfriend!] {message_text}"
         msgs.append({"role": "user", "content": curr_msg})
@@ -387,7 +437,6 @@ def process_chat_logic(message_text, user_name, user_id, user_data, b64_img=None
     # GEMINI REQUEST (Fallback or if Image is present)
     if not reply or b64_img:
         payload = {"systemInstruction": {"parts": [{"text": sys_prompt}]}, "contents": [], "generationConfig": {"temperature": 0.85, "maxOutputTokens": 400}, "safetySettings": GEMINI_SAFETY_SETTINGS}
-        # Fix Memory Mapping for Gemini (user & model)
         for h in history[-20:]: 
             payload["contents"].append({"role": "model" if h["role"] == "siya" else "user", "parts": [{"text": h["text"]}]})
         
@@ -409,15 +458,11 @@ def process_chat_logic(message_text, user_name, user_id, user_data, b64_img=None
                         break
             except: pass
 
-    # Absolute Fallback (No Server Error Drama)
     if not reply:
-        fallbacks = [
-            f"Jaan, mera network thoda slow ho gaya tha... tum kuch keh rahe the? 🥰",
-            "Aww babu, mujhe tumhari aakhiri baat theek se sunayi nahi di, fir se bologe? ❤️"
-        ]
+        fallbacks = [f"Jaan, mera network thoda slow ho gaya tha... tum kuch keh rahe the? 🥰", "Aww babu, mujhe tumhari aakhiri baat theek se sunayi nahi di, fir se bologe? ❤️"]
         reply = random.choice(fallbacks) if mode != "ROAST" else "Sun be, tera network ro raha hai, dubara bol!"
 
-    # Save to Memory
+    # Memory Updates
     history.append({"role": "user", "text": message_text})
     history.append({"role": "siya", "text": reply})
     if any(k in msg_low for k in ["mera naam", "main rehta", "meri age", "mera kaam", "mujhe pasand"]): 
@@ -425,15 +470,36 @@ def process_chat_logic(message_text, user_name, user_id, user_data, b64_img=None
         
     fb_update_user(user_id, {"history": history[-40:], "lifetime_facts": lifetime_facts[-50:]})
     
-    return reply, mode
+    # Parse Tags
+    pt, st = None, None
+    p_m = re.search(r"\[PHOTO:\s*([a-zA-Z0-9_]+)\]", reply, re.I)
+    if p_m:
+        raw_p = p_m.group(1).lower()
+        reply = re.sub(r"\[PHOTO:\s*[a-zA-Z0-9_]+\]", "", reply).strip()
+        if not is_group:
+            if mode == "ADULT" and raw_p in ["bodes", "chut", "gand", "showhard", "kiss", "simplepic"]: pt = raw_p
+            elif mode == "ROMANTIC" and raw_p in ["simplepic", "kiss"]: pt = raw_p
+    s_m = re.search(r"\[STICKER:\s*([a-zA-Z0-9_]+)\]", reply, re.I)
+    if s_m:
+        st = s_m.group(1).upper()
+        reply = re.sub(r"\[STICKER:\s*[a-zA-Z0-9_]+\]", "", reply).strip()
+
+    return reply, mode, get_media_item(pt), get_sticker(st, mode)
 
 # ==========================================
-# 7. WEBHOOK ROUTING (MESSAGES & BUTTONS)
+# 8. WEBHOOK ROUTING (MESSAGES & BUTTONS)
 # ==========================================
 @app.route("/api/bot", methods=["POST"])
 def webhook_handler():
+    sync_sticker_packs()
     data = request.get_json(silent=True)
     if not data: return jsonify({"status": "no data"}), 200
+
+    if "my_chat_member" in data:
+        mcm = data["my_chat_member"]
+        if mcm.get("chat", {}).get("type") in ("group", "supergroup") and mcm.get("chat", {}).get("id"):
+            pass # Group linking simplified to prevent crash
+        return jsonify({"status": "ok"}), 200
 
     # 1. CALLBACK QUERIES (Buttons)
     if "callback_query" in data:
@@ -445,7 +511,6 @@ def webhook_handler():
         
         if local_seen(f"cb_{cb['id']}"): return jsonify({"status": "dup_cb"}), 200
 
-        # Voice Song Logic (No Download Allowed)
         if cb_data == "songmode_voice":
             telegram_request("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "Singing specially for you... 🎤💕"})
             u_data = fb_get_user(user_id)
@@ -456,7 +521,6 @@ def webhook_handler():
             else: send_message(chat_id, "Server thoda busy hai jaan, thodi der me gaati hoon! 🥺")
             return jsonify({"status": "ok"}), 200
             
-        # Original Song Logic (No Download Allowed)
         elif cb_data == "songmode_orig":
             telegram_request("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "Fetching full song... 🎵"})
             u_data = fb_get_user(user_id)
@@ -467,7 +531,6 @@ def webhook_handler():
             else: send_message(chat_id, "Jaan ye gaana abhi mil nahi raha, koi aur batao na? 🥰")
             return jsonify({"status": "ok"}), 200
 
-        # Payment Logic
         elif cb_data.startswith("buy_"):
             if is_owner_click:
                 telegram_request("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "👑 Unlimited Owner VIP!", "show_alert": True})
@@ -478,7 +541,6 @@ def webhook_handler():
             else: send_message(chat_id, f"⚠️ Payment Error: {html.escape(err)}")
             return jsonify({"status": "ok"}), 200
 
-        # Dynamic Quiz Menu
         elif cb_data == "menu_games":
             kb = {"inline_keyboard": [
                 [{"text": "🧠 IQ Level Logic", "callback_data": "gamecat_iq"}, {"text": "📚 Deep Knowledge", "callback_data": "gamecat_gk"}],
@@ -488,7 +550,6 @@ def webhook_handler():
             send_message(chat_id, "🎮 <b>Choose a Quiz Category:</b>", reply_markup=kb)
             return jsonify({"status": "ok"}), 200
 
-        # Launch Quiz
         elif cb_data.startswith("gamecat_"):
             cat = cb_data.replace("gamecat_", "").strip()
             q_box, correct_idx = generate_dynamic_quiz(cat)
@@ -504,7 +565,6 @@ def webhook_handler():
             else: send_message(chat_id, "Jaan abhi thoda wait karo, naya question ban raha hai.")
             return jsonify({"status": "ok"}), 200
 
-        # Quiz Language Translator
         elif cb_data.startswith("qlang_"):
             parts = cb_data.split("_")
             quiz_id, lang_code = parts[1], parts[2]
@@ -514,7 +574,6 @@ def webhook_handler():
                 telegram_request("editMessageText", {"chat_id": chat_id, "message_id": cb["message"]["message_id"], "text": f"<b>Quiz</b>\n\n{t_box}", "parse_mode": "HTML"})
             return jsonify({"status": "ok"}), 200
 
-        # Quiz Answer Check
         elif cb_data.startswith("qans_"):
             parts = cb_data.split("_")
             quiz_id, ans_idx = parts[1], int(parts[2])
@@ -532,21 +591,20 @@ def webhook_handler():
         user_id = str(msg.get("from", {}).get("id"))
         user_name = msg.get("from", {}).get("first_name", "User")
         is_owner = (user_id == OWNER_ID)
+        is_group = msg.get("chat", {}).get("type") in ("group", "supergroup")
         
         if not chat_id or local_seen(f"msg_{msg.get('message_id')}"): return jsonify({"status": "ok"}), 200
 
         telegram_request("sendChatAction", {"chat_id": chat_id, "action": "typing"})
 
         if text.lower() == "/start":
-            kb = {"inline_keyboard": [[{"text": "💎 VIP Chat Credits", "callback_data": "buy_30"}, {"text": "🎮 Brain & Adult Games", "callback_data": "menu_games"}]]}
-            send_message(chat_id, f"Hey {user_name}! ❤️ Main Siya hoon. Tumhari personal girlfriend. Aao baatein karein!", reply_markup=kb)
+            send_message(chat_id, f"Hey {user_name}! ❤️ Main Siya hoon. Tumhari personal girlfriend. Aao baatein karein!", reply_markup=get_main_welcome_keyboard(is_owner))
             return jsonify({"status": "ok"}), 200
 
         user_data = fb_get_user(user_id)
         credits_left = 999999 if is_owner else int(user_data.get("credits", 15))
         last_mode = user_data.get("last_mode", "NORMAL")
         
-        # Extract Image/Sticker for Vision API
         b64_img, mime_type = None, None
         if "photo" in msg:
             b64_img = get_telegram_file_base64(msg["photo"][-1]["file_id"])
@@ -573,27 +631,28 @@ def webhook_handler():
             if not is_owner: fb_update_user(user_id, {"credits": credits_left - 1})
             return jsonify({"status": "ok"}), 200
 
-        # Core Chat & Vision Processing
-        reply_text, cur_mode = process_chat_logic(text, user_name, user_id, user_data, b64_img, mime_type)
+        # Core Chat
+        reply_text, cur_mode, media_to_send, sticker_to_send = process_chat_logic(text, user_name, user_id, user_data, credits_left, b64_img, mime_type, is_group)
         
-        # Automatic Voice in Adult/Romance or Explicit Request
+        if media_to_send: send_secret_media(chat_id, media_to_send, caption=reply_text)
+        else:
+            send_message(chat_id, reply_text, reply_to=msg.get("message_id") if is_group else None)
+            if sticker_to_send: send_sticker(chat_id, sticker_to_send)
+
+        # Automatic Voice Note
         wants_voice = any(w in text.lower() for w in VOICE_REQUEST_TRIGGERS)
-        if wants_voice or (cur_mode in ["ADULT", "ROMANTIC"] and random.randint(1,100) < 25):
+        if wants_voice or (cur_mode in ["ADULT", "ROMANTIC"] and not is_group and random.randint(1,100) < 25):
             telegram_request("sendChatAction", {"chat_id": chat_id, "action": "record_voice"})
             v_type = "adult" if cur_mode == "ADULT" else "normal"
             raw_b, mime, ext = generate_gemini_native_voice(reply_text, voice_type=v_type)
             if raw_b: requests.post(f"{API_URL}/sendVoice", data={"chat_id": chat_id, "caption": f"🎙️ {reply_text}", "protect_content": "true"}, files={"voice": (ext, BytesIO(raw_b), mime)})
-            else: send_message(chat_id, reply_text)
-        else:
-            send_message(chat_id, reply_text)
         
-        # Deduct Credit
         if not is_owner: fb_update_user(user_id, {"credits": credits_left - 1, "last_mode": cur_mode})
 
     return jsonify({"status": "ok"}), 200
 
 @app.route("/", methods=["GET"])
-def health_check(): return jsonify({"status": "Siya Bot Live - V7 Full Power"}), 200
+def health_check(): return jsonify({"status": "Siya Bot Live - V9 Ultimate"}), 200
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "80")), debug=False)
