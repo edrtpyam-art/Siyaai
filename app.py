@@ -34,7 +34,7 @@ GROQ_FALLBACK_MODELS = ["llama-3.1-8b-instant", "openai/gpt-oss-120b"]
 
 GEMINI_API_KEYS = [k for k in [os.environ.get(f"GEMINI_API_KEY{i}", "").strip().strip('"') for i in ["", "2", "3"]] if k]
 GEMINI_MODEL = "gemini-2.5-flash"
-GEMINI_FALLBACK_MODELS = ["gemini-1.5-flash", "gemini-2.5-flash-lite"]
+GEMINI_FALLBACK_MODELS = ["gemini-3.5-flash-lite","gemini-3.8-flash", "gemini-3.6-flash"]
 
 OPENROUTER_API_KEYS = [k for k in [os.environ.get(f"OPENROUTER_API_KEY{i}", "").strip().strip('"') for i in ["", "2"]] if k]
 OPENROUTER_MODEL = "nousresearch/hermes-3-llama-3.1-405b:free"
