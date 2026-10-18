@@ -84,8 +84,8 @@ GEMINI_API_KEYS = [
     os.environ.get("GEMINI_API_KEY3", "").strip().strip('"')
 ]
 GEMINI_API_KEYS = [k for k in GEMINI_API_KEYS if k]
-GEMINI_MODEL = "gemini-2.5-flash"
-GEMINI_FALLBACK_MODELS = ["gemini-2.5-flash-lite", "gemini-1.5-flash"]
+GEMINI_MODEL = "gemini-2.5-flash","gemini-3.6-flash"
+GEMINI_FALLBACK_MODELS = ["gemini-3.5-flash-lite","gemini-3.8-flash"]
 
 GEMINI_SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
