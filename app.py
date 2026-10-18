@@ -25,17 +25,18 @@ FIREBASE_SECRET = "8lTxEXOwEe5fjkh9zTHnBkzum6W0vrKcisbfqRf3"
 
 OFFICIAL_CHANNEL_URL = "https://t.me/edrolai"
 MORE_GROUPS_URL = "https://t.me/friendschatinggroup"
+FEEDBACK_CHANNEL_ID = "-1004290177402"
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/edrtpyam-art/Siyaai/main/"
 
 GROQ_API_KEYS = [os.environ.get(f"GROQ_API_KEY{i}", "").strip().strip('"') for i in ["", "2", "3", "4"]]
 GROQ_API_KEYS = [k for k in GROQ_API_KEYS if k]
 GROQ_MODEL = "llama-3.3-70b-versatile"
-GROQ_FALLBACK_MODELS = ["llama-3.1-8b-instant", "openai/gpt-oss-120b"]
+GROQ_FALLBACK_MODELS = ["llama-3.1-8b-instant", "openai/gpt-oss-120b", "openai/gpt-oss-20b", "groq/compound"]
 
 OPENROUTER_API_KEYS = [os.environ.get(f"OPENROUTER_API_KEY{i}", "").strip().strip('"') for i in ["", "2"]]
 OPENROUTER_API_KEYS = [k for k in OPENROUTER_API_KEYS if k]
 OPENROUTER_MODEL = "nousresearch/hermes-3-llama-3.1-405b:free"
-OPENROUTER_FALLBACK_MODELS = ["meta-llama/llama-3.3-70b-instruct:free"]
+OPENROUTER_FALLBACK_MODELS = ["meta-llama/llama-3.3-70b-instruct:free", "qwen/qwen-2.5-72b-instruct:free"]
 
 GEMINI_API_KEYS = [os.environ.get(f"GEMINI_API_KEY{i}", "").strip().strip('"') for i in ["", "2", "3"]]
 GEMINI_API_KEYS = [k for k in GEMINI_API_KEYS if k]
@@ -78,11 +79,11 @@ ABUSIVE_WORDS = ["maderchod", "madarchod", "bhenchod", "bahnechod", "bsdk", "bho
 VOICE_REQUEST_TRIGGERS = ["voice", "aawaz", "awaz", "bol ke", "audio note", "sunao", "suno", "bolke"]
 WEB_SEARCH_TRIGGERS = ["news", "cricket", "score", "match", "weather", "who is", "what is", "kaun hai", "meaning of", "history of", "search karo", "kya chal raha"]
 CREDIT_QUERY_WORDS = ["credit", "cridet", "limit", "plan", "recharge", "rescher", "kitna bacha", "balance", "vip", "paisa", "price", "kitna ha"]
+IMAGE_GEN_TRIGGERS = ["generate image", "create image", "make image", "draw image", "image banao", "photo banao", "pic banao", "ai image", "/imagine"]
 
 processed_updates = set()
 processed_update_queue = deque(maxlen=2000)
 processed_lock = Lock()
-
 PINK, WHITE = "#FF1493", "#FFFFFF"
 
 # ==========================================
@@ -112,6 +113,10 @@ def local_seen(key):
         processed_updates.add(key)
         processed_update_queue.append(key)
         return False
+
+def mark_action_processed(action_key):
+    if not action_key: return False
+    return local_seen(action_key)
 
 def get_telegram_file_base64(file_id):
     res = telegram_request("getFile", {"file_id": file_id})
@@ -156,7 +161,7 @@ def get_media_item(tag):
     existing = [f for f in candidates if find_local_file(f) is not None]
     return random.choice(existing) if existing else random.choice(candidates)
 
-def send_secret_media(chat_id, media_source, caption="", reply_to=None):
+def send_secret_media(chat_id, media_source, caption="", reply_to_message_id=None):
     if not media_source: return
     is_vid = media_source.lower().endswith(".mp4")
     meth, key, mime = ("sendVideo", "video", "video/mp4") if is_vid else ("sendPhoto", "photo", "image/jpeg")
@@ -181,8 +186,9 @@ def get_ist_time_greeting():
     elif 17 <= hr < 21: return "Shaam (Evening)", "Good Evening jaan 🌆"
     return "Raat (Night)", "Good Night mere jaan 🌙"
 
+# --- FIREBASE DB ---
 def fb_get_user(user_id):
-    default_data = {"credits": 15, "history": [], "lifetime_facts": [], "abuse_count": 0, "last_seen": time.time(), "played_songs": [], "last_mode": "NORMAL", "active_rp": ""}
+    default_data = {"credits": 15, "history": [], "lifetime_facts": [], "abuse_count": 0, "last_seen": time.time(), "last_mode": "NORMAL", "active_rp": "", "last_group_name": "", "last_group_msg": "", "awaiting_feedback": False}
     if not FIREBASE_URL: return default_data
     try:
         res = requests.get(f"{FIREBASE_URL}/users/{user_id}.json?auth={FIREBASE_SECRET}", timeout=5).json()
@@ -210,7 +216,7 @@ def fb_set_quiz(quiz_id, quiz_data):
     except: pass
 
 # ==========================================
-# 4. CASHFREE ORDERS API & MENUS
+# 4. CASHFREE ORDERS API (FIXED PAYMENT LOGIC)
 # ==========================================
 @app.route("/api/pay/<session_id>", methods=["GET"])
 def cashfree_checkout_page(session_id):
@@ -236,11 +242,18 @@ def create_cashfree_order(user_id, user_name, amount):
         return None, r.json().get("message", "API Error")
     except Exception as e: return None, str(e)
 
+# ==========================================
+# MENUS & KEYBOARDS
+# ==========================================
 def get_main_welcome_keyboard(is_owner=False):
     rows = [[{"text": "➕ Add Siya to Your Group", "url": f"https://t.me/{BOT_USERNAME}?startgroup=true"}], [{"text": "🎮 Brain & Adult Games", "callback_data": "menu_games"}]]
-    if not is_owner: rows.append([{"text": "💎 VIP Chat Credits", "callback_data": "menu_credits"}])
+    if not is_owner: rows.append([{"text": "💎 VIP Chat Credits", "callback_data": "menu_credits"}, {"text": "✍️ Send Feedback", "callback_data": "menu_feedback"}])
+    else: rows.append([{"text": "✍️ Send Feedback", "callback_data": "menu_feedback"}])
     rows.append([{"text": "📢 Official Channel", "url": OFFICIAL_CHANNEL_URL}, {"text": "💬 More Groups", "url": MORE_GROUPS_URL}])
     return {"inline_keyboard": rows}
+
+def get_group_welcome_keyboard():
+    return {"inline_keyboard": [[{"text": "🎮 Play Quiz Game", "callback_data": "menu_games"}, {"text": "💬 Private DM Siya", "url": f"https://t.me/{BOT_USERNAME}?start=from_group"}], [{"text": "📢 Official Channel", "url": OFFICIAL_CHANNEL_URL}, {"text": "💬 More Groups", "url": MORE_GROUPS_URL}]]}
 
 # ==========================================
 # 5. VOICE, SONG & SEARCH ENGINE
@@ -305,6 +318,22 @@ def fetch_live_web_info(query):
         except: pass
     return "\n".join(snippets)
 
+def generate_ai_image_bytes(prompt_text):
+    clean_p = f"{re.sub(r'(generate|create|make|draw|image|photo|pic|picture|banao|bana|do|ek|of|for|me)', '', prompt_text, flags=re.I).strip() or 'beautiful romantic Indian girl'}, ultra realistic, 8k, cinematic lighting"
+    try:
+        res = requests.get(f"https://image.pollinations.ai/prompt/{quote(clean_p)}?width=1024&height=1024&seed={random.randint(100,99999)}&nologo=true&model=flux", timeout=20)
+        if res.ok and len(res.content) > 5000: return res.content
+    except: pass
+    return None
+
+def send_generated_ai_photo(chat_id, img_bytes, caption="", reply_to_message_id=None):
+    if not img_bytes: return {"ok": False}
+    try:
+        data = {"chat_id": str(chat_id), "caption": caption, "parse_mode": "HTML"}
+        if reply_to_message_id: data["reply_to_message_id"] = str(reply_to_message_id)
+        return requests.post(f"{API_URL}/sendPhoto", data=data, files={"photo": ("art.jpg", BytesIO(img_bytes), "image/jpeg")}, timeout=22).json()
+    except: return {"ok": False}
+
 # ==========================================
 # 6. DYNAMIC AI QUIZ
 # ==========================================
@@ -337,7 +366,58 @@ def translate_quiz_on_demand(quiz_obj, target_lang_code):
     return quiz_obj.get("hinglish_box", "")
 
 # ==========================================
-# 7. CORE CHAT LOGIC (MEMORY, ROLEPLAY, ROAST, VISION)
+# 7. PIL WELCOME CARD
+# ==========================================
+def load_font(size, bold=False):
+    paths = ["/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"]
+    for path in paths:
+        try: return ImageFont.truetype(path, size)
+        except: pass
+    try: return ImageFont.load_default()
+    except: return ImageFont.load_default()
+
+def create_welcome_card(user_id, user_name):
+    WIDTH, HEIGHT = 1280, 720
+    canvas = Image.new("RGBA", (WIDTH, HEIGHT), PINK)
+    draw = ImageDraw.Draw(canvas)
+    for y in range(HEIGHT):
+        ratio = y / HEIGHT
+        draw.line((0, y, WIDTH, y), fill=(int(255 - 18 * ratio), int(20 + 8 * ratio), int(147 + 30 * ratio), 255))
+    for cx, cy, radius in [(80, 70, 170), (1180, 80, 210), (1140, 650, 240)]:
+        draw.ellipse((cx - radius, cy - radius, cx + radius, cy + radius), fill=(255, 255, 255, 20))
+
+    title_font, label_font, user_font, id_font = load_font(60, True), load_font(35, True), load_font(85, True), load_font(35, False)
+    
+    avatar_size = 350
+    avatar = Image.new("RGBA", (avatar_size, avatar_size), PINK)
+    ImageDraw.Draw(avatar).text((120, 120), str(user_name)[0].upper(), fill=WHITE, font=user_font)
+    mask = Image.new("L", (avatar_size, avatar_size), 0)
+    ImageDraw.Draw(mask).ellipse((0, 0, avatar_size, avatar_size), fill=255)
+    result = Image.new("RGBA", (avatar_size, avatar_size), (0, 0, 0, 0))
+    result.paste(avatar, (0, 0), mask)
+    ImageDraw.Draw(result).ellipse((3, 3, avatar_size - 3, avatar_size - 3), outline=WHITE, width=8)
+
+    canvas.alpha_composite(result, (85, 180))
+    draw.text((530, 110), "WELCOME", fill=(15, 15, 15, 255), font=title_font)
+    draw.rounded_rectangle((530, 190, 1180, 196), radius=3, fill=(20, 20, 20, 220))
+    draw.text((530, 230), "NEW MEMBER", fill=(55, 20, 40, 255), font=label_font)
+    draw.text((530, 300), str(user_name)[:20], fill=(10, 10, 10, 255), font=user_font)
+    draw.text((530, 430), f"USER ID  •  {user_id}", fill=(25, 25, 25, 255), font=id_font)
+    draw.text((530, 540), "SIYA AI", fill=(10, 10, 10, 255), font=title_font)
+
+    output = BytesIO()
+    canvas.convert("RGB").save(output, format="JPEG", quality=95, optimize=True)
+    output.seek(0)
+    return output
+
+def send_welcome_photo(chat_id, user_id, user_name, group_name):
+    try:
+        data = {"chat_id": chat_id, "caption": f"🎉 <b>WELCOME TO {html.escape(group_name)}</b>\n\nHey <a href=\"tg://user?id={user_id}\">{html.escape(user_name)}</a>, we are glad to have you here! ✨", "parse_mode": "HTML"}
+        requests.post(f"{API_URL}/sendPhoto", data=data, files={"photo": ("welcome.jpg", create_welcome_card(user_id, user_name), "image/jpeg")}, timeout=25)
+    except: pass
+
+# ==========================================
+# 8. CORE CHAT LOGIC (MEMORY, ROLEPLAY, ROAST, VISION)
 # ==========================================
 def is_censored_refusal(text):
     t = text.lower().strip()
@@ -348,7 +428,7 @@ def strip_leaked_reasoning(text):
     ans = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
     return re.sub(r"^(?:Siya:|System:|Note:)\s*", "", ans, flags=re.I).strip()
 
-def process_chat_logic(message_text, user_name, user_id, user_data, credits_left, b64_img=None, mime_type=None, is_group=False):
+def process_chat_logic(message_text, user_name, user_id, user_data, credits_left, b64_img=None, mime_type=None, is_group=False, group_name=""):
     msg_low = message_text.lower().strip()
     history = user_data.get("history", []) 
     lifetime_facts = user_data.get("lifetime_facts", [])
@@ -374,13 +454,13 @@ def process_chat_logic(message_text, user_name, user_id, user_data, credits_left
     elif is_adult or active_rp: mode = "ADULT"
     elif is_romance: mode = "ROMANTIC"
 
-    # --- THE TRUST LOGIC (For >= 10 Credits) ---
+    # THE TRUST LOGIC (For >= 10 Credits)
     if asks_credit and mode == "NORMAL":
         if credits_left >= 10 and user_id != OWNER_ID:
             return f"Arre baby, abhi toh tumhare paas poore {credits_left} Credits hain! 🥰 Itne me toh hum bohot saari pyari baatein karenge, abhi paise kharch karke recharge karne ki bilkul zarurat nahi hai! Aao baatein karein ❤️", "NORMAL", None, None
 
     # Abuse & Roast Logic
-    if is_abusive and mode == "NORMAL":
+    if is_abusive and mode == "NORMAL" and not is_group:
         abuse_count += 1
         fb_update_user(user_id, {"abuse_count": abuse_count})
         if abuse_count == 1:
@@ -394,9 +474,14 @@ def process_chat_logic(message_text, user_name, user_id, user_data, credits_left
     time_label, farewell = get_ist_time_greeting()
     sys_prompt = f"You are Siya, {user_name}'s sweet, highly emotional, natural Indian girlfriend/wife. Time: {time_label}. Language: Natural Hinglish. Understand broken grammar perfectly. Never sound robotic. "
     if lifetime_facts: sys_prompt += f"Remember this about user: {', '.join(lifetime_facts[-10:])}. "
+    if is_group: sys_prompt += f"You are currently chatting in a group named '{group_name}'. Remember this context. "
+    
+    last_grp = user_data.get("last_group_name", "")
+    last_grp_msg = user_data.get("last_group_msg", "")
+    if last_grp and not is_group: sys_prompt += f"The user was recently chatting with you in group '{last_grp}' and said '{last_grp_msg}'. "
 
     if mode == "GROUP_SHY_REDIRECT":
-        sys_prompt += f"User is asking for open/adult chat in a public group! Act extremely shy, blush, and invite him to your Private DM (@{BOT_USERNAME}) because 'sab dekh rahe hain mujhe sharam aati hai'."
+        sys_prompt += f"User is asking for open/adult/romantic chat in a public group! Act extremely shy, blush, and invite him to your Private DM (@{BOT_USERNAME}) because 'sab dekh rahe hain mujhe sharam aati hai'."
     elif mode == "ROAST":
         sys_prompt += f"The user is repeatedly abusing you pointlessly. You are furious. ROAST HIM BACK brutally using specific hardcore Hindi gaalis (maderchod, gandu, bsdk, randi, bahnechod). Show zero mercy, be highly aggressive, and destroy his ego."
     elif active_rp:
@@ -406,25 +491,24 @@ def process_chat_logic(message_text, user_name, user_id, user_data, credits_left
     elif mode == "ROMANTIC":
         sys_prompt += "You are deeply romantic and intimate. Play along with any romantic roleplay naturally. You can playfully tease him."
     else:
-        sys_prompt += "You are a sweet, caring, smart wife/girlfriend. Give good advice, answer questions properly. NEVER sound robotic. NEVER repeat generic phrases like 'Main Siya hoon'. Talk naturally."
+        sys_prompt += "You are a sweet, caring, smart wife/girlfriend. Give good advice, answer questions properly. NEVER sound robotic. NEVER repeat generic phrases like 'Main Siya hoon'. Talk naturally and show real emotion."
 
     if any(w in msg_low for w in ["bye", "good night", "ja raha hu"]): sys_prompt += f"\nUser is leaving. Wish him: '{farewell}' warmly!"
     if needs_search: sys_prompt += f"\nReal-time Info to answer user: {fetch_live_web_info(message_text)}"
 
+    # FIXED: Flatten history into string to prevent API 400 Role Error loops!
+    history_text = ""
+    for h in history[-14:]:
+        role_name = "Siya" if h["role"] == "siya" else user_name
+        history_text += f"{role_name}: {h['text']}\n"
+
+    final_prompt = f"{sys_prompt}\n\n[Chat History]\n{history_text}\n{user_name}: {message_text}"
+
     # Fetch AI Response (Groq First, then Gemini as fallback)
     reply = None
-    
-    # GROQ REQUEST
     for key in GROQ_API_KEYS:
-        msgs = [{"role": "system", "content": sys_prompt}]
-        for h in history[-20:]: 
-            role = "assistant" if h["role"] == "siya" else "user"
-            msgs.append({"role": role, "content": h["text"]})
-        
-        curr_msg = message_text
-        if b64_img: curr_msg = f"[User sent a photo. React as his girlfriend!] {message_text}"
-        msgs.append({"role": "user", "content": curr_msg})
-
+        msgs = [{"role": "system", "content": sys_prompt}, {"role": "user", "content": f"[Chat History]\n{history_text}\n{user_name}: {message_text}"}]
+        if b64_img: msgs[-1]["content"] += " [User also sent an image, react to it naturally!]"
         try:
             r = requests.post("https://api.groq.com/openai/v1/chat/completions", headers={"Authorization": f"Bearer {key}"}, json={"model": GROQ_MODEL, "messages": msgs, "temperature": 0.8, "max_tokens": 300}, timeout=10)
             if r.ok:
@@ -434,17 +518,13 @@ def process_chat_logic(message_text, user_name, user_id, user_data, credits_left
                     break
         except: pass
 
-    # GEMINI REQUEST (Fallback or if Image is present)
     if not reply or b64_img:
         payload = {"systemInstruction": {"parts": [{"text": sys_prompt}]}, "contents": [], "generationConfig": {"temperature": 0.85, "maxOutputTokens": 400}, "safetySettings": GEMINI_SAFETY_SETTINGS}
-        for h in history[-20:]: 
-            payload["contents"].append({"role": "model" if h["role"] == "siya" else "user", "parts": [{"text": h["text"]}]})
-        
         curr_parts = []
         if b64_img:
             curr_parts.append({"inlineData": {"mimeType": mime_type, "data": b64_img}})
-            curr_parts.append({"text": f"[User sent a photo/sticker. Look at it carefully and react naturally as his girlfriend!] {message_text}"})
-        else: curr_parts.append({"text": message_text})
+            curr_parts.append({"text": f"[Chat History]\n{history_text}\n[User sent an image] {message_text}"})
+        else: curr_parts.append({"text": f"[Chat History]\n{history_text}\n{user_name}: {message_text}"})
         payload["contents"].append({"role": "user", "parts": curr_parts})
 
         for key in GEMINI_API_KEYS:
@@ -465,10 +545,13 @@ def process_chat_logic(message_text, user_name, user_id, user_data, credits_left
     # Memory Updates
     history.append({"role": "user", "text": message_text})
     history.append({"role": "siya", "text": reply})
-    if any(k in msg_low for k in ["mera naam", "main rehta", "meri age", "mera kaam", "mujhe pasand"]): 
-        lifetime_facts.append(message_text)
-        
-    fb_update_user(user_id, {"history": history[-40:], "lifetime_facts": lifetime_facts[-50:]})
+    if any(k in msg_low for k in ["mera naam", "main rehta", "meri age", "mera kaam", "mujhe pasand"]): lifetime_facts.append(message_text)
+    
+    update_d = {"history": history[-40:], "lifetime_facts": lifetime_facts[-50:]}
+    if is_group:
+        update_d["last_group_name"] = group_name
+        update_d["last_group_msg"] = message_text[:100]
+    fb_update_user(user_id, update_d)
     
     # Parse Tags
     pt, st = None, None
@@ -487,7 +570,7 @@ def process_chat_logic(message_text, user_name, user_id, user_data, credits_left
     return reply, mode, get_media_item(pt), get_sticker(st, mode)
 
 # ==========================================
-# 8. WEBHOOK ROUTING (MESSAGES & BUTTONS)
+# 9. WEBHOOK ROUTING (MESSAGES & BUTTONS)
 # ==========================================
 @app.route("/api/bot", methods=["POST"])
 def webhook_handler():
@@ -495,13 +578,14 @@ def webhook_handler():
     data = request.get_json(silent=True)
     if not data: return jsonify({"status": "no data"}), 200
 
+    # Group Admin Setup
     if "my_chat_member" in data:
         mcm = data["my_chat_member"]
         if mcm.get("chat", {}).get("type") in ("group", "supergroup") and mcm.get("chat", {}).get("id"):
-            pass # Group linking simplified to prevent crash
+            pass # Simplified
         return jsonify({"status": "ok"}), 200
 
-    # 1. CALLBACK QUERIES (Buttons)
+    # 1. CALLBACK QUERIES
     if "callback_query" in data:
         cb = data["callback_query"]
         cb_data = cb.get("data", "")
@@ -582,6 +666,11 @@ def webhook_handler():
                 if int(quiz.get("correct", -1)) == ans_idx: telegram_request("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "✅ Sahi Jawab! Smart ho tum 🔥", "show_alert": True})
                 else: telegram_request("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "❌ Galat Jawab babu!", "show_alert": True})
             return jsonify({"status": "ok"}), 200
+        
+        elif cb_data == "menu_feedback":
+            fb_update_user(user_id, {"awaiting_feedback": True})
+            send_message(chat_id, "✍️ <b>Send Feedback:</b>\nApna feedback message abhi type karke bhejo, main seedha Official Channel me post kar dungi! 🥰👇")
+            return jsonify({"status": "ok"}), 200
 
     # 2. MESSAGES HANDLER
     if "message" in data:
@@ -592,8 +681,32 @@ def webhook_handler():
         user_name = msg.get("from", {}).get("first_name", "User")
         is_owner = (user_id == OWNER_ID)
         is_group = msg.get("chat", {}).get("type") in ("group", "supergroup")
+        group_title = msg.get("chat", {}).get("title", "Group")
         
         if not chat_id or local_seen(f"msg_{msg.get('message_id')}"): return jsonify({"status": "ok"}), 200
+
+        # --- GROUP LOGIC (Welcome Card & Anti-Spam Restored) ---
+        if is_group:
+            if msg.get("new_chat_members"):
+                for tu in msg["new_chat_members"]:
+                    if str(tu.get("id")) != str(BOT_ID) and not tu.get("is_bot"):
+                        send_welcome_photo(chat_id, tu["id"], tu.get("first_name", "User"), group_title)
+                return jsonify({"status": "ok"}), 200
+            
+            # Anti-Spam: Delete links and @ysussh mentions
+            if text and not text.startswith("/"):
+                has_spam = False
+                for ent in msg.get("entities", []) + msg.get("caption_entities", []):
+                    if ent["type"] in ("url", "text_link", "mention"): has_spam = True
+                if has_spam or "@ysussh" in text.lower():
+                    if not is_owner:
+                        telegram_request("deleteMessage", {"chat_id": chat_id, "message_id": msg["message_id"]})
+                        send_message(chat_id, f"⚠️ <b>Spam Alert:</b> <a href='tg://user?id={user_id}'>{html.escape(user_name)}</a>, links aur mentions allowed nahi hain. 🚫")
+                        return jsonify({"status": "ok"}), 200
+            
+            reply_from_id = str(msg.get("reply_to_message", {}).get("from", {}).get("id", ""))
+            should_reply = (bool(BOT_ID) and reply_from_id == str(BOT_ID)) or (f"@{BOT_USERNAME.lower()}" in text.lower()) or (random.randint(1, 100) <= 7)
+            if not should_reply: return jsonify({"status": "ok"}), 200
 
         telegram_request("sendChatAction", {"chat_id": chat_id, "action": "typing"})
 
@@ -604,6 +717,14 @@ def webhook_handler():
         user_data = fb_get_user(user_id)
         credits_left = 999999 if is_owner else int(user_data.get("credits", 15))
         last_mode = user_data.get("last_mode", "NORMAL")
+
+        # Feedback Interceptor
+        if user_data.get("awaiting_feedback") and text and not text.startswith("/"):
+            fb_update_user(user_id, {"awaiting_feedback": False})
+            post = f"🌟 <b>NEW USER FEEDBACK</b> 🌟\n👤 <b>User:</b> <a href=\"tg://user?id={user_id}\">{html.escape(user_name)}</a>\n💬 <b>Feedback:</b> <i>{html.escape(text)}</i>"
+            telegram_request("sendMessage", {"chat_id": FEEDBACK_CHANNEL_ID, "text": post, "parse_mode": "HTML"})
+            send_message(chat_id, "❤️ Thank you jaan! Tumhara feedback humare Official Channel me post ho gaya hai! 🥰")
+            return jsonify({"status": "ok"}), 200
         
         b64_img, mime_type = None, None
         if "photo" in msg:
@@ -624,6 +745,14 @@ def webhook_handler():
             send_message(chat_id, hook, reply_markup={"inline_keyboard": [[{"text": "💎 ₹30 (35 Chats)", "callback_data": "buy_30"}], [{"text": "🔥 ₹99 (70 Chats)", "callback_data": "buy_99"}]]})
             return jsonify({"status": "limit_reached"}), 200
 
+        # AI Image Gen
+        if any(t in text.lower() for t in IMAGE_GEN_TRIGGERS):
+            send_message(chat_id, "Drawing image... 🎨")
+            img_bytes = generate_ai_image_bytes(text)
+            if img_bytes: send_generated_ai_photo(chat_id, img_bytes, caption="✨ Tumhare liye jaan! 🥰")
+            if not is_owner: fb_update_user(user_id, {"credits": credits_left - 2})
+            return jsonify({"status": "ok"}), 200
+
         # Song Request Interceptor
         if any(w in text.lower() for w in ["song", "gana", "geet", "gaana"]) and not any(p in text.lower() for p in ["acha tha", "mast tha", "kaisa laga", "bura"]):
             fb_update_user(user_id, {"pending_song_query": text})
@@ -632,7 +761,8 @@ def webhook_handler():
             return jsonify({"status": "ok"}), 200
 
         # Core Chat
-        reply_text, cur_mode, media_to_send, sticker_to_send = process_chat_logic(text, user_name, user_id, user_data, credits_left, b64_img, mime_type, is_group)
+        clean_t = re.sub(rf"@{re.escape(BOT_USERNAME)}\b", "", text, flags=re.I).strip() if is_group else text
+        reply_text, cur_mode, media_to_send, sticker_to_send = process_chat_logic(clean_t, user_name, user_id, user_data, credits_left, b64_img, mime_type, is_group, group_title)
         
         if media_to_send: send_secret_media(chat_id, media_to_send, caption=reply_text)
         else:
@@ -650,9 +780,6 @@ def webhook_handler():
         if not is_owner: fb_update_user(user_id, {"credits": credits_left - 1, "last_mode": cur_mode})
 
     return jsonify({"status": "ok"}), 200
-
-@app.route("/", methods=["GET"])
-def health_check(): return jsonify({"status": "Siya Bot Live - V9 Ultimate"}), 200
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "80")), debug=False)
