@@ -141,16 +141,52 @@ PINK = "#FF1493"
 WHITE = "#FFFFFF"
 
 # ============================================================
-# 💳 CASHFREE PAYMENT GATEWAY (LINKS API + ORDERS CHECKOUT FALLBACK)
+# 1. REPLACE CASHFREE FUNCTIONS WITH THIS (USES /pg/orders SO NO link_creation_api ERROR!)
 # ============================================================
 
+@app.route("/api/pay/<session_id>", methods=["GET"])
+def cashfree_checkout_page(session_id):
+    """Opens Cashfree Official UPI Checkout directly using payment_session_id!"""
+    mode = "sandbox" if (CASHFREE_APP_ID.upper().startswith("TEST") or "TEST" in CASHFREE_SECRET_KEY.upper()) else "production"
+    html_page = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Siya VIP Instant UPI Payment</title>
+        <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
+        <style>
+            body {{ background:#121212; color:#fff; font-family:sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; margin:0; text-align:center; }}
+            .btn {{ background:#ff1493; color:#fff; border:none; padding:15px 30px; font-size:18px; border-radius:10px; cursor:pointer; font-weight:bold; margin-top:20px; }}
+        </style>
+    </head>
+    <body>
+        <h2>💖 Opening Siya VIP UPI Payment...</h2>
+        <p>Please wait 1 second or tap the button below:</p>
+        <button class="btn" onclick="startPay()">💳 Pay Now with UPI (GPay / PhonePe / Paytm)</button>
+        <script>
+            const cashfree = Cashfree({{ mode: "{mode}" }});
+            function startPay() {{
+                cashfree.checkout({{
+                    paymentSessionId: "{html.escape(session_id)}",
+                    redirectTarget: "_self"
+                }});
+            }}
+            window.onload = startPay;
+        </script>
+    </body>
+    </html>
+    """
+    return html_page, 200, {"Content-Type": "text/html"}
+
 def create_cashfree_payment_link(user_id, user_name, amount, purpose="credits", group_id=""):
+    """Uses Standard Cashfree /pg/orders API (Enabled on ALL accounts without needing link_creation_api approval!)"""
     if not CASHFREE_APP_ID or not CASHFREE_SECRET_KEY:
         return None, None, "CASHFREE keys missing in Vercel"
 
     ts = int(time.time())
     rand_id = random.randint(100, 999)
-    link_id = f"CF{user_id}{amount}{ts}{rand_id}"[:38]
+    order_id = f"ORD{user_id}{amount}{ts}{rand_id}"[:38]
     random_phone = f"98{random.randint(10000000, 99999999)}"
     random_email = f"siyauser{user_id}{rand_id}@gmail.com"
     clean_name = re.sub(r"[^a-zA-Z0-9\s]", "", user_name or "VIP User").strip() or "VIP User"
@@ -158,113 +194,91 @@ def create_cashfree_payment_link(user_id, user_name, amount, purpose="credits", 
     is_test = CASHFREE_APP_ID.upper().startswith("TEST") or "TEST" in CASHFREE_SECRET_KEY.upper()
     pg_urls = ["https://sandbox.cashfree.com/pg", "https://api.cashfree.com/pg"] if is_test else ["https://api.cashfree.com/pg", "https://sandbox.cashfree.com/pg"]
 
-    link_payload = {
-        "link_id": link_id,
-        "link_amount": float(amount),
-        "link_currency": "INR",
-        "link_purpose": f"Siya VIP Plan Rs {amount}",
+    order_payload = {
+        "order_id": order_id,
+        "order_amount": float(amount),
+        "order_currency": "INR",
         "customer_details": {
+            "customer_id": f"cust_{user_id}",
             "customer_name": clean_name[:35],
             "customer_phone": random_phone,
             "customer_email": random_email
         },
-        "link_meta": {"return_url": f"https://t.me/{BOT_USERNAME}"},
-        "link_notes": {"user_id": str(user_id), "amount": str(amount), "purpose": str(purpose), "group_id": str(group_id)}
+        "order_meta": {
+            "return_url": f"https://t.me/{BOT_USERNAME}"
+        },
+        "order_tags": {
+            "user_id": str(user_id),
+            "amount": str(amount),
+            "purpose": str(purpose),
+            "group_id": str(group_id)
+        }
     }
 
+    host_domain = request.host_url.rstrip("/") if request else "https://siyaai.vercel.app"
     last_err = ""
     for pg_url in pg_urls:
-        for ver in ["2023-08-01", "2022-09-01"]:
-            headers = {
-                "x-client-id": CASHFREE_APP_ID,
-                "x-client-secret": CASHFREE_SECRET_KEY,
-                "x-api-version": ver,
-                "Content-Type": "application/json"
-            }
-            try:
-                r = requests.post(f"{pg_url}/links", headers=headers, json=link_payload, timeout=10)
-                if r.ok and r.json().get("link_url"):
-                    return r.json()["link_url"], link_id, ""
-                if pg_url == pg_urls[0]:
-                    last_err = r.json().get("message", r.text[:100])
-            except Exception as e:
-                if pg_url == pg_urls[0]:
-                    last_err = str(e)
+        headers = {
+            "x-client-id": CASHFREE_APP_ID,
+            "x-client-secret": CASHFREE_SECRET_KEY,
+            "x-api-version": "2023-08-01",
+            "Content-Type": "application/json"
+        }
+        try:
+            r = requests.post(f"{pg_url}/orders", headers=headers, json=order_payload, timeout=10)
+            if r.ok and r.json().get("payment_session_id"):
+                sess_id = r.json()["payment_session_id"]
+                checkout_url = f"{host_domain}/api/pay/{sess_id}"
+                return checkout_url, order_id, ""
+            if pg_url == pg_urls[0]:
+                last_err = r.json().get("message", r.text[:100])
+        except Exception as e:
+            if pg_url == pg_urls[0]:
+                last_err = str(e)
     return None, None, last_err
 
-def verify_cashfree_link_paid(link_id):
-    if not CASHFREE_APP_ID or not CASHFREE_SECRET_KEY or not link_id:
+def verify_cashfree_link_paid(order_id):
+    """Checks directly with Cashfree /pg/orders/<order_id> if order_status == PAID"""
+    if not CASHFREE_APP_ID or not CASHFREE_SECRET_KEY or not order_id:
         return False
+    headers = {
+        "x-client-id": CASHFREE_APP_ID,
+        "x-client-secret": CASHFREE_SECRET_KEY,
+        "x-api-version": "2023-08-01"
+    }
     for pg_url in ["https://api.cashfree.com/pg", "https://sandbox.cashfree.com/pg"]:
-        for ver in ["2023-08-01", "2022-09-01"]:
-            headers = {"x-client-id": CASHFREE_APP_ID, "x-client-secret": CASHFREE_SECRET_KEY, "x-api-version": ver}
-            try:
-                r = requests.get(f"{pg_url}/links/{link_id}", headers=headers, timeout=8)
-                if r.ok and r.json().get("link_status", "").upper() == "PAID":
-                    return True
-            except Exception:
-                pass
-    return False
-
-# ============================================================
-# 🎙️ GEMINI NATIVE MELODIOUS SINGING & WARM ROMANTIC VOICE (PRIVATE)
-# ============================================================
-
-def pcm_to_wav_bytes(pcm_data, sample_rate=24000, channels=1, bits_per_sample=16):
-    byte_rate = sample_rate * channels * (bits_per_sample // 8)
-    block_align = channels * (bits_per_sample // 8)
-    data_size = len(pcm_data)
-    header = struct.pack(
-        "<4sI4s4sIHHIIHH4sI",
-        b"RIFF", 36 + data_size, b"WAVE", b"fmt ", 16, 1,
-        channels, sample_rate, byte_rate, block_align, bits_per_sample,
-        b"data", data_size
-    )
-    return header + pcm_data
-
-def generate_dynamic_song_lyrics_for_singing(song_query, history_songs=None):
-    avoid = ", ".join((history_songs or [])[-8:]) or "None"
-    prompt = f"""
-    The user wants his girlfriend Siya to sing this Hindi song: '{song_query}'.
-    (Strictly avoid repeating these recently sung songs if generic: {avoid}).
-    If the user named a specific song or singer, pick that EXACT song!
-    Output STRICTLY in 2 lines:
-    TITLE: <Song Name - Singer Name>
-    LYRICS: <Write 6-8 melodic lines of that exact Hindi song in Devanagari Hindi with musical humming ('हम्म... आ हाँ...') and stretched musical vowels ('मेरी जानऽऽ...', 'तेरे बिनाऽऽ...') so the voice sings it like a real singer with sur and raag!>
-    """
-    for key in GROQ_API_KEYS:
         try:
-            r = requests.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
-                json={"model": GROQ_MODEL, "messages": [{"role": "user", "content": prompt}], "temperature": 0.8, "max_tokens": 300},
-                timeout=8
-            )
-            if r.ok:
-                txt = r.json()["choices"][0]["message"]["content"].strip()
-                tm = re.search(r"TITLE:\s*(.+)", txt, re.I)
-                lm = re.search(r"LYRICS:\s*(.+)", txt, re.I | re.S)
-                if tm and lm:
-                    return tm.group(1).strip(), lm.group(1).strip()
+            r = requests.get(f"{pg_url}/orders/{order_id}", headers=headers, timeout=8)
+            if r.ok and r.json().get("order_status", "").upper() == "PAID":
+                return True
         except Exception:
             pass
-    return "Tum Hi Ho — Arijit Singh", "हम्म... हम तेरे बिन अब रह नहीं सकते, तेरे बिना क्या वजूद मेराऽऽ... क्योंकि तुम ही हो, अब तुम ही हो, मेरी ज़िंदगी अब तुम ही हो जान..."
+    return False
 
-def generate_gemini_native_voice(instruction_prompt, fallback_text="", voice_name="Aoede"):
+
+# ============================================================
+# 2. REPLACE VOICE & SONG EXTRACTOR FUNCTIONS WITH THIS (REAL GEMINI TTS + EXACT USER SONG!)
+# ============================================================
+
+def generate_gemini_native_voice(instruction_prompt, fallback_text="", voice_name="Kore"):
+    """Uses Official Gemini 2.5 Flash Preview TTS model first so voice is 100% natural, warm & melodic (Never Robotic)!"""
+    text_to_voice = fallback_text if fallback_text else instruction_prompt
     for key in GEMINI_API_KEYS:
-        for model in ["gemini-2.5-flash", "gemini-2.0-flash-exp"]:
-            for v_name in [voice_name, "Kore"]:
+        # 1. Official Gemini Dedicated TTS Model (Best Natural Human Tone & Singing!)
+        for tts_model in ["gemini-2.5-flash-preview-tts", "gemini-2.0-flash-exp"]:
+            for v_name in ["Aoede", "Kore"]:
                 try:
-                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{tts_model}:generateContent"
                     payload = {
                         "contents": [{"parts": [{"text": instruction_prompt}]}],
                         "generationConfig": {
                             "responseModalities": ["AUDIO"],
-                            "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": v_name}}}
-                        },
-                        "safetySettings": GEMINI_SAFETY_SETTINGS
+                            "speechConfig": {
+                                "voiceConfig": {"prebuiltVoiceConfig": {"voiceName": v_name}}
+                            }
+                        }
                     }
-                    r = requests.post(url, headers={"Content-Type": "application/json", "x-goog-api-key": key}, json=payload, timeout=15)
+                    r = requests.post(url, headers={"Content-Type": "application/json", "x-goog-api-key": key}, json=payload, timeout=16)
                     if r.ok:
                         cands = r.json().get("candidates", [])
                         if cands:
@@ -278,19 +292,25 @@ def generate_gemini_native_voice(instruction_prompt, fallback_text="", voice_nam
                                     return raw_bytes, "siya_voice.ogg", mime
                 except Exception:
                     pass
-
-    clean_t = fallback_text or re.sub(r"\[.*?\]", "", instruction_prompt)[:240]
-    for tts_url in [
-        f"https://api.streamelements.com/kappa/v2/speech?voice=hi-IN-SwaraNeural&text={quote(clean_t)}",
-        f"https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=hi&q={quote(clean_t[:190])}"
-    ]:
-        try:
-            r = requests.get(tts_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=8)
-            if r.ok and len(r.content) > 1500:
-                return r.content, "siya_voice.mp3", "audio/mpeg"
-        except Exception:
-            pass
     return None, None, None
+
+def extract_song_search_term(text):
+    """Extracts the EXACT song name requested by the user without deleting song words!"""
+    t_low = text.lower().strip()
+    clean_q = re.sub(
+        r"\b(siya|jaan|baby|mujhe|muja|please|plz|ek|koi|accha|achha|song|songs|gaana|gana|suna|sunao|suno|sunu|sunh|baja|bajao|play|bhejo|send)\b",
+        " ", t_low, flags=re.I
+    )
+    clean_q = re.sub(r"[^\w\s]", " ", clean_q)
+    clean_q = re.sub(r"\s+", " ", clean_q).strip()
+
+    if len(clean_q) >= 2:
+        if clean_q in ["sad", "udaas", "dard", "aaj bhut sad hu", "bhut sad hu"]:
+            return random.choice(["Channa Mereya", "Agar Tum Saath Ho", "Tujhe Bhula Diya", "B Praak Filhall", "Hamari Adhuri Kahani"])
+        if clean_q in ["romtic", "romantic", "love", "pyar", "romtic new 2026", "new 2026"]:
+            return random.choice(["Pehle Bhi Main", "Apna Bana Le", "Kesariya", "Tum Hi Ho", "O Maahi", "Soulmate Badshah Arijit"])
+        return clean_q
+    return random.choice(["Tum Hi Ho", "Pehle Bhi Main", "Apna Bana Le", "Kesariya"])
 
 def send_siya_voice_note(chat_id, voice_prompt, fallback_text="", caption="", reply_to_message_id=None):
     telegram_request("sendChatAction", {"chat_id": chat_id, "action": "record_voice"})
