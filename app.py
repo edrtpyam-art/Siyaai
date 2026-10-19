@@ -213,8 +213,8 @@ PHOTO_VAULT = {
 STICKER_PACKS_CONFIG = {
     "NORMAL": ["PeachGomaPack11"],
     "ROMANTIC": ["sticker_BM8g_by_stickerskibot", "Yornseyha077"],
-    "HOT": ["Love9_Wallgif", "mmm_by_hhujhybot", "channel_LOVE0000_01_03", "Cute_hotness", "jan8StickerNub"]
-}
+    "HOT": ["Love9_Wallgif", "mmm_by_hhujhybot", "channel_LOVE0000_01_03", "Cute_hotness", "jan8StickerNub","sticker_BM8g_by_stickerskibot","HandVideoR_by_stickersthiefbot","Custom2224_by_fStikBot"]
+}  "Custom2224_by_fStikBot"
 STICKER_CACHE = {}
 
 # ============================================================
