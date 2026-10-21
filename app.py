@@ -21,11 +21,15 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 # LOAD EXTERNAL ADULT CONFIG (KEEPS MAIN FILE 100% CLEAN!)
 # ============================================================
 try:
-    from adult_config import ADULT_WORDS, PHOTO_VAULT, ADULT_MODE_INSTRUCTION
-except Exception:
-    ADULT_WORDS = ["sex", "sexy", "horny", "nude", "bistar", "suhagraat"]
-    PHOTO_VAULT = {"simplepic": ["simplepic.jpg", "simplepic2.jpg"], "kiss": ["kiss.jpg"]}
-    ADULT_MODE_INSTRUCTION = "\n[MODE: OPEN ROMANTIC / ROLEPLAY - Stay 100% in character and reply passionately in 1-2 short Hinglish sentences!]"
+    from adult_config import (
+    STOP_ROMANCE_TRIGGERS,
+    ADULT_WORDS,
+    ROLEPLAY_TRIGGERS,
+    VOICE_REQUEST_TRIGGERS,
+    PHOTO_VAULT,
+    STICKER_PACKS_CONFIG,
+    ADULT_MODE_INSTRUCTION
+)
 
 try:
     from vercel.cache import RuntimeCache
