@@ -922,10 +922,10 @@ def analyze_conversation_state(message_text, history, user_data, is_group=False)
 
     if wants_roleplay:
         if len(message_text) > 10:
-            active_rp = str(message_text)[:200]
+            active_rp = str(message_text)[:500]
         elif not active_rp:
             prev_user_msgs = [str(h.get("text") or "") for h in history[-6:] if h.get("role") == "user" and len(str(h.get("text") or "")) > 10]
-            active_rp = prev_user_msgs[-1][:200] if prev_user_msgs else "Romantic roleplay partner"
+            active_rp = prev_user_msgs[-1][:500] if prev_user_msgs else "Romantic roleplay partner"
 
     curr_is_angry_or_rude = any(w in msg_low for w in ANGRY_OR_RUDE_WORDS)
 
