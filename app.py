@@ -278,14 +278,49 @@ def fetch_full_song(q):
 # ============================================================
 # 4. GROUP WELCOME CARD & CASHFREE PAYMENT
 # ============================================================
+from io import BytesIO
+from PIL import Image, ImageDraw, ImageFont
+import requests, html, time
+
 def send_welcome_photo(cid, uid, uname, gname):
     try:
         W, H = 1280, 720
         img = Image.new("RGBA", (W, H), "#FF1493")
         draw = ImageDraw.Draw(img)
+        
+        # --- NEW: User DP (Profile Photo) Logic ---
+        user_dp_url = None
+        try:
+            # 1. Get user profile photos
+            photos_req = requests.get(f"{API_URL}/getUserProfilePhotos", params={"user_id": uid, "limit": 1}, timeout=5).json()
+            if photos_req.get("ok") and photos_req["result"]["total_count"] > 0:
+                file_id = photos_req["result"]["photos"][0][-1]["file_id"]
+                # 2. Get file path
+                file_req = requests.get(f"{API_URL}/getFile", params={"file_id": file_id}, timeout=5).json()
+                if file_req.get("ok"):
+                    file_path = file_req["result"]["file_path"]
+                    # 3. Download the actual image
+                    dp_resp = requests.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}", timeout=8)
+                    if dp_resp.ok:
+                        user_dp = Image.open(BytesIO(dp_resp.content)).convert("RGBA")
+                        user_dp = user_dp.resize((350, 350)) # Resize DP
+                        
+                        # Make DP Circular
+                        mask = Image.new('L', (350, 350), 0)
+                        draw_mask = ImageDraw.Draw(mask)
+                        draw_mask.ellipse((0, 0, 350, 350), fill=255)
+                        user_dp.putalpha(mask)
+                        
+                        # Paste DP onto the background
+                        img.paste(user_dp, (800, 185), user_dp)
+        except Exception:
+            pass # If DP fails, it continues with just the text
+        # ----------------------------------------
+
         draw.text((100, 180), f"WELCOME TO {gname[:22].upper()}", fill="#FFFFFF", font=ImageFont.load_default(size=55))
         draw.text((100, 300), f"Member: {uname[:22]}", fill="#111111", font=ImageFont.load_default(size=70))
         draw.text((100, 430), f"ID: {uid}  •  SIYA AI", fill="#FFFFFF", font=ImageFont.load_default(size=40))
+        
         out = BytesIO(); img.convert("RGB").save(out, format="JPEG", quality=90); out.seek(0)
         return requests.post(f"{API_URL}/sendPhoto", data={"chat_id": cid, "caption": f"🎉 <b>WELCOME TO {html.escape(gname)}</b>\nHey <a href=\"tg://user?id={uid}\">{html.escape(uname)}</a>! ✨", "parse_mode": "HTML"}, files={"photo": ("welcome.jpg", out, "image/jpeg")}, timeout=8).json()
     except Exception: return {"ok": False}
@@ -293,7 +328,8 @@ def send_welcome_photo(cid, uid, uname, gname):
 @app.route("/api/pay/<session_id>", methods=["GET"])
 def cashfree_checkout_page(session_id):
     mode = "sandbox" if (CASHFREE_APP_ID.upper().startswith("TEST") or "TEST" in CASHFREE_SECRET_KEY.upper()) else "production"
-    return f"""<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Siya VIP Payment</title><script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script></head><body style="background:#121212;color:#fff;text-align:center;padding-top:30vh;font-family:sans-serif;"><h2>💖 Opening UPI Payment...</h2><button onclick="pay()" style="background:#ff1493;color:#fff;padding:15px 30px;border:none;border-radius:10px;font-size:18px;">💳 Pay Now</button><script>const cf=Cashfree({{mode:"{mode}"}});function pay(){{cf.checkout({{paymentSessionId:"{html.escape(session_id)}",redirectTarget:"_self"}});}}window.onload=pay;</script></body></html>""", 200, {"Content-Type": "text/html"}
+    # Added Telegram WebApp JS script for native closing support
+    return f"""<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Siya VIP Payment</title><script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script><script src="https://telegram.org/js/telegram-web-app.js"></script></head><body style="background:#121212;color:#fff;text-align:center;padding-top:30vh;font-family:sans-serif;"><h2>💖 Opening UPI Payment...</h2><button onclick="pay()" style="background:#ff1493;color:#fff;padding:15px 30px;border:none;border-radius:10px;font-size:18px;">💳 Pay Now</button><script>const cf=Cashfree({{mode:"{mode}"}});function pay(){{cf.checkout({{paymentSessionId:"{html.escape(session_id)}",redirectTarget:"_self"}});}}window.onload=pay;</script></body></html>""", 200, {"Content-Type": "text/html"}
 
 def create_cf_order(uid, uname, amount, purpose="credits", gid=""):
     if not CASHFREE_APP_ID or not CASHFREE_SECRET_KEY: return None
@@ -302,7 +338,8 @@ def create_cf_order(uid, uname, amount, purpose="credits", gid=""):
     p = {"order_id": f"ORD_{uid}_{amount}_{int(time.time())}"[:38], "order_amount": float(amount), "order_currency": "INR", "customer_details": {"customer_id": f"C_{uid}", "customer_phone": "9999999999", "customer_email": f"u{uid}@gmail.com", "customer_name": "VIP"}, "order_meta": {"return_url": f"https://t.me/{BOT_USERNAME}"}}
     try:
         r = requests.post(url, headers={"x-client-id": CASHFREE_APP_ID, "x-client-secret": CASHFREE_SECRET_KEY, "x-api-version": "2023-08-01", "Content-Type": "application/json"}, json=p, timeout=5)
-        if r.ok and r.json().get("payment_session_id"): return f"{host}/api/pay/{r.json()['payment_session_id']}"
+        if r.ok and r.json().get("payment_session_id"): 
+            return f"{host}/api/pay/{r.json()['payment_session_id']}"
     except Exception: pass
     return None
 
