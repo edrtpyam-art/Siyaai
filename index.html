@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siya AI - Your Virtual Chat Companion</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            line-height: 1.6;
+        }
+
+        header {
+            background: rgba(15, 23, 42, 0.9);
+            padding: 20px 50px;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #1e293b;
+            backdrop-filter: blur(10px);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: #38bdf8;
+            text-decoration: none;
+        }
+
+        nav a {
+            color: #cbd5e1;
+            text-decoration: none;
+            margin-left: 20px;
+            font-size: 14px;
+            transition: color 0.3s;
+        }
+
+        nav a:hover {
+            color: #38bdf8;
+        }
+
+        section {
+            padding: 100px 20px 50px;
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 150px 20px 100px;
+        }
+
+        .hero h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            background: -webkit-linear-gradient(#38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 18px;
+            color: #94a3b8;
+            max-width: 600px;
+            margin: auto;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            background: #38bdf8;
+            color: #0f172a;
+            padding: 12px 30px;
+            text-decoration: none;
+            font-weight: 600;
+            border-radius: 5px;
+            transition: 0.3s;
+        }
+
+        .btn:hover {
+            background: #0ea5e9;
+        }
+
+        .policy-box {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border: 1px solid #334155;
+        }
+
+        .policy-box h2 {
+            color: #38bdf8;
+            margin-bottom: 15px;
+            font-size: 22px;
+        }
+
+        .policy-box h3 {
+            margin-top: 15px;
+            font-size: 16px;
+            color: #cbd5e1;
+        }
+
+        .policy-box p, .policy-box ul {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-bottom: 10px;
+        }
+
+        .policy-box ul {
+            margin-left: 20px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px;
+            background: #0b1120;
+            color: #64748b;
+            font-size: 14px;
+            border-top: 1px solid #1e293b;
+        }
+
+        @media (max-width: 768px) {
+            header { padding: 15px 20px; flex-direction: column; }
+            nav { margin-top: 15px; }
+            nav a { margin: 0 10px; }
+            .hero h1 { font-size: 32px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="#" class="logo">Siya AI</a>
+        <nav>
+            <a href="#about">About</a>
+            <a href="#policies">Policies & T&C</a>
+            <a href="#contact">Contact Us</a>
+        </nav>
+    </header>
+
+    <section class="hero">
+        <h1>Your Intelligent Virtual Companion</h1>
+        <p>Experience seamless, AI-driven conversations with Siya AI. Advanced software solutions designed for digital entertainment and instant communication.</p>
+        <a href="#about" class="btn">Learn More</a>
+    </section>
+
+    <section id="about" class="policy-box">
+        <h2>About Siya AI</h2>
+        <p>Siya AI is a cutting-edge virtual chat service developed by independent IT professionals. We specialize in providing digital chatbot services, AI conversational models, and secure web hosting solutions to deliver a flawless digital experience.</p>
+    </section>
+
+    <section id="policies">
+        <div class="policy-box">
+            <h2>Terms & Conditions</h2>
+            <p>Last updated: October 2026</p>
+            <p>By accessing and using Siya AI, you agree to the following terms:</p>
+            <ul>
+                <li><strong>Service Usage:</strong> Our AI chatbot is intended for personal digital entertainment and communication.</li>
+                <li><strong>User Data:</strong> Users must not share sensitive personal information (like bank details or passwords) in the chat.</li>
+                <li><strong>Service Availability:</strong> We strive for 99.9% uptime, but we do not guarantee uninterrupted service due to maintenance or server upgrades.</li>
+            </ul>
+        </div>
+
+        <div class="policy-box">
+            <h2>Privacy Policy</h2>
+            <p>Your privacy is our priority. This policy outlines how we handle your data:</p>
+            <ul>
+                <li>We do not sell your personal data to third parties.</li>
+                <li>Chat logs are encrypted and stored securely for service improvement.</li>
+                <li>You can request the deletion of your account and data at any time by contacting our support team.</li>
+            </ul>
+        </div>
+
+        <div class="policy-box">
+            <h2>Refund & Cancellation Policy</h2>
+            <p>We believe in a transparent billing process for our digital services:</p>
+            <ul>
+                <li><strong>Cancellations:</strong> You can cancel your digital service subscription at any time. The cancellation will take effect at the end of the current billing cycle.</li>
+                <li><strong>Refunds:</strong> Since our services are purely digital, refunds are only processed in the event of a critical service failure or accidental double-charge.</li>
+                <li>Approved refunds will be credited back to the original payment method within 5-7 business days.</li>
+            </ul>
+        </div>
+    </section>
+
+    <section id="contact" class="policy-box">
+        <h2>Contact Us</h2>
+        <p>If you have any questions about our services, payments, or policies, please reach out to us:</p>
+        <p><strong>Business Name:</strong> Siya AI IT Services</p>
+        
+    </section>
+
+    <footer>
+        &copy; 2026 Siya AI. All rights reserved.
+    </footer>
+
+</body>
+</html>
