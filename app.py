@@ -764,7 +764,7 @@ def health_check():
             <h3>Frequently Asked Questions (FAQ) & Help</h3>
             <p><strong>Q: Is my payment secure?</strong><br>A: Yes, 100%. We use Cashfree secure payment gateway.</p>
             <p style="margin-top: 15px;"><strong>Q: How to contact support?</strong><br>A: For any help, contact our official Telegram support team here: <a href="https://t.me/edrolai" target="_blank">@edrolai</a></p>
-            <p style="margin-top: 15px;"><strong>Email:</strong> support@edrolai.com<br><strong>Address:</strong> Patna, Bihar, India - 841226</p>
+            <p style="margin-top: 15px;"><strong>Email:</strong> support@edrolai.com<br><strong</p>
         </div>
         
         <div class="footer">
