@@ -918,7 +918,7 @@ def health_check():
             <div class="policy-text">
                 <h4>Contact Us</h4>
                 <p>Email: support@edrolai.com<br>
-                Operating Address: Patna, Bihar, India - 841226<br>
+            
                 Telegram Support: <a href="https://t.me/edrolai" target="_blank" style="color:#38bdf8;">@edrolai</a></p>
             </div>
         </section>
