@@ -723,7 +723,57 @@ def webhook_handler():
 
 @app.route("/", methods=["GET"])
 def health_check():
-    return jsonify({"status": "online Siya VIP - Original Fast Models + Real Aoede Voice + Pure Image Vision"}), 200
+    html_page = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Siya AI - Premium Virtual Assistant</title>
+        <style>
+            body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #0f172a; color: white; padding: 20px; line-height: 1.6; }
+            .nav { display: flex; align-items: center; gap: 15px; background: #1e293b; padding: 15px 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+            .nav img { height: 50px; border-radius: 50%; }
+            .content-box { background: #1e293b; padding: 25px; margin-top: 25px; border-radius: 10px; border-left: 4px solid #ff1493; }
+            h2, h3 { color: #38bdf8; margin-bottom: 10px; }
+            a { color: #ff1493; text-decoration: none; font-weight: bold; }
+            a:hover { text-decoration: underline; }
+            .footer { text-align: center; margin-top: 40px; color: #64748b; font-size: 14px; }
+        </style>
+    </head>
+    <body>
+        <div class="nav">
+            <img src="12345.png" alt="Siya AI Logo" onerror="this.src='https://cdn-icons-png.flaticon.com/512/4712/4712035.png'">
+            <h2>Siya AI Digital Services</h2>
+        </div>
+        
+        <div class="content-box">
+            <h3>Subscription Plans (INR)</h3>
+            <p>Basic (35 Interactions) - ₹30 | Standard (50 Interactions) - ₹49 | Premium (70 Interactions) - ₹99 | Pro (150 Interactions) - ₹180</p>
+        </div>
 
+        <div class="content-box">
+            <h3>Terms & Conditions</h3>
+            <p>By using Siya AI, you agree to our terms of service. Our advanced conversational models are designed strictly for personal digital entertainment. Users must not share sensitive financial or personal data.</p>
+            
+            <h3 style="margin-top: 20px;">Refunds & Cancellations</h3>
+            <p>Due to the instant digital nature of our API-based chat credits, we maintain a strict <strong>No Refund and No Cancellation policy</strong> once a payment is successful.</p>
+        </div>
+
+        <div class="content-box">
+            <h3>Frequently Asked Questions (FAQ) & Help</h3>
+            <p><strong>Q: Is my payment secure?</strong><br>A: Yes, 100%. We use Cashfree secure payment gateway.</p>
+            <p style="margin-top: 15px;"><strong>Q: How to contact support?</strong><br>A: For any help, contact our official Telegram support team here: <a href="https://t.me/edrolai" target="_blank">@edrolai</a></p>
+            <p style="margin-top: 15px;"><strong>Email:</strong> support@edrolai.com<br><strong>Address:</strong> Patna, Bihar, India - 841226</p>
+        </div>
+        
+        <div class="footer">
+            &copy; 2026 Siya AI. All rights reserved.<br>
+            <strong>⚡ Powered by Edrol Server</strong>
+        </div>
+    </body>
+    </html>
+    """
+    return html_page, 200, {"Content-Type": "text/html"}
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "80")), debug=False)
