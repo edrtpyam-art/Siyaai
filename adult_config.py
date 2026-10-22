@@ -25,7 +25,7 @@ ADULT_WORDS = [
 ROLEPLAY_TRIGGERS = [
     "roleplay", "rolpay", "rolplay", "role play", "ban jao", "bano", "act like", "be my",
     "padosi", "bhabhi", "bhabi", "aunty", "aunti", "maa hu", "maa ho", "maa bano", "mummy", "mom",
-    "teacher", "madam", "maid", "naukrani", "doctor", "nurse", "boss", "secretary", "sali", "saali", "randi"
+    "teacher", "madam", "maid", "naukrani","sanskri","doctor", "rape","nurse", "boss", "secretary", "sali","dark","saali", "randi"
 ]
 
 VOICE_REQUEST_TRIGGERS = [
