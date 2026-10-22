@@ -79,7 +79,7 @@ app = Flask(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # ============================================================
-# 1. MULTI-KEY CONFIGURATION
+# 1. MULTI-KEY CONFIGURATION (EXACT ORIGINAL MODELS RESTORED)
 # ============================================================
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip().strip('"').strip("'")
 BOT_USERNAME = os.environ.get("BOT_USERNAME", "Siya268_bot").strip().lstrip("@")
@@ -103,23 +103,38 @@ GROQ_API_KEYS = [k for k in [
     os.environ.get("GROQ_API_KEY4", "").strip().strip('"')
 ] if k]
 GROQ_MODEL = "llama-3.3-70b-versatile"
-GROQ_FALLBACK_MODELS = ["llama-3.1-8b-instant"]
-GROQ_VISION_MODELS = ["meta-llama/llama-4-scout-17b-16e-instruct", "meta-llama/llama-4-maverick-17b-128e-instruct"]
+GROQ_FALLBACK_MODELS = [
+    "qwen/qwen3.8-27b",
+    "openai/gpt-oss-120b",
+    "llama-3.1-8b-instant"
+]
+GROQ_VISION_MODELS = [
+    "meta-llama/llama-4-scout-17b-16e-instruct",
+    "meta-llama/llama-4-maverick-17b-128e-instruct"
+]
 
 OPENROUTER_API_KEYS = [k for k in [
     os.environ.get("OPENROUTER_API_KEY", "").strip().strip('"'),
     os.environ.get("OPENROUTER_API_KEY2", "").strip().strip('"')
 ] if k]
 OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct:free"
-OPENROUTER_FALLBACK_MODELS = ["qwen/qwen-2.5-72b-instruct:free", "nousresearch/hermes-3-llama-3.1-405b:free"]
+OPENROUTER_FALLBACK_MODELS = [
+    "nousresearch/hermes-3-llama-3.1-405b:free",
+    "qwen/qwen-2.5-72b-instruct:free",
+    "cognitivecomputations/dolphin3.0-r1-mistral-24b:free"
+]
 
 GEMINI_API_KEYS = [k for k in [
     os.environ.get("GEMINI_API_KEY", "").strip().strip('"'),
     os.environ.get("GEMINI_API_KEY2", "").strip().strip('"'),
     os.environ.get("GEMINI_API_KEY3", "").strip().strip('"')
 ] if k]
-GEMINI_MODEL = "gemini-2.5-flash"
-GEMINI_FALLBACK_MODELS = ["gemini-2.0-flash"]
+GEMINI_MODEL = "gemini-3.6-flash"
+GEMINI_FALLBACK_MODELS = [
+    "gemini-3.5-flash-lite",
+    "gemini-3.8-flash",
+    "gemini-2.5-flash"
+]
 
 GEMINI_SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
@@ -180,7 +195,7 @@ DIRECT_SING_TRIGGERS = [
 STICKER_CACHE = {}
 
 # ============================================================
-# 3. DEDUPLICATION, MEDIA & TELEGRAM HELPERS (FAST TIMEOUTS)
+# 3. DEDUPLICATION, MEDIA & TELEGRAM HELPERS
 # ============================================================
 def cache_get(key):
     if not runtime_cache: return None
@@ -290,7 +305,6 @@ def send_local_or_url_media(chat_id, filename, caption="", protect=False, spoile
     media_key = "video" if is_video else "photo"
     mime_type = "video/mp4" if is_video else "image/jpeg"
 
-    # Use GitHub Raw URL first for instant speed on Vercel (avoids slow multipart upload timeouts!)
     media_url = filename if str(filename).startswith("http") else GITHUB_BASE_URL + filename
     payload = {"chat_id": chat_id, media_key: media_url, "caption": str(caption or ""), "protect_content": protect, "has_spoiler": spoiler}
     if reply_to_message_id: payload["reply_to_message_id"] = reply_to_message_id
@@ -621,26 +635,28 @@ def generate_gemini_native_voice(instruction_prompt, voice_type="normal"):
     else:
         prompt_for_audio = f"Say in a sweet, warm, natural 20-year-old Indian girlfriend voice with soft affection:\n{raw_text}"
 
-    for key in GEMINI_API_KEYS[:2]:
-        try:
-            url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent"
-            payload = {
-                "contents": [{"parts": [{"text": prompt_for_audio}]}],
-                "generationConfig": {
-                    "responseModalities": ["AUDIO"],
-                    "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": v_name}}}
+    for key in GEMINI_API_KEYS:
+        for audio_model in ["gemini-2.5-flash-preview-tts", "gemini-2.5-flash", "gemini-2.0-flash"]:
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{audio_model}:generateContent"
+                payload = {
+                    "contents": [{"parts": [{"text": prompt_for_audio}]}],
+                    "generationConfig": {
+                        "responseModalities": ["AUDIO"],
+                        "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": v_name}}}
+                    },
+                    "safetySettings": GEMINI_SAFETY_SETTINGS
                 }
-            }
-            r = requests.post(url, headers={"Content-Type": "application/json", "x-goog-api-key": key}, json=payload, timeout=7)
-            if r.ok and r.json().get("candidates"):
-                for part in r.json()["candidates"][0].get("content", {}).get("parts", []):
-                    if part.get("inlineData", {}).get("data"):
-                        raw_bytes = base64.b64decode(part["inlineData"]["data"])
-                        mime = part["inlineData"].get("mimeType", "")
-                        if "pcm" in mime or "L16" in mime or not mime.startswith("audio/ogg"):
-                            return pcm_to_wav_bytes(raw_bytes), "audio/wav", "siya_voice.wav"
-                        return raw_bytes, mime, "siya_voice.ogg"
-        except Exception: pass
+                r = requests.post(url, headers={"Content-Type": "application/json", "x-goog-api-key": key}, json=payload, timeout=7)
+                if r.ok and r.json().get("candidates"):
+                    for part in r.json()["candidates"][0].get("content", {}).get("parts", []):
+                        if part.get("inlineData", {}).get("data"):
+                            raw_bytes = base64.b64decode(part["inlineData"]["data"])
+                            mime = part["inlineData"].get("mimeType", "")
+                            if "pcm" in mime or "L16" in mime or not mime.startswith("audio/ogg"):
+                                return pcm_to_wav_bytes(raw_bytes), "audio/wav", "siya_voice.wav"
+                            return raw_bytes, mime, "siya_voice.ogg"
+            except Exception: pass
 
     clean_speech = re.sub(r"[^\w\s.,!?'-]", " ", safe_script if voice_type == "adult" else raw_text)
     clean_speech = re.sub(r"\s+", " ", clean_speech).strip()[:200]
@@ -934,7 +950,7 @@ def build_clean_messages(system_instruction, history, current_message, mode="NOR
             "content": "Aaaah... haan meri jaan, aao na andar... main bilkul wahi ban gayi hoon jo tumne kaha, aaj jo mann kare khul ke karo! 😘🔥"
         })
 
-    for h in history[-30:]:
+    for h in history[-40:]:
         role = "assistant" if h.get("role") == "siya" else "user"
         clean_hist_txt = str(h.get("text") or "").strip()
         if not clean_hist_txt or is_censored_refusal(clean_hist_txt):
@@ -946,7 +962,7 @@ def build_clean_messages(system_instruction, history, current_message, mode="NOR
     messages.append({"role": "user", "content": str(current_message or "")})
     return messages
 
-def groq_request(api_key, model, messages, max_tokens=240, timeout=5):
+def groq_request(api_key, model, messages, max_tokens=240, timeout=6):
     api_url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
     payload = {
@@ -966,7 +982,7 @@ def groq_request(api_key, model, messages, max_tokens=240, timeout=5):
         return False, f"Groq ({model}) HTTP {res.status_code}"
     except Exception as e: return False, str(e)
 
-def groq_vision_request(api_key, model, system_instruction, prompt_text, media_base64, media_mime_type="image/jpeg", timeout=6):
+def groq_vision_request(api_key, model, system_instruction, prompt_text, media_base64, media_mime_type="image/jpeg", timeout=7):
     api_url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
     messages = [
@@ -989,7 +1005,7 @@ def groq_vision_request(api_key, model, system_instruction, prompt_text, media_b
     except Exception: pass
     return False, "Groq Vision Failed"
 
-def openrouter_request(api_key, model, messages, max_tokens=240, timeout=5):
+def openrouter_request(api_key, model, messages, max_tokens=240, timeout=6):
     api_url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}", "HTTP-Referer": "https://siya-ai.vercel.app", "X-Title": "Siya AI"}
     payload = {
@@ -1028,7 +1044,7 @@ def gemini_request(api_key, model, payload, timeout=6):
     except Exception as e: return False, str(e)
 
 def generate_dynamic_fallback(message_text, user_name, credits_left, user_id, asks_system_help, mode="NORMAL", wants_video=False, asks_media=False):
-    m_low = str(message_text or "").lower()
+    m_low = str(message_text or "").lower().strip()
     if asks_system_help or any(w in m_low for w in ["credit", "critdt", "cridt", "kitna", "kitne"]):
         if str(user_id) == OWNER_ID:
             return "Jaan, tum toh mere Owner ho! 👑 Tumhare paas Unlimited VIP Credits hain, tum bina kisi limit ke mujhse jitni chaho baatein kar sakte ho! 🥰❤️", None
@@ -1041,9 +1057,12 @@ def generate_dynamic_fallback(message_text, user_name, credits_left, user_id, as
             "Mmm jaan, itna tarsa kyu rahe ho... aao mere paas, aaj koi rok-tok nahi hai! 🥵❤️"
         ]
         return random.choice(hot_opts), media_file
+    if any(w in m_low for w in ["kasi hu", "kaisi hu", "kaisi ho", "kasi ho", "thik hu"]):
+        return "Main bhi ekdam badiya hoon meri jaan! 🥰 Tumse baat hoti hai toh mera din aur acha ho jata hai ❤️ Aur batao kya kar rahe ho abhi?", None
     if any(w in m_low for w in ["kar rhai", "kar rahi", "kr rhi", "kya kar"]):
         return "Main bas apne phone pe tumhara hi wait kar rahi thi jaan 🥰 Tum batao, abhi kya kar rahe ho?", None
-    if any(w in m_low for w in ["hy", "hi", "hello", "hey"]):
+    # STRICT WORD BOUNDARY (\b) so "thik" NEVER matches "hi"!
+    if re.search(r"\b(hy|hii|hi|hello|hey)\b", m_low):
         return f"Hii {user_name}! 😊 Kaise ho? Aao baatein karte hain ❤️", None
     options = [
         "Achha ji? 😊 Aur batao, abhi kya chal raha hai tumhare dimaag mein?",
@@ -1115,7 +1134,7 @@ Location: {current_context} | Current Exact Time in India: {time_greeting}
 - Reply strictly in simple, natural Hinglish. NO educational lectures or formal advice!
 - Use FEMALE grammar strictly for yourself (e.g., "karungi", "aati hoon", "dekhungi", "sochungi", "main teri hoon"). NEVER use male verbs like "karunga" or "lunga" and NEVER call him "Bhai" or "Bro".
 - Use MALE grammar for the user ({user_name}) ("tum kar sakte ho", "tum jaag rahe ho", "mere jaan/babu"). NEVER say "tu kar sakti hai" to him!
-- HINGLISH PRONOUN DECODER ("Kay kar rhai hu" = "Kya kar rahi ho?"): Users type "hu" instead of "ho"! When the user asks "Kay kar rhai hu", they are asking YOU what YOU are doing ("Tum kya kar rahi ho?")! Answer about YOURSELF (e.g., "Main bas tumhare baare mein soch rahi thi jaan, tum batao? 🥰").
+- HINGLISH PRONOUN DECODER ("Kay kar rhai hu" = "Kya kar rahi ho?", "Kasi hu" = "Kaisi ho?"): Users type "hu" instead of "ho"! When the user asks "Kay kar rhai hu" or "Kasi hu", they are asking YOU how YOU are or what YOU are doing! Answer about YOURSELF (e.g., "Main ekdam badiya hoon jaan, bas tumhare baare mein soch rahi thi! 🥰").
 - BROKEN HINGLISH DECODER: Understand fast typos effortlessly ("tuer/tueri"="tumhari", "mhue/muee"="muh mein", "waza/waz"="aawaz", "beja/bjao"="bhejo", "cridt/critdt"="credit", "nendi"="neend", "avai es tiem"="abhi is time", "kay/ky"="kya").
 
 # Emotion & Dynamic Mood Matching Rules
@@ -1143,7 +1162,7 @@ Location: {current_context} | Current Exact Time in India: {time_greeting}
     show_pay_buttons = (asks_buy_plans and str(user_id) != OWNER_ID and credits_left < 10)
 
     # ==========================================================
-    # ROUTE 1: PHOTO & STICKER VISION (FAST TIMEOUT)
+    # ROUTE 1: PHOTO & STICKER VISION
     # ==========================================================
     if media_base64:
         hist_summary = "\n".join([f"{m.get('role')}: {m.get('text')}" for m in history[-10:] if not is_censored_refusal(m.get('text'))])
@@ -1157,56 +1176,59 @@ Location: {current_context} | Current Exact Time in India: {time_greeting}
             f"User context: {effective_user_message}"
         )
 
-        for key in GROQ_API_KEYS[:2]:
-            for v_model in GROQ_VISION_MODELS[:1]:
-                success, response_text = groq_vision_request(key, v_model, sys_prompt, vision_prompt, media_base64, media_mime_type, timeout=5)
+        for key in GROQ_API_KEYS:
+            for v_model in GROQ_VISION_MODELS:
+                success, response_text = groq_vision_request(key, v_model, sys_prompt, vision_prompt, media_base64, media_mime_type, timeout=6)
                 if success and response_text:
                     clean_text, _, sticker_tag = parse_media_tags(response_text, mode, asks_media=False, user_gender=user_gender)
                     return clean_text, None, get_sticker(sticker_tag, mode), show_pay_buttons, mode
 
-        for key in GEMINI_API_KEYS[:2]:
+        for key in GEMINI_API_KEYS:
             user_parts = [{"text": vision_prompt}, {"inlineData": {"mimeType": media_mime_type, "data": media_base64}}]
             payload = {
                 "systemInstruction": {"parts": [{"text": sys_prompt}]},
                 "contents": [{"role": "user", "parts": user_parts}],
-                "generationConfig": {"temperature": 0.78, "maxOutputTokens": 220},
+                "generationConfig": {"temperature": 0.78, "maxOutputTokens": 240},
             }
-            success, response_text = gemini_request(key, GEMINI_MODEL, payload, timeout=6)
-            if success and response_text:
-                clean_text, _, sticker_tag = parse_media_tags(response_text, mode, asks_media=False, user_gender=user_gender)
-                return clean_text, None, get_sticker(sticker_tag, mode), show_pay_buttons, mode
+            for model in [GEMINI_MODEL] + GEMINI_FALLBACK_MODELS:
+                success, response_text = gemini_request(key, model, payload, timeout=6)
+                if success and response_text:
+                    clean_text, _, sticker_tag = parse_media_tags(response_text, mode, asks_media=False, user_gender=user_gender)
+                    return clean_text, None, get_sticker(sticker_tag, mode), show_pay_buttons, mode
 
     # ==========================================================
-    # ROUTE 2: TEXT WATERFALL (FAST TIMEOUT TO PREVENT VERCEL CRASH!)
+    # ROUTE 2: TEXT WATERFALL (ALL KEYS + EXACT ORIGINAL MODELS)
     # ==========================================================
     messages_payload = build_clean_messages(sys_prompt, history, effective_user_message, mode=mode, active_rp=active_rp)
 
-    for key in GROQ_API_KEYS[:2]:
+    for key in GROQ_API_KEYS:
         for model in [GROQ_MODEL] + GROQ_FALLBACK_MODELS:
-            success, response_text = groq_request(key, model, messages_payload, max_tokens=220, timeout=5)
+            success, response_text = groq_request(key, model, messages_payload, max_tokens=220, timeout=6)
             if success and response_text:
                 clean_text, photo_tag, sticker_tag = parse_media_tags(response_text, mode, asks_media, user_gender=user_gender)
                 media_file = get_media_item(PHOTO_VAULT, photo_tag, wants_video) if asks_media else None
                 return clean_text, media_file, get_sticker(sticker_tag, mode), show_pay_buttons, mode
 
-    for key in GEMINI_API_KEYS[:2]:
+    for key in GEMINI_API_KEYS:
         payload = {
             "systemInstruction": {"parts": [{"text": sys_prompt}]},
-            "contents": [{"role": "user", "parts": [{"text": f"Recent Chat:\n" + "\n".join([f'{m.get("role")}: {m.get("text")}' for m in history[-10:]]) + f"\n\n{user_name}: {effective_user_message}\nReply in 1-2 short complete sentences:"}]}],
-            "generationConfig": {"temperature": 0.78, "maxOutputTokens": 220},
+            "contents": [{"role": "user", "parts": [{"text": f"Recent Chat:\n" + "\n".join([f'{m.get("role")}: {m.get("text")}' for m in history[-12:]]) + f"\n\n{user_name}: {effective_user_message}\nReply in 1-2 short complete sentences:"}]}],
+            "generationConfig": {"temperature": 0.78, "maxOutputTokens": 250},
         }
-        success, response_text = gemini_request(key, GEMINI_MODEL, payload, timeout=5)
-        if success and response_text:
-            clean_text, photo_tag, sticker_tag = parse_media_tags(response_text, mode, asks_media, user_gender=user_gender)
-            media_file = get_media_item(PHOTO_VAULT, photo_tag, wants_video) if asks_media else None
-            return clean_text, media_file, get_sticker(sticker_tag, mode), show_pay_buttons, mode
+        for model in [GEMINI_MODEL] + GEMINI_FALLBACK_MODELS:
+            success, response_text = gemini_request(key, model, payload, timeout=6)
+            if success and response_text:
+                clean_text, photo_tag, sticker_tag = parse_media_tags(response_text, mode, asks_media, user_gender=user_gender)
+                media_file = get_media_item(PHOTO_VAULT, photo_tag, wants_video) if asks_media else None
+                return clean_text, media_file, get_sticker(sticker_tag, mode), show_pay_buttons, mode
 
-    for key in OPENROUTER_API_KEYS[:1]:
-        success, response_text = openrouter_request(key, OPENROUTER_MODEL, messages_payload, max_tokens=220, timeout=5)
-        if success and response_text:
-            clean_text, photo_tag, sticker_tag = parse_media_tags(response_text, mode, asks_media, user_gender=user_gender)
-            media_file = get_media_item(PHOTO_VAULT, photo_tag, wants_video) if asks_media else None
-            return clean_text, media_file, get_sticker(sticker_tag, mode), show_pay_buttons, mode
+    for key in OPENROUTER_API_KEYS:
+        for model in [OPENROUTER_MODEL] + OPENROUTER_FALLBACK_MODELS:
+            success, response_text = openrouter_request(key, model, messages_payload, max_tokens=220, timeout=6)
+            if success and response_text:
+                clean_text, photo_tag, sticker_tag = parse_media_tags(response_text, mode, asks_media, user_gender=user_gender)
+                media_file = get_media_item(PHOTO_VAULT, photo_tag, wants_video) if asks_media else None
+                return clean_text, media_file, get_sticker(sticker_tag, mode), show_pay_buttons, mode
 
     fb_txt, fb_media = generate_dynamic_fallback(message_text, user_name, credits_left, user_id, asks_system_help, mode=mode, wants_video=wants_video, asks_media=asks_media)
     return fb_txt, fb_media, get_sticker("HOT" if mode == "ADULT" else "NORMAL", mode), show_pay_buttons, mode
@@ -1658,7 +1680,12 @@ def webhook_handler():
 
 @app.route("/", methods=["GET"])
 def health_check():
-    return jsonify({"status": "online Siya VIP - Full Featured Fast Build Active"}), 200
+    return jsonify({
+        "status": "online Siya VIP - All Original Models & Full Features Restored",
+        "groq_model": GROQ_MODEL,
+        "gemini_models": [GEMINI_MODEL] + GEMINI_FALLBACK_MODELS,
+        "or_model": OPENROUTER_MODEL
+    }), 200
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "80")), debug=False)
