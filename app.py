@@ -27,7 +27,7 @@ except Exception:
 
 STOP_ROMANCE_TRIGGERS = getattr(ac, "STOP_ROMANCE_TRIGGERS", ["bas karo", "band karo", "mode off", "mood off", "normal baat", "stop roleplay", "ab bas"])
 ADULT_WORDS = getattr(ac, "ADULT_WORDS", ["sex", "sexy", "horny", "nude", "bistar", "open", "opan", "kiss", "hot"])
-ROLEPLAY_TRIGGERS = getattr(ac, "ROLEPLAY_TRIGGERS", ["roleplay", "rolpay", "rolplay", "ban jao", "bano", "padosi", "bhabhi", "aunty", "maa", "teacher", "nurse"])
+ROLEPLAY_TRIGGERS = getattr(ac, "ROLEPLAY_TRIGGERS", ["roleplay", "rolpay","dark", "rolplay", "ban jao", "bano", "padosi", "bhabhi", "aunty", "maa", "teacher", "nurse"])
 VOICE_REQUEST_TRIGGERS = getattr(ac, "VOICE_REQUEST_TRIGGERS", ["voice", "voic", "aawaz", "awaz", "waz", "waza", "audio", "sunao", "suno", "sing", "gaao", "roti hu", "moan", "siskari", "aaah"])
 PHOTO_VAULT = getattr(ac, "PHOTO_VAULT", {
     "simplepic": ["simplepic.jpg", "simplepic2.jpg"], "kiss": ["kiss.jpg"],
