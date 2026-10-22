@@ -322,7 +322,7 @@ def create_cf_order(uid, uname, amount, purpose="credits", gid=""):
     if not CASHFREE_APP_ID or not CASHFREE_SECRET_KEY: return None
     url = "https://sandbox.cashfree.com/pg/orders" if CASHFREE_APP_ID.upper().startswith("TEST") else "https://api.cashfree.com/pg/orders"
     # STRICTLY SET TO ADITIBOT DOMAIN
-    host = "https://aditibot.vercel.app"
+    host = "https://siyaai.vercel.app"
     p = {"order_id": f"ORD_{uid}_{amount}_{int(time.time())}"[:38], "order_amount": float(amount), "order_currency": "INR", "customer_details": {"customer_id": f"C_{uid}", "customer_phone": "9999999999", "customer_email": f"u{uid}@gmail.com", "customer_name": "VIP"}, "order_meta": {"return_url": f"https://t.me/{BOT_USERNAME}"}}
     try:
         r = requests.post(url, headers={"x-client-id": CASHFREE_APP_ID, "x-client-secret": CASHFREE_SECRET_KEY, "x-api-version": "2023-08-01", "Content-Type": "application/json"}, json=p, timeout=5)
