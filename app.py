@@ -669,7 +669,7 @@ def fetch_live_song_lyrics(song_query):
             res = requests.post(
                 "https://api.groq.com/openai/v1/chat/completions",
                 headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
-                json={"model": GROQ_MODEL, "messages": [{"role": "user", "content": prompt}], "temperature": 0.3, "max_tokens": 130},
+                json={"model": GROQ_MODEL, "messages": [{"role": "user", "content": prompt}], "temperature": 0.3, "max_tokens": 500},
                 timeout=4
             )
             if res.ok and res.json().get("choices"):
@@ -1066,7 +1066,7 @@ def build_clean_messages(system_instruction, history, current_message, mode="NOR
     messages.append({"role": "user", "content": str(current_message or "")})
     return messages
 
-def groq_request(api_key, model, messages, max_tokens=280, timeout=6):
+def groq_request(api_key, model, messages, max_tokens=500, timeout=6):
     api_url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
     payload = {
@@ -1099,7 +1099,7 @@ def groq_vision_request(api_key, model, system_instruction, prompt_text, media_b
             ]
         }
     ]
-    payload = {"model": model, "messages": messages, "temperature": 0.78, "frequency_penalty": 0.65, "max_tokens": 250}
+    payload = {"model": model, "messages": messages, "temperature": 0.78, "frequency_penalty": 0.65, "max_tokens": 500}
     try:
         res = requests.post(api_url, headers=headers, json=payload, timeout=timeout)
         if res.ok and res.json().get("choices"):
@@ -1109,7 +1109,7 @@ def groq_vision_request(api_key, model, system_instruction, prompt_text, media_b
     except Exception: pass
     return False, "Groq Vision Failed"
 
-def openrouter_request(api_key, model, messages, max_tokens=280, timeout=6):
+def openrouter_request(api_key, model, messages, max_tokens=500, timeout=6):
     api_url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}", "HTTP-Referer": "https://siya-ai.vercel.app", "X-Title": "Siya AI"}
     payload = {
@@ -1255,7 +1255,7 @@ Location: {current_context} | Current Exact Time in India: {time_greeting}
             payload = {
                 "systemInstruction": {"parts": [{"text": sys_prompt}]},
                 "contents": [{"role": "user", "parts": user_parts}],
-                "generationConfig": {"temperature": 0.78, "maxOutputTokens": 260},
+                "generationConfig": {"temperature": 0.78, "maxOutputTokens": 500},
             }
             for model in [GEMINI_MODEL] + GEMINI_FALLBACK_MODELS:
                 success, response_text = gemini_request(key, model, payload, timeout=7)
@@ -1285,7 +1285,7 @@ Location: {current_context} | Current Exact Time in India: {time_greeting}
 
         for key in OPENROUTER_API_KEYS:
             for model in OPENROUTER_FALLBACK_MODELS + [OPENROUTER_MODEL]:
-                success, response_text = openrouter_request(key, model, messages_payload, max_tokens=280, timeout=6)
+                success, response_text = openrouter_request(key, model, messages_payload, max_tokens=500, timeout=6)
                 if success and response_text:
                     clean_text, photo_tag, sticker_tag = parse_media_tags(response_text, mode, asks_media, user_gender=user_gender)
                     media_file = get_media_item(PHOTO_VAULT, photo_tag, wants_video) if asks_media else None
@@ -1293,7 +1293,7 @@ Location: {current_context} | Current Exact Time in India: {time_greeting}
 
     for key in GROQ_API_KEYS:
         for model in [GROQ_MODEL] + GROQ_FALLBACK_MODELS:
-            success, response_text = groq_request(key, model, messages_payload, max_tokens=280, timeout=6)
+            success, response_text = groq_request(key, model, messages_payload, max_tokens=500, timeout=6)
             if success and response_text:
                 clean_text, photo_tag, sticker_tag = parse_media_tags(response_text, mode, asks_media, user_gender=user_gender)
                 media_file = get_media_item(PHOTO_VAULT, photo_tag, wants_video) if asks_media else None
@@ -1314,7 +1314,7 @@ Location: {current_context} | Current Exact Time in India: {time_greeting}
 
     for key in OPENROUTER_API_KEYS:
         for model in [OPENROUTER_MODEL] + OPENROUTER_FALLBACK_MODELS:
-            success, response_text = openrouter_request(key, model, messages_payload, max_tokens=280, timeout=6)
+            success, response_text = openrouter_request(key, model, messages_payload, max_tokens=500, timeout=6)
             if success and response_text:
                 clean_text, photo_tag, sticker_tag = parse_media_tags(response_text, mode, asks_media, user_gender=user_gender)
                 media_file = get_media_item(PHOTO_VAULT, photo_tag, wants_video) if asks_media else None
