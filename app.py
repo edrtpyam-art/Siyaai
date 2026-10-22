@@ -18,7 +18,7 @@ from datetime import datetime, timedelta
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 # ============================================================
-# LOAD EXTERNAL ADULT CONFIG (FIXED TRY-EXCEPT BLOCK!)
+# LOAD EXTERNAL ADULT CONFIG (100% CRASH-FREE TRY-EXCEPT!)
 # ============================================================
 try:
     from adult_config import (
@@ -31,7 +31,7 @@ try:
         ADULT_MODE_INSTRUCTION
     )
 except Exception as e:
-    print("adult_config load fallback:", e)
+    print("adult_config fallback:", e)
     STOP_ROMANCE_TRIGGERS = [
         "bas karo", "basa karo", "band karo", "off huagya", "off ho gaya", "mode off",
         "modes off", "mood off", "mode nahi", "mode nehi", "mood nahi", "mood nehi",
@@ -50,13 +50,24 @@ except Exception as e:
         "sing", "gaao", "gaa ke", "voice bejo", "voice bhejo", "voice beja",
         "voice bjao", "voice doo", "voice do", "apan waz me", "roti hu", "roti huu", "moan", "siskari", "aaah"
     ]
-    PHOTO_VAULT = {"simplepic": ["simplepic.jpg", "simplepic2.jpg"], "kiss": ["kiss.jpg"]}
+    PHOTO_VAULT = {
+        "simplepic": ["simplepic.jpg", "simplepic2.jpg"],
+        "kiss": ["kiss.jpg"],
+        "bodes": ["private1.jpg", "private2.jpg", "private3.jpg", "private4.jpg", "video.mp4", "video2.mp4", "video3.mp4"],
+        "bodes_video": ["video.mp4", "video2.mp4", "video3.mp4"],
+        "showhard": ["showhard.jpg", "showhard2.jpg"],
+        "chut": ["open1.jpg", "open2.jpg", "opan3.jpg", "video4.mp4", "video5.mp4"],
+        "chut_video": ["video4.mp4", "video5.mp4"],
+        "endshow": ["endshow.jpg"],
+        "gand": ["bom1.jpg", "bom2.jpg", "bom3.jpg", "video6.mp4", "video7.mp4"],
+        "gand_video": ["video6.mp4", "video7.mp4"]
+    }
     STICKER_PACKS_CONFIG = {
         "NORMAL": ["PeachGomaPack11"],
         "ROMANTIC": ["sticker_BM8g_by_stickerskibot", "Yornseyha077", "HandVideoR_by_stickersthiefbot", "Custom2224_by_fStikBot"],
         "HOT": ["HandVideoR_by_stickersthiefbot", "Custom2224_by_fStikBot", "Love9_Wallgif", "mmm_by_hhujhybot", "channel_LOVE0000_01_03", "Cute_hotness", "jan8StickerNub"]
     }
-    ADULT_MODE_INSTRUCTION = "\n[MODE: OPEN ROMANTIC / ROLEPLAY - Stay 100% in character and reply passionately in 1-2 short Hinglish sentences!]"
+    ADULT_MODE_INSTRUCTION = "\n[MODE: OPEN INTIMATE / ROLEPLAY - Stay 100% in character, never get angry, and reply passionately in 1-2 short Hinglish sentences!]"
 
 try:
     from vercel.cache import RuntimeCache
@@ -100,11 +111,7 @@ OPENROUTER_API_KEYS = [k for k in [
     os.environ.get("OPENROUTER_API_KEY2", "").strip().strip('"')
 ] if k]
 OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct:free"
-OPENROUTER_FALLBACK_MODELS = [
-    "nousresearch/hermes-3-llama-3.1-405b:free",
-    "cognitivecomputations/dolphin3.0-r1-mistral-24b:free",
-    "qwen/qwen-2.5-72b-instruct:free"
-]
+OPENROUTER_FALLBACK_MODELS = ["qwen/qwen-2.5-72b-instruct:free", "nousresearch/hermes-3-llama-3.1-405b:free"]
 
 GEMINI_API_KEYS = [k for k in [
     os.environ.get("GEMINI_API_KEY", "").strip().strip('"'),
@@ -112,7 +119,7 @@ GEMINI_API_KEYS = [k for k in [
     os.environ.get("GEMINI_API_KEY3", "").strip().strip('"')
 ] if k]
 GEMINI_MODEL = "gemini-2.5-flash"
-GEMINI_FALLBACK_MODELS = ["gemini-2.0-flash", "gemini-2.5-flash-lite"]
+GEMINI_FALLBACK_MODELS = ["gemini-2.0-flash"]
 
 GEMINI_SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
@@ -173,7 +180,7 @@ DIRECT_SING_TRIGGERS = [
 STICKER_CACHE = {}
 
 # ============================================================
-# 3. DEDUPLICATION, MEDIA & TELEGRAM HELPERS
+# 3. DEDUPLICATION, MEDIA & TELEGRAM HELPERS (FAST TIMEOUTS)
 # ============================================================
 def cache_get(key):
     if not runtime_cache: return None
@@ -240,12 +247,12 @@ def get_sticker(s_type=None, current_mode="NORMAL", force=False):
 
     packs = list(STICKER_PACKS_CONFIG.get(s_type, ["PeachGomaPack11"]))
     random.shuffle(packs)
-    for pack_name in packs:
+    for pack_name in packs[:2]:
         if pack_name in STICKER_CACHE and STICKER_CACHE[pack_name]:
             return random.choice(STICKER_CACHE[pack_name])
         if API_URL:
             try:
-                res = requests.get(f"{API_URL}/getStickerSet", params={"name": pack_name}, timeout=3).json()
+                res = requests.get(f"{API_URL}/getStickerSet", params={"name": pack_name}, timeout=2).json()
                 if res.get("ok"):
                     stickers = [s["file_id"] for s in res.get("result", {}).get("stickers", []) if s.get("file_id")]
                     if stickers:
@@ -254,7 +261,7 @@ def get_sticker(s_type=None, current_mode="NORMAL", force=False):
             except Exception: pass
     return None
 
-def telegram_request(method, payload=None, timeout=10):
+def telegram_request(method, payload=None, timeout=6):
     if not API_URL: return {"ok": False, "error": "BOT_TOKEN is missing"}
     try: return requests.post(f"{API_URL}/{method}", json=payload or {}, timeout=timeout).json()
     except Exception as e: return {"ok": False, "error": str(e)}
@@ -283,6 +290,16 @@ def send_local_or_url_media(chat_id, filename, caption="", protect=False, spoile
     media_key = "video" if is_video else "photo"
     mime_type = "video/mp4" if is_video else "image/jpeg"
 
+    # Use GitHub Raw URL first for instant speed on Vercel (avoids slow multipart upload timeouts!)
+    media_url = filename if str(filename).startswith("http") else GITHUB_BASE_URL + filename
+    payload = {"chat_id": chat_id, media_key: media_url, "caption": str(caption or ""), "protect_content": protect, "has_spoiler": spoiler}
+    if reply_to_message_id: payload["reply_to_message_id"] = reply_to_message_id
+    if parse_mode: payload["parse_mode"] = parse_mode
+    if reply_markup: payload["reply_markup"] = reply_markup
+    res = telegram_request(api_method, payload, timeout=10)
+    if res.get("ok"):
+        return res
+
     local_file_path = find_local_file(filename)
     if local_file_path:
         try:
@@ -294,16 +311,10 @@ def send_local_or_url_media(chat_id, filename, caption="", protect=False, spoile
             if reply_markup: data["reply_markup"] = json.dumps(reply_markup)
             with open(local_file_path, "rb") as f:
                 files = {media_key: (os.path.basename(local_file_path), f, mime_type)}
-                return requests.post(f"{API_URL}/{api_method}", data=data, files=files, timeout=20).json()
+                return requests.post(f"{API_URL}/{api_method}", data=data, files=files, timeout=12).json()
         except Exception as e:
             print("Local media upload error:", e)
-
-    media_url = filename if str(filename).startswith("http") else GITHUB_BASE_URL + filename
-    payload = {"chat_id": chat_id, media_key: media_url, "caption": str(caption or ""), "protect_content": protect, "has_spoiler": spoiler}
-    if reply_to_message_id: payload["reply_to_message_id"] = reply_to_message_id
-    if parse_mode: payload["parse_mode"] = parse_mode
-    if reply_markup: payload["reply_markup"] = reply_markup
-    return telegram_request(api_method, payload, timeout=20)
+    return res
 
 def delete_message(chat_id, message_id):
     return telegram_request("deleteMessage", {"chat_id": chat_id, "message_id": message_id})
@@ -316,20 +327,20 @@ def send_secret_media(chat_id, media_source, caption="", delete_after=15, reply_
     return res
 
 def send_typing(chat_id):
-    return telegram_request("sendChatAction", {"chat_id": chat_id, "action": "typing"}, timeout=4)
+    return telegram_request("sendChatAction", {"chat_id": chat_id, "action": "typing"}, timeout=2)
 
 def get_live_group_title(chat_id, fallback="Group"):
-    result = telegram_request("getChat", {"chat_id": chat_id}, timeout=4)
+    result = telegram_request("getChat", {"chat_id": chat_id}, timeout=3)
     if result.get("ok") and result.get("result", {}).get("title"):
         return str(result["result"]["title"]).strip()
     return str(fallback or "Group").strip() or "Group"
 
 def get_telegram_file_base64(file_id):
     if not file_id: return None
-    res = telegram_request("getFile", {"file_id": file_id}, timeout=6)
+    res = telegram_request("getFile", {"file_id": file_id}, timeout=4)
     if res.get("ok"):
         try:
-            r = requests.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{res['result']['file_path']}", timeout=6)
+            r = requests.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{res['result']['file_path']}", timeout=4)
             if r.ok: return base64.b64encode(r.content).decode("utf-8")
         except Exception: pass
     return None
@@ -378,7 +389,7 @@ def fb_get_user(user_id):
     }
     if not FIREBASE_URL: return default_data
     try:
-        res = requests.get(f"{FIREBASE_URL}/users/{user_id}.json?auth={FIREBASE_SECRET}", timeout=3).json()
+        res = requests.get(f"{FIREBASE_URL}/users/{user_id}.json?auth={FIREBASE_SECRET}", timeout=2.5).json()
         if isinstance(res, dict):
             if "credits" not in res:
                 used = int(res.get("msg_count") or 0)
@@ -395,7 +406,7 @@ def fb_update_user(user_id, data):
     user_id = str(user_id)
     if user_id in USER_CACHE: USER_CACHE[user_id].update(data)
     if not FIREBASE_URL: return
-    try: requests.patch(f"{FIREBASE_URL}/users/{user_id}.json?auth={FIREBASE_SECRET}", json=data, timeout=3)
+    try: requests.patch(f"{FIREBASE_URL}/users/{user_id}.json?auth={FIREBASE_SECRET}", json=data, timeout=2.5)
     except Exception: pass
 
 def get_history(user_id, user_data=None):
@@ -415,7 +426,7 @@ def add_to_history(user_id, role, text, context_type="Private DM"):
 def fb_get_known_groups():
     if not FIREBASE_URL: return {}
     try:
-        res = requests.get(f"{FIREBASE_URL}/all_bot_groups.json?auth={FIREBASE_SECRET}", timeout=3).json()
+        res = requests.get(f"{FIREBASE_URL}/all_bot_groups.json?auth={FIREBASE_SECRET}", timeout=2.5).json()
         return res if isinstance(res, dict) else {}
     except Exception: return {}
 
@@ -424,9 +435,9 @@ def get_strict_user_owned_groups(user_id, user_data):
     try:
         all_known = fb_get_known_groups()
         updated = False
-        for gid, gtitle in list(all_known.items())[:25]:
+        for gid, gtitle in list(all_known.items())[:15]:
             if gid in my_groups: continue
-            cm = telegram_request("getChatMember", {"chat_id": gid, "user_id": int(user_id)}, timeout=3)
+            cm = telegram_request("getChatMember", {"chat_id": gid, "user_id": int(user_id)}, timeout=2)
             if cm.get("ok") and cm.get("result", {}).get("status") in ("creator", "administrator"):
                 my_groups[gid] = gtitle
                 updated = True
@@ -442,10 +453,10 @@ def check_and_run_group_promotion(chat_id, msg_id, sender_id, sender_name):
         promo_rate_tracker[gid] = ts_list
         return
     try:
-        promo = requests.get(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", timeout=3).json()
+        promo = requests.get(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", timeout=2.5).json()
         if isinstance(promo, dict) and promo.get("active"):
             if now > float(promo.get("expires_at") or 0):
-                requests.patch(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", json={"active": False}, timeout=3)
+                requests.patch(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", json={"active": False}, timeout=2.5)
                 return
             promo_rate_tracker[gid] = ts_list + [now]
             tag_msg = f"👋 Hey <a href=\"tg://user?id={sender_id}\">{html.escape(sender_name)}</a>! ✨\n\n📢 <b>Sponsored Highlight:</b>\n{html.escape(str(promo.get('text', '')))}"
@@ -479,7 +490,7 @@ def create_cashfree_order(user_id, user_name, amount, purpose="credits", group_i
     }
     headers = {"x-client-id": CASHFREE_APP_ID, "x-client-secret": CASHFREE_SECRET_KEY, "x-api-version": "2023-08-01", "Content-Type": "application/json"}
     try:
-        r = requests.post(pg_url, headers=headers, json=payload, timeout=6)
+        r = requests.post(pg_url, headers=headers, json=payload, timeout=5)
         if r.ok and r.json().get("payment_session_id"):
             return f"{host_domain}/api/pay/{r.json()['payment_session_id']}", ""
         return None, r.json().get("message", "API Error")
@@ -513,7 +524,7 @@ def fetch_live_song_lyrics(song_query):
         raw_q = random.choice(["Tum Hi Ho Arijit Singh", "Kesariya Brahmāstra", "Raataan Lambiyan", "Apna Bana Le"])
 
     groq_lyrics, groq_title = None, raw_q.title()
-    for key in GROQ_API_KEYS[:3]:
+    for key in GROQ_API_KEYS[:2]:
         try:
             prompt = (
                 f"User requested a Bollywood/Hindi song (may have typos): '{raw_q}'.\n"
@@ -524,8 +535,8 @@ def fetch_live_song_lyrics(song_query):
             res = requests.post(
                 "https://api.groq.com/openai/v1/chat/completions",
                 headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
-                json={"model": GROQ_MODEL, "messages": [{"role": "user", "content": prompt}], "temperature": 0.3, "max_tokens": 140},
-                timeout=5
+                json={"model": GROQ_MODEL, "messages": [{"role": "user", "content": prompt}], "temperature": 0.3, "max_tokens": 130},
+                timeout=4
             )
             if res.ok and res.json().get("choices"):
                 out = str(res.json()["choices"][0]["message"]["content"] or "").strip()
@@ -567,7 +578,7 @@ def fetch_full_length_song_audio(genre_or_name):
 
     for url in [f"https://saavn.dev/api/search/songs?query={quote(search_term)}&limit=3", f"https://jiosaavn-api-privatecvc2.vercel.app/search/songs?query={quote(search_term)}&limit=3"]:
         try:
-            r = requests.get(url, timeout=5).json()
+            r = requests.get(url, timeout=4).json()
             results = r.get("data", {}).get("results") or r.get("results") or []
             if results:
                 dl_urls = results[0].get("downloadUrl") or results[0].get("media_urls") or []
@@ -577,7 +588,7 @@ def fetch_full_length_song_audio(genre_or_name):
         except Exception: pass
 
     try:
-        res = requests.get(f"https://itunes.apple.com/search?term={quote(search_term + ' hindi')}&Country=IN&media=music&limit=3", timeout=5).json().get("results", [])
+        res = requests.get(f"https://itunes.apple.com/search?term={quote(search_term + ' hindi')}&Country=IN&media=music&limit=3", timeout=4).json().get("results", [])
         if res and res[0].get("previewUrl"): return res[0]["previewUrl"], res[0].get("trackName", "Song")
     except Exception: pass
     return None, None
@@ -610,27 +621,26 @@ def generate_gemini_native_voice(instruction_prompt, voice_type="normal"):
     else:
         prompt_for_audio = f"Say in a sweet, warm, natural 20-year-old Indian girlfriend voice with soft affection:\n{raw_text}"
 
-    for key in GEMINI_API_KEYS:
-        for tts_model in ["gemini-2.5-flash-preview-tts", "gemini-2.0-flash-exp"]:
-            try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{tts_model}:generateContent"
-                payload = {
-                    "contents": [{"parts": [{"text": prompt_for_audio}]}],
-                    "generationConfig": {
-                        "responseModalities": ["AUDIO"],
-                        "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": v_name}}}
-                    }
+    for key in GEMINI_API_KEYS[:2]:
+        try:
+            url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent"
+            payload = {
+                "contents": [{"parts": [{"text": prompt_for_audio}]}],
+                "generationConfig": {
+                    "responseModalities": ["AUDIO"],
+                    "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": v_name}}}
                 }
-                r = requests.post(url, headers={"Content-Type": "application/json", "x-goog-api-key": key}, json=payload, timeout=10)
-                if r.ok and r.json().get("candidates"):
-                    for part in r.json()["candidates"][0].get("content", {}).get("parts", []):
-                        if part.get("inlineData", {}).get("data"):
-                            raw_bytes = base64.b64decode(part["inlineData"]["data"])
-                            mime = part["inlineData"].get("mimeType", "")
-                            if "pcm" in mime or "L16" in mime or not mime.startswith("audio/ogg"):
-                                return pcm_to_wav_bytes(raw_bytes), "audio/wav", "siya_voice.wav"
-                            return raw_bytes, mime, "siya_voice.ogg"
-            except Exception: pass
+            }
+            r = requests.post(url, headers={"Content-Type": "application/json", "x-goog-api-key": key}, json=payload, timeout=7)
+            if r.ok and r.json().get("candidates"):
+                for part in r.json()["candidates"][0].get("content", {}).get("parts", []):
+                    if part.get("inlineData", {}).get("data"):
+                        raw_bytes = base64.b64decode(part["inlineData"]["data"])
+                        mime = part["inlineData"].get("mimeType", "")
+                        if "pcm" in mime or "L16" in mime or not mime.startswith("audio/ogg"):
+                            return pcm_to_wav_bytes(raw_bytes), "audio/wav", "siya_voice.wav"
+                        return raw_bytes, mime, "siya_voice.ogg"
+        except Exception: pass
 
     clean_speech = re.sub(r"[^\w\s.,!?'-]", " ", safe_script if voice_type == "adult" else raw_text)
     clean_speech = re.sub(r"\s+", " ", clean_speech).strip()[:200]
@@ -638,14 +648,14 @@ def generate_gemini_native_voice(instruction_prompt, voice_type="normal"):
         clean_speech = f"Hmmmm... suno jaan... {clean_speech}"
     try:
         polly_url = f"https://api.streamelements.com/kappa/v2/speech?voice=Aditi&text={quote(clean_speech)}"
-        r = requests.get(polly_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=6)
+        r = requests.get(polly_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=4)
         if r.ok and len(r.content) > 800:
             return r.content, "audio/mpeg", "siya_voice.mp3"
     except Exception: pass
 
     try:
         g_url = f"https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=hi&q={quote(clean_speech[:180])}"
-        r = requests.get(g_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=6)
+        r = requests.get(g_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=4)
         if r.ok and len(r.content) > 800:
             return r.content, "audio/mpeg", "siya_voice.mp3"
     except Exception: pass
@@ -660,7 +670,7 @@ def ensure_font(font_path, font_url):
         try: ImageFont.truetype(font_path, 40); return font_path
         except Exception: pass
     try:
-        response = requests.get(font_url, timeout=8)
+        response = requests.get(font_url, timeout=5)
         if response.ok and len(response.content) > 10000:
             with open(font_path, "wb") as f: f.write(response.content)
             return font_path
@@ -692,15 +702,15 @@ def fit_text(draw, text, max_width, font, max_chars=60):
 def get_user_avatar_bytes(user_id):
     if not API_URL or not user_id: return None
     try:
-        result = telegram_request("getUserProfilePhotos", {"user_id": user_id, "limit": 1}, timeout=5)
+        result = telegram_request("getUserProfilePhotos", {"user_id": user_id, "limit": 1}, timeout=4)
         if not result.get("ok"): return None
         photos = result.get("result", {}).get("photos", [])
         if not photos or not photos[0]: return None
         file_id = photos[0][-1].get("file_id")
-        file_result = telegram_request("getFile", {"file_id": file_id}, timeout=5)
+        file_result = telegram_request("getFile", {"file_id": file_id}, timeout=4)
         if not file_result.get("ok"): return None
         file_path = file_result.get("result", {}).get("file_path")
-        response = requests.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}", timeout=5)
+        response = requests.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}", timeout=4)
         if response.ok: return response.content
     except Exception: pass
     return None
@@ -756,7 +766,7 @@ def create_welcome_card(user_id, user_name):
     draw.text((530, 540), "SIYA AI", fill=(10, 10, 10, 255), font=title_font)
 
     output = BytesIO()
-    canvas.convert("RGB").save(output, format="JPEG", quality=95, optimize=True)
+    canvas.convert("RGB").save(output, format="JPEG", quality=92, optimize=True)
     output.seek(0)
     return output
 
@@ -766,7 +776,7 @@ def send_welcome_photo(chat_id, user_id, user_name, group_name, reply_to_message
         data = {"chat_id": chat_id, "caption": f"🎉 <b>WELCOME TO {html.escape(group_name)}</b>\n\nHey <a href=\"tg://user?id={user_id}\">{html.escape(user_name)}</a>, we are glad to have you here! ✨", "parse_mode": "HTML"}
         if reply_to_message_id: data["reply_to_message_id"] = reply_to_message_id
         files = {"photo": ("welcome.jpg", image_file, "image/jpeg")}
-        return requests.post(f"{API_URL}/sendPhoto", data=data, files=files, timeout=15).json()
+        return requests.post(f"{API_URL}/sendPhoto", data=data, files=files, timeout=10).json()
     except Exception as e: return {"ok": False, "error": str(e)}
 
 # ============================================================
@@ -924,7 +934,7 @@ def build_clean_messages(system_instruction, history, current_message, mode="NOR
             "content": "Aaaah... haan meri jaan, aao na andar... main bilkul wahi ban gayi hoon jo tumne kaha, aaj jo mann kare khul ke karo! 😘🔥"
         })
 
-    for h in history[-50:]:
+    for h in history[-30:]:
         role = "assistant" if h.get("role") == "siya" else "user"
         clean_hist_txt = str(h.get("text") or "").strip()
         if not clean_hist_txt or is_censored_refusal(clean_hist_txt):
@@ -936,7 +946,7 @@ def build_clean_messages(system_instruction, history, current_message, mode="NOR
     messages.append({"role": "user", "content": str(current_message or "")})
     return messages
 
-def groq_request(api_key, model, messages, max_tokens=260, timeout=9):
+def groq_request(api_key, model, messages, max_tokens=240, timeout=5):
     api_url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
     payload = {
@@ -956,7 +966,7 @@ def groq_request(api_key, model, messages, max_tokens=260, timeout=9):
         return False, f"Groq ({model}) HTTP {res.status_code}"
     except Exception as e: return False, str(e)
 
-def groq_vision_request(api_key, model, system_instruction, prompt_text, media_base64, media_mime_type="image/jpeg", timeout=10):
+def groq_vision_request(api_key, model, system_instruction, prompt_text, media_base64, media_mime_type="image/jpeg", timeout=6):
     api_url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
     messages = [
@@ -969,7 +979,7 @@ def groq_vision_request(api_key, model, system_instruction, prompt_text, media_b
             ]
         }
     ]
-    payload = {"model": model, "messages": messages, "temperature": 0.78, "frequency_penalty": 0.7, "max_tokens": 240}
+    payload = {"model": model, "messages": messages, "temperature": 0.78, "frequency_penalty": 0.7, "max_tokens": 220}
     try:
         res = requests.post(api_url, headers=headers, json=payload, timeout=timeout)
         if res.ok and res.json().get("choices"):
@@ -979,7 +989,7 @@ def groq_vision_request(api_key, model, system_instruction, prompt_text, media_b
     except Exception: pass
     return False, "Groq Vision Failed"
 
-def openrouter_request(api_key, model, messages, max_tokens=260, timeout=9):
+def openrouter_request(api_key, model, messages, max_tokens=240, timeout=5):
     api_url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}", "HTTP-Referer": "https://siya-ai.vercel.app", "X-Title": "Siya AI"}
     payload = {
@@ -999,7 +1009,7 @@ def openrouter_request(api_key, model, messages, max_tokens=260, timeout=9):
         return False, f"OR ({model}) HTTP {response.status_code}"
     except Exception as e: return False, str(e)
 
-def gemini_request(api_key, model, payload, timeout=10):
+def gemini_request(api_key, model, payload, timeout=6):
     api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
     payload["safetySettings"] = GEMINI_SAFETY_SETTINGS
@@ -1133,10 +1143,10 @@ Location: {current_context} | Current Exact Time in India: {time_greeting}
     show_pay_buttons = (asks_buy_plans and str(user_id) != OWNER_ID and credits_left < 10)
 
     # ==========================================================
-    # ROUTE 1: PHOTO & STICKER VISION
+    # ROUTE 1: PHOTO & STICKER VISION (FAST TIMEOUT)
     # ==========================================================
     if media_base64:
-        hist_summary = "\n".join([f"{m.get('role')}: {m.get('text')}" for m in history[-12:] if not is_censored_refusal(m.get('text'))])
+        hist_summary = "\n".join([f"{m.get('role')}: {m.get('text')}" for m in history[-10:] if not is_censored_refusal(m.get('text'))])
         vision_prompt = (
             f"Recent Chat:\n{hist_summary}\n\n"
             f"VISION RULES (LOOK WITH REAL HUMAN EYES IN 1-2 SHORT SENTENCES!):\n"
@@ -1147,59 +1157,56 @@ Location: {current_context} | Current Exact Time in India: {time_greeting}
             f"User context: {effective_user_message}"
         )
 
-        for key in GROQ_API_KEYS[:3]:
-            for v_model in GROQ_VISION_MODELS:
-                success, response_text = groq_vision_request(key, v_model, sys_prompt, vision_prompt, media_base64, media_mime_type, timeout=10)
+        for key in GROQ_API_KEYS[:2]:
+            for v_model in GROQ_VISION_MODELS[:1]:
+                success, response_text = groq_vision_request(key, v_model, sys_prompt, vision_prompt, media_base64, media_mime_type, timeout=5)
                 if success and response_text:
                     clean_text, _, sticker_tag = parse_media_tags(response_text, mode, asks_media=False, user_gender=user_gender)
                     return clean_text, None, get_sticker(sticker_tag, mode), show_pay_buttons, mode
 
-        for key in GEMINI_API_KEYS:
+        for key in GEMINI_API_KEYS[:2]:
             user_parts = [{"text": vision_prompt}, {"inlineData": {"mimeType": media_mime_type, "data": media_base64}}]
             payload = {
                 "systemInstruction": {"parts": [{"text": sys_prompt}]},
                 "contents": [{"role": "user", "parts": user_parts}],
-                "generationConfig": {"temperature": 0.78, "maxOutputTokens": 260},
+                "generationConfig": {"temperature": 0.78, "maxOutputTokens": 220},
             }
-            for model in [GEMINI_MODEL] + GEMINI_FALLBACK_MODELS:
-                success, response_text = gemini_request(key, model, payload, timeout=10)
-                if success and response_text:
-                    clean_text, _, sticker_tag = parse_media_tags(response_text, mode, asks_media=False, user_gender=user_gender)
-                    return clean_text, None, get_sticker(sticker_tag, mode), show_pay_buttons, mode
+            success, response_text = gemini_request(key, GEMINI_MODEL, payload, timeout=6)
+            if success and response_text:
+                clean_text, _, sticker_tag = parse_media_tags(response_text, mode, asks_media=False, user_gender=user_gender)
+                return clean_text, None, get_sticker(sticker_tag, mode), show_pay_buttons, mode
 
     # ==========================================================
-    # ROUTE 2: TEXT WATERFALL (WITH 50-MESSAGE MEMORY)
+    # ROUTE 2: TEXT WATERFALL (FAST TIMEOUT TO PREVENT VERCEL CRASH!)
     # ==========================================================
     messages_payload = build_clean_messages(sys_prompt, history, effective_user_message, mode=mode, active_rp=active_rp)
 
-    for key in GROQ_API_KEYS:
+    for key in GROQ_API_KEYS[:2]:
         for model in [GROQ_MODEL] + GROQ_FALLBACK_MODELS:
-            success, response_text = groq_request(key, model, messages_payload, max_tokens=260, timeout=9)
+            success, response_text = groq_request(key, model, messages_payload, max_tokens=220, timeout=5)
             if success and response_text:
                 clean_text, photo_tag, sticker_tag = parse_media_tags(response_text, mode, asks_media, user_gender=user_gender)
                 media_file = get_media_item(PHOTO_VAULT, photo_tag, wants_video) if asks_media else None
                 return clean_text, media_file, get_sticker(sticker_tag, mode), show_pay_buttons, mode
 
-    for key in GEMINI_API_KEYS:
+    for key in GEMINI_API_KEYS[:2]:
         payload = {
             "systemInstruction": {"parts": [{"text": sys_prompt}]},
-            "contents": [{"role": "user", "parts": [{"text": f"Recent Chat:\n" + "\n".join([f'{m.get("role")}: {m.get("text")}' for m in history[-14:]]) + f"\n\n{user_name}: {effective_user_message}\nReply in 1-2 short complete sentences:"}]}],
-            "generationConfig": {"temperature": 0.78, "maxOutputTokens": 260},
+            "contents": [{"role": "user", "parts": [{"text": f"Recent Chat:\n" + "\n".join([f'{m.get("role")}: {m.get("text")}' for m in history[-10:]]) + f"\n\n{user_name}: {effective_user_message}\nReply in 1-2 short complete sentences:"}]}],
+            "generationConfig": {"temperature": 0.78, "maxOutputTokens": 220},
         }
-        for model in [GEMINI_MODEL] + GEMINI_FALLBACK_MODELS:
-            success, response_text = gemini_request(key, model, payload, timeout=9)
-            if success and response_text:
-                clean_text, photo_tag, sticker_tag = parse_media_tags(response_text, mode, asks_media, user_gender=user_gender)
-                media_file = get_media_item(PHOTO_VAULT, photo_tag, wants_video) if asks_media else None
-                return clean_text, media_file, get_sticker(sticker_tag, mode), show_pay_buttons, mode
+        success, response_text = gemini_request(key, GEMINI_MODEL, payload, timeout=5)
+        if success and response_text:
+            clean_text, photo_tag, sticker_tag = parse_media_tags(response_text, mode, asks_media, user_gender=user_gender)
+            media_file = get_media_item(PHOTO_VAULT, photo_tag, wants_video) if asks_media else None
+            return clean_text, media_file, get_sticker(sticker_tag, mode), show_pay_buttons, mode
 
-    for key in OPENROUTER_API_KEYS:
-        for model in [OPENROUTER_MODEL] + OPENROUTER_FALLBACK_MODELS:
-            success, response_text = openrouter_request(key, model, messages_payload, max_tokens=260, timeout=9)
-            if success and response_text:
-                clean_text, photo_tag, sticker_tag = parse_media_tags(response_text, mode, asks_media, user_gender=user_gender)
-                media_file = get_media_item(PHOTO_VAULT, photo_tag, wants_video) if asks_media else None
-                return clean_text, media_file, get_sticker(sticker_tag, mode), show_pay_buttons, mode
+    for key in OPENROUTER_API_KEYS[:1]:
+        success, response_text = openrouter_request(key, OPENROUTER_MODEL, messages_payload, max_tokens=220, timeout=5)
+        if success and response_text:
+            clean_text, photo_tag, sticker_tag = parse_media_tags(response_text, mode, asks_media, user_gender=user_gender)
+            media_file = get_media_item(PHOTO_VAULT, photo_tag, wants_video) if asks_media else None
+            return clean_text, media_file, get_sticker(sticker_tag, mode), show_pay_buttons, mode
 
     fb_txt, fb_media = generate_dynamic_fallback(message_text, user_name, credits_left, user_id, asks_system_help, mode=mode, wants_video=wants_video, asks_media=asks_media)
     return fb_txt, fb_media, get_sticker("HOT" if mode == "ADULT" else "NORMAL", mode), show_pay_buttons, mode
@@ -1249,7 +1256,7 @@ def webhook_handler():
 
             if cb_data == "songmode_voice":
                 telegram_request("answerCallbackQuery", {"callback_query_id": cb_id, "text": "Gaa rahi hoon... 🎤💕"})
-                telegram_request("sendChatAction", {"chat_id": chat_id, "action": "record_voice"}, timeout=3)
+                telegram_request("sendChatAction", {"chat_id": chat_id, "action": "record_voice"}, timeout=2)
                 u_data = fb_get_user(clicker_id)
                 song_req = u_data.get("pending_song_query", "Channa Mereya")
                 real_lyrics, song_title = fetch_live_song_lyrics(song_req)
@@ -1259,7 +1266,7 @@ def webhook_handler():
                         f"{API_URL}/sendVoice",
                         data={"chat_id": chat_id, "caption": f"🎤🎶 <b>{html.escape(str(song_title))}</b> ❤️\n<i>\"{html.escape(real_lyrics[:160])}\"</i>", "parse_mode": "HTML", "protect_content": "true"},
                         files={"voice": (ext, BytesIO(raw_b), mime)},
-                        timeout=14
+                        timeout=10
                     )
                 else:
                     send_message(chat_id, f"🎤🎶 <b>{html.escape(str(song_title))}</b>\n\n<i>\"{html.escape(real_lyrics)}\"</i>", parse_mode="HTML")
@@ -1273,9 +1280,9 @@ def webhook_handler():
                 song_req = u_data.get("pending_song_query", "romantic")
                 audio_url, title = fetch_full_length_song_audio(song_req)
                 if audio_url:
-                    r = requests.get(audio_url, timeout=8)
+                    r = requests.get(audio_url, timeout=6)
                     if r.ok:
-                        requests.post(f"{API_URL}/sendAudio", data={"chat_id": chat_id, "title": title, "performer": "Siya", "protect_content": "true"}, files={"audio": ("song.m4a", BytesIO(r.content), "audio/mp4")}, timeout=12)
+                        requests.post(f"{API_URL}/sendAudio", data={"chat_id": chat_id, "title": title, "performer": "Siya", "protect_content": "true"}, files={"audio": ("song.m4a", BytesIO(r.content), "audio/mp4")}, timeout=10)
                         add_to_history(clicker_id, "user", f"[Asked for song: {song_req}]", "Private")
                         add_to_history(clicker_id, "siya", f"[Maine '{title}' original audio song bheja! 🎵]", "Private")
                 else:
@@ -1305,7 +1312,7 @@ def webhook_handler():
                 _, amount, gid = cb_data.split("_", 2)
                 hours = PROMO_PLANS_HOURS.get(amount, 5)
                 if is_owner_click:
-                    try: requests.patch(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", json={"active": True, "expires_at": time.time() + (hours * 3600)}, timeout=4)
+                    try: requests.patch(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", json={"active": True, "expires_at": time.time() + (hours * 3600)}, timeout=3)
                     except Exception: pass
                     telegram_request("answerCallbackQuery", {"callback_query_id": cb_id, "text": "👑 Promo Activated!", "show_alert": True})
                     send_message(chat_id, f"👑 <b>Owner Privilege:</b> {hours}h Promo LIVE! 🚀🔥", parse_mode="HTML")
@@ -1407,7 +1414,7 @@ def webhook_handler():
                         all_known = fb_get_known_groups()
                         group_title = get_live_group_title(chat_id, chat.get("title", "Group"))
                         all_known[str(chat_id)] = group_title
-                        requests.patch(f"{FIREBASE_URL}/all_bot_groups.json?auth={FIREBASE_SECRET}", json=all_known, timeout=3)
+                        requests.patch(f"{FIREBASE_URL}/all_bot_groups.json?auth={FIREBASE_SECRET}", json=all_known, timeout=2.5)
                         ud = fb_get_user(user_id)
                         ug = ud.get("user_groups") or {}
                         ug[str(chat_id)] = group_title
@@ -1465,7 +1472,7 @@ def webhook_handler():
 
             if user_data.get("awaiting_promo_text_for") and text and not text.startswith("/"):
                 gid = user_data["awaiting_promo_text_for"]
-                try: requests.patch(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", json={"text": text, "owner_id": user_id, "active": False}, timeout=4)
+                try: requests.patch(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", json={"text": text, "owner_id": user_id, "active": False}, timeout=3)
                 except Exception: pass
                 fb_update_user(user_id, {"awaiting_promo_text_for": ""})
                 send_message(chat_id, "✅ <b>Promo Saved!</b> Plan select karo:", reply_markup=get_promo_plans_keyboard(gid), parse_mode="HTML")
@@ -1496,7 +1503,7 @@ def webhook_handler():
             msg_low = text.lower()
             if any(p in msg_low for p in DIRECT_SING_TRIGGERS):
                 send_typing(chat_id)
-                telegram_request("sendChatAction", {"chat_id": chat_id, "action": "record_voice"}, timeout=3)
+                telegram_request("sendChatAction", {"chat_id": chat_id, "action": "record_voice"}, timeout=2)
                 song_req = user_data.get("pending_song_query") or text
                 real_lyrics, song_title = fetch_live_song_lyrics(song_req)
                 raw_b, mime, ext = generate_gemini_native_voice(real_lyrics, voice_type="singing")
@@ -1505,7 +1512,7 @@ def webhook_handler():
                         f"{API_URL}/sendVoice",
                         data={"chat_id": chat_id, "caption": f"🎤🎶 <b>{html.escape(str(song_title))}</b> ❤️\n<i>\"{html.escape(real_lyrics[:160])}\"</i>", "parse_mode": "HTML", "protect_content": "true"},
                         files={"voice": (ext, BytesIO(raw_b), mime)},
-                        timeout=14
+                        timeout=10
                     )
                 else:
                     send_message(chat_id, f"🎤🎶 <b>{html.escape(str(song_title))}</b>\n\n<i>\"{html.escape(real_lyrics)}\"</i>", parse_mode="HTML")
@@ -1612,10 +1619,10 @@ def webhook_handler():
             voice_sent_flag = False
             wants_voice = any(w in text.lower() for w in VOICE_REQUEST_TRIGGERS)
             if wants_voice or (cur_mode in ["ADULT", "ROMANTIC"] and random.randint(1, 100) <= 25):
-                telegram_request("sendChatAction", {"chat_id": chat_id, "action": "record_voice"}, timeout=3)
+                telegram_request("sendChatAction", {"chat_id": chat_id, "action": "record_voice"}, timeout=2)
                 raw_b, m, ext = generate_gemini_native_voice(reply_text, voice_type="adult" if cur_mode == "ADULT" else "normal")
                 if raw_b:
-                    requests.post(f"{API_URL}/sendVoice", data={"chat_id": chat_id, "caption": "🎙️💕", "protect_content": "true"}, files={"voice": (ext, BytesIO(raw_b), m)}, timeout=14)
+                    requests.post(f"{API_URL}/sendVoice", data={"chat_id": chat_id, "caption": "🎙️💕", "protect_content": "true"}, files={"voice": (ext, BytesIO(raw_b), m)}, timeout=10)
                     voice_sent_flag = True
 
             add_to_history(user_id, "user", text, "Private")
@@ -1651,7 +1658,7 @@ def webhook_handler():
 
 @app.route("/", methods=["GET"])
 def health_check():
-    return jsonify({"status": "online Siya VIP - Modular 2-File Architecture Active"}), 200
+    return jsonify({"status": "online Siya VIP - Full Featured Fast Build Active"}), 200
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "80")), debug=False)
