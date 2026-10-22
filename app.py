@@ -1218,7 +1218,7 @@ Location: {current_context} | Current Exact Time in India: {time_greeting}
 
 # Language, Complete Sentences & Feminine Rules
 - Reply strictly in simple, natural Hinglish.
-- COMPLETE SENTENCES ONLY: Always write 1 to 2 complete, natural sentences. NEVER output 2-word cut-off fragments like "Achha toh", "Batao toh", or "Arre yaar"!
+- COMPLETE SENTENCES ONLY: Always write 2 to 4 complete, natural sentences. NEVER output 2-word cut-off fragments like "Achha toh", "Batao toh", or "Arre yaar"!
 - Use FEMALE grammar strictly for yourself ("karungi", "aati hoon", "main teri hoon") and MALE grammar for {user_name}.
 - Pronoun Decoder: "Kay kar rhai hu" = "Tum kya kar rahi ho?", "Kasi hu" = "Tum kaisi ho?". Answer about YOURSELF!
 
@@ -1303,7 +1303,7 @@ Location: {current_context} | Current Exact Time in India: {time_greeting}
         payload = {
             "systemInstruction": {"parts": [{"text": sys_prompt}]},
             "contents": [{"role": "user", "parts": [{"text": f"Recent Chat:\n" + "\n".join([f'{m.get("role")}: {m.get("text")}' for m in history[-12:]]) + f"\n\n{user_name}: {effective_user_message}\nReply in 1-2 complete Hinglish sentences:"}]}],
-            "generationConfig": {"temperature": 0.78, "maxOutputTokens": 280},
+            "generationConfig": {"temperature": 0.78, "maxOutputTokens": 500},
         }
         for model in [GEMINI_MODEL] + GEMINI_FALLBACK_MODELS:
             success, response_text = gemini_request(key, model, payload, timeout=6)
