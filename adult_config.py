@@ -37,18 +37,7 @@ VOICE_REQUEST_TRIGGERS = [
     "tej maro", "or jor se", "lata ka", "ghroi bana ka", "tang utaka"
 ]
 
-PHOTO_VAULT = {
-    "simplepic": ["simplepic.jpg", "simplepic2.jpg"],
-    "kiss": ["kiss.jpg"],
-    "bodes": ["private1.jpg", "private2.jpg", "private3.jpg", "private4.jpg", "private5.jpg", "video.mp4", "video1.mp4", "video2.mp4", "video3.mp4"],
-    "bodes_video": ["video.mp4", "video1.mp4", "video2.mp4", "video3.mp4"],
-    "showhard": ["showhard.jpg", "showhard2.jpg"],
-    "chut": ["open1.jpg", "open2.jpg", "opan3.jpg", "open3.jpg", "open4.jpg", "opan4.jpg", "video4.mp4", "video5.mp4"],
-    "chut_video": ["video4.mp4", "video5.mp4"],
-    "endshow": ["endshow.jpg"],
-    "gand": ["bom1.jpg", "bom2.jpg", "bom3.jpg", "video6.mp4", "video7.mp4"],
-    "gand_video": ["video6.mp4", "video7.mp4"]
-}
+
 
 STICKER_PACKS_CONFIG = {
     "NORMAL": ["PeachGomaPack11"],
