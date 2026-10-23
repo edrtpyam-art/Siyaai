@@ -143,7 +143,7 @@ API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}" if BOT_TOKEN else ""
 # 2. PLANS (12 FREE CREDITS + ₹9 TO ₹179) & TRIGGERS
 # ============================================================
 PLAN_CREDITS = {"9": 15, "19": 35, "29": 55, "49": 100, "99": 250, "179": 500}
-PHOTO_REQUEST_WORDS = ["photo", "pic", "pics", "image", "dikhao", "dikha", "dikhaoo", "bhejo", "bhej", "send", "video", "clip", "selfie", "dekhna hai", "dekhau", "pic do"]
+PHOTO_REQUEST_WORDS = ["photo", "chut", "pic", "pics", "image", "dikhao", "dikha", "dikhaoo", "bhejo", "bhej", "send", "video", "clip", "selfie", "dekhna hai", "dekhau", "pic do"]
 BUY_PLAN_WORDS = ["recharge", "buy", "plan dikhao", "plans", "qr bhejo", "payment link", "paisa kitna", "price"]
 SYSTEM_HELP_WORDS = ["credit", "cridet", "critdt", "cridt", "limit", "balance", "vip", "subscription", "sucrpition", "feedback", "setting"]
 WEB_SEARCH_TRIGGERS = ["news", "weather", "who is", "what is", "kaun hai", "search karo", "kya chal raha", "photo of", "pic of", "image of", "details of", "tell me about"]
@@ -692,7 +692,7 @@ def webhook():
 
             send_msg(
                 cid,
-                f"Hii {html.escape(fname)}! 🔥 Main tumhari personal open-chat & roleplay partner hoon.\n\n🎁 Naye users ko <b>12 Free Chat Credits</b> milte hain! Niche apna menu dekho 👇",
+                f"Hii {html.escape(fname)}! 🔥 Main tumhari personal open-chat & roleplay partner hoon.\n\n🎁 Naye users ko <b>12 Free Chat Credits</b> milte hain! aap avi mera se free me oapn adult caht kar sekta hu ajao 👇",
                 markup=get_main_menu_kb(credit_display)
             )
             # Hook message so user starts chatting immediately!
