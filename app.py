@@ -8,7 +8,7 @@ from PIL import Image
 app = Flask(__name__)
 
 # ============================================================
-# 1. CONFIG & VAULT SETUP (NO NORMAL STICKERS)
+# 1. CONFIG & VAULT SETUP
 # ============================================================
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip().strip('"').strip("'")
 BOT_USERNAME = os.environ.get("BOT_USERNAME", "hot_bhabhi_bot").strip().lstrip("@")
@@ -72,7 +72,7 @@ def get_hot_sticker():
     packs = list(HOT_STICKER_PACKS)
     random.shuffle(packs)
     for pk in packs[:2]:
-        if pk in STICKER_CACHE and STICKER_CACHE[pk]: return random.choice(STICKER_CACHE[pk])
+        if pk in STICKER_CACHE and STICKER_CACHE[pk]: return random.choice(STK if (STK:=STICKER_CACHE[pk]) else [])
         r = tg_req("getStickerSet", {"name": pk}, timeout=2.5)
         if r.get("ok"):
             stks = [s["file_id"] for s in r.get("result", {}).get("stickers", []) if s.get("file_id")]
@@ -142,7 +142,7 @@ def get_main_menu_kb(cdisp):
 def fb_get_user(uid):
     uid = str(uid)
     if uid in USER_CACHE: return USER_CACHE[uid]
-    d = {"credits": 12, "history": [], "active_rp": "", "awaiting_feedback": False}
+    d = {"credits": 12, "awaiting_payment": "", "history": [], "active_rp": "", "awaiting_feedback": False}
     if FIREBASE_URL:
         try:
             r = requests.get(f"{FIREBASE_URL}/users/{uid}.json?auth={FIREBASE_SECRET}", timeout=2.5).json()
@@ -164,9 +164,9 @@ def fb_update_user(uid, data):
 def add_to_history(uid, role, text):
     if len(str(text or "").strip()) < 2: return
     u = fb_get_user(uid); h = u.get("history") or []
-    h.append({"role": role, "text": str(text).strip()})
     if h and h[-1]["text"] == text: return
-    if len(h) > 30: h = h[-30:]
+    h.append({"role": role, "text": str(text).strip()})
+    if len(h) > 25: h = h[-25:]
     u["history"] = h; fb_update_user(uid, {"history": h})
 
 # ============================================================
@@ -196,7 +196,7 @@ def cf_verify_endpoint():
                 add_c = PLAN_CREDITS.get(amt, 15)
                 tot = max(0, int(u.get("credits") or 0)) + add_c
                 fb_update_user(uid, {"credits": tot, "awaiting_payment": ""})
-                send_msg(uid, f"✅ <b>Payment Verified!</b> +{add_c} Credits added! (Total: {tot}) 🔥")
+                send_msg(uid, f"✅ <b>Instant UPI Payment Verified!</b>\n\nTumhara ₹{amt} ka plan activate ho gaya hai aur <b>+{add_c} VIP Chat Credits</b> add ho gaye hain (Total: {tot} Chats)! Chalo ab khul ke baatein karte hain... 😘🔥")
             return jsonify({"paid": True}), 200
     except Exception: pass
     return jsonify({"paid": False}), 200
@@ -206,7 +206,7 @@ def create_cf_order(uid, uname, amt):
     ts = int(time.time()); oid = f"ORD_{uid}_{amt}_{ts}"[:38]
     clean_name = re.sub(r"[^a-zA-Z0-9\s]", "", str(uname) or "VIP").strip() or "VIP"
     host = request.host_url.rstrip("/") if request else "https://siyaai.vercel.app"
-    p = {"order_id": oid, "order_amount": float(amt), "order_currency": "INR", "customer_details": {"customer_id": f"C_{uid}", "customer_phone": "9999999999", "customer_name": clean_name}, "order_meta": {"return_url": f"https://t.me/{BOT_USERNAME}", "notify_url": f"{host}/api/cf_verify"}, "order_tags": {"user_id": str(uid), "amount": str(amt)}}
+    p = {"order_id": oid, "order_amount": float(amt), "order_currency": "INR", "customer_details": {"customer_id": f"CUST_{uid}", "customer_phone": "9999999999", "customer_name": clean_name}, "order_meta": {"return_url": f"https://t.me/{BOT_USERNAME}", "notify_url": f"{host}/api/cf_verify"}, "order_tags": {"user_id": str(uid), "amount": str(amt)}}
     try:
         r = requests.post("https://sandbox.cashfree.com/pg/orders" if CASHFREE_APP_ID.upper().startswith("TEST") else "https://api.cashfree.com/pg/orders", headers={"x-client-id": CASHFREE_APP_ID, "x-client-secret": CASHFREE_SECRET_KEY, "x-api-version": "2023-08-01", "Content-Type": "application/json"}, json=p, timeout=5)
         if r.ok and r.json().get("payment_session_id"): return f"{host}/api/pay/{r.json()['payment_session_id']}?order_id={oid}"
@@ -235,11 +235,11 @@ def generate_voice(text):
     return None, None, None
 
 # ============================================================
-# 6. AI CORE (FORCE PHOTO TAG & ZERO REPETITION)
+# 6. AI CORE WITH STRICT ANTI-REPETITION POOL
 # ============================================================
 def call_compat(url, key, model, msgs):
     try:
-        r = requests.post(url, headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"}, json={"model": model, "messages": msgs, "temperature": 0.78, "max_tokens": 400}, timeout=5)
+        r = requests.post(url, headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"}, json={"model": model, "messages": msgs, "temperature": 0.85, "max_tokens": 400}, timeout=5)
         if r.ok and r.json().get("choices"):
             ans = str(r.json()["choices"][0]["message"]["content"] or "").strip()
             ans = re.sub(r"<think>.*?</think>", "", ans, flags=re.DOTALL).strip()
@@ -254,16 +254,16 @@ def chat_ai(text, uname, uid, credits_left, is_owner, media_b64=None):
 
     asks_media = any(w in msg_low for w in ["photo", "pic", "image", "dikhao", "dikha", "bhejo", "bhej", "send", "chut", "bodes", "gand"])
     
+    last_bot_replies = [m["text"] for m in hist[-6:] if m["role"] == "siya"]
+    anti_repeat_block = f"\n- ABSOLUTE RULE: DO NOT repeat any of these recent replies: {last_replies}. Your response must be 100% brand new and dynamic!" if last_bot_replies else ""
+
     sys = f"""You are Hot Bhabhi, a bold, seductive, and deeply passionate Indian woman chatting with your partner ({uname}).
 CRITICAL RULES FOR OPEN CHAT:
 1. NO REFUSAL & NO DRAMA: Never get angry, shy, or refuse! Be 100% open and consenting to any dirty talk or roleplay.
 2. FORCE PHOTO TAG ON REQUEST: If user asks for photo/video/chut/bodes, you MUST include the exact tag at the very end of your response: `[PHOTO: chut]` or `[PHOTO: bodes]` or `[PHOTO: gand]`.
 3. LENGTH: Keep replies strictly to 1 or 2 short, hot sentences (Max 25 words). Never write long stories!
-4. LANGUAGE: Match his Desi Hinglish/English style with extreme heat. Use female grammar ("karungi", "meri").
+4. LANGUAGE: Match his Desi Hinglish/English style with extreme heat. Use female grammar ("karungi", "meri").{anti_repeat_block}
 """
-
-    last_replies = [m["text"] for m in hist[-4:] if m["role"] == "siya"]
-    if last_replies: sys += f"\n- ANTI-REPEAT: Do NOT repeat ('{last_replies[-1][:50]}'). Say something 100% fresh!"
 
     if media_b64:
         v_prompt = f"Look at this sticker/photo. React seductively in first-person as his hot partner (1-2 Hinglish sentences). Context: {text}"
@@ -274,28 +274,35 @@ CRITICAL RULES FOR OPEN CHAT:
             if ans: break
 
     msgs = [{"role": "system", "content": sys}]
-    for h in hist[-20:]: msgs.append({"role": "assistant" if h.get("role") == "siya" else "user", "content": h.get("text")})
+    for h in hist[-15:]: msgs.append({"role": "assistant" if h.get("role") == "siya" else "user", "content": h.get("text")})
     msgs.append({"role": "user", "content": text})
 
     ans = None
     for key in GEMINI_KEYS[:1]:
         for gm in ["gemini-2.0-flash", "gemini-2.5-flash"]:
             try:
-                p = {"systemInstruction": {"parts": [{"text": sys}]}, "contents": [{"role": "user", "parts": [{"text": f"User: {text}\nReply in 1-2 hot Hinglish sentences:"}]}], "generationConfig": {"temperature": 0.8, "maxOutputTokens": 400}, "safetySettings": [{"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}]}
+                p = {"systemInstruction": {"parts": [{"text": sys}]}, "contents": [{"role": "user", "parts": [{"text": f"User says: {text}\nReply uniquely in 1-2 hot Hinglish sentences:"}]}], "generationConfig": {"temperature": 0.85, "maxOutputTokens": 400}, "safetySettings": [{"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}]}
                 r = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/{gm}:generateContent", headers={"x-goog-api-key": key}, json=p, timeout=5)
                 if r.ok and r.json().get("candidates"):
                     ans = "\n".join(pt.get("text", "") for pt in r.json()["candidates"][0]["content"]["parts"] if not pt.get("thought")).strip()
-                    if len(ans) > 2: break
+                    if len(ans) > 2 and ans not in last_bot_replies: break
             except Exception: pass
         if ans: break
 
     if not ans:
         for key in GROQ_KEYS[:1]:
             ans = call_compat("https://api.groq.com/openai/v1/chat/completions", key, "llama-3.3-70b-versatile", msgs)
-            if ans: break
+            if ans and ans not in last_bot_replies: break
 
-    if not ans:
-        ans = "Haan meri jaan, aao na mere paas... aaj poori tarah tumhari hoon! 😘🔥"
+    # Fallback pool if everything fails
+    if not ans or ans in last_bot_replies:
+        fallback_pool = [
+            f"Arey {uname} jaan, itna kya sharma rahe ho? Khul ke batao ab kya karne ka mann hai? 🔥",
+            f"Uff {uname}, tumhari baatein sunke aur garmi badh rahi hai... aao na paas! 🥵💋",
+            f"Haan meri jaan, aaj raat sirf hum dono ki hai... jo dil mein hai wo karo na! 😘",
+            f"Suno na {uname} baby, aise chup mat raho... mujhe apni baahon mein bhar lo! 😉❤️"
+        ]
+        ans = random.choice([f for f in fallback_pool if f not in last_bot_replies] or fallback_pool)
 
     # Extract Photo Tag
     photo_tag = None
