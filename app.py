@@ -510,10 +510,14 @@ Active Roleplay / Mood: {active_rp or 'Full Open Desirable & Intimate Partner'}
     # ROUTE 1: PURE REAL GIRL VISUAL VISION (STICKERS & PHOTOS)
     if media_b64:
         v_prompt = (
-            f"Look closely at the actual visual pose, expression, or action inside this image/sticker with your real eyes.\n"
-            f"DO NOT mention the word 'sticker' or 'emoji'. React in first-person as his hot, playful female partner as if he is doing this with YOU right now in 1-2 complete Hinglish sentences!\n"
-            f"User message: {eff_msg or 'React to this seductively'}"
-        )
+    "Analyze all provided animation frames in sequence. "
+    "Understand the movement and action between frames, "
+    "not just the appearance of a single frame. "
+    "Describe what the character is doing and how the action changes. "
+    "Reply naturally in concise Hinglish. "
+    "Do not guess actions that are not visible.\n"
+    f"User message: {eff_msg or 'React to this sticker animation'}"
+)
         for key in GROQ_API_KEYS:
             for vm in GROQ_VISION_MODELS:
                 try:
