@@ -30,8 +30,15 @@ DEFAULT_STOP_TRIGGERS = [
     "ab bas", "ruk jao", "normal baat", "stop roleplay", "roleplay band", "siya ban jao"
 ]
 DEFAULT_ADULT_WORDS = [
-    "sex", "sexy", "horny", "nude", "nudes", "bistar", "bed per", "suhagraat",
-    "open", "opan", "kapde utar", "pussy", "dick", "boobs", "bodes", "figure"
+    "chut", "lund", "ludn", "lauda", "gand", "gaand", "boob", "boobs", "bodes", "nude", "nudes",
+    "sex", "sexy", "fuck", "fucking", "fck", "chod", "chudai", "chodna", "pussy", "dick",
+    "cock", "ass", "bra", "panty", "kapde utar", "nangi", "open", "opan", "horny",
+    "suck", "lick", "chatna", "daal", "dal diya", "ghusa", "nipple", "figure", "bed per", "bistar",
+    "mutth", "muth", "randi", "suhagraat", "blowjob", "handjob", "cum", "pani nikal",
+    "paani nikal", "pani nekal", "pani nekl", "nekl gaya", "nikal gaya", "jhad gaya", "jhar gaya",
+    "pel", "pelna", "chuchi", "mamme", "doodh", "kothe", "bitch", "slut",
+    "whore", "raseli", "rasili", "rasli", "gili", "geeli", "maruga", "marunga", "muh me", "mua me",
+    "muee me", "mhueee", "mhue", "far duga", "faad dunga", "sari uter", "sari utar"
 ]
 DEFAULT_ROLEPLAY_TRIGGERS = [
     "roleplay", "rolpay", "rolplay", "role play", "ban jao", "bano", "act like", "be my",
@@ -1995,7 +2002,7 @@ def health_check():
             <div class="policy-text">
                 <h4>Contact Us</h4>
                 <p>Email: support@edrolai.com<br>
-                Operating Address: Patna, Bihar, India - 841226<br>
+                
                 Telegram Support: <a href="https://t.me/edrolai" target="_blank" style="color:#38bdf8;">@edrolai</a></p>
             </div>
         </section>
