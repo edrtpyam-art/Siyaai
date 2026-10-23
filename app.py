@@ -40,7 +40,7 @@ DEFAULT_ADULT_WORDS = [
     "paani nikal", "pani nekal", "pani nekl", "nekl gaya", "nikal gaya", "jhad gaya", "jhar gaya",
     "pel", "pelna", "chuchi", "mamme", "doodh", "kothe", "bitch", "slut",
     "whore", "raseli", "rasili", "rasli", "gili", "geeli", "maruga", "marunga", "muh me", "mua me",
-    "muee me", "mhueee", "mhue", "far duga", "faad dunga", "sari uter", "sari utar"
+    "mluee me", "mhueee", "mhue", "far duga", "faad dunga", "sari uter", "sari utar"
 ]
 DEFAULT_ROLEPLAY_TRIGGERS = [
     "roleplay", "rolpay", "rolplay", "role play", "ban jao", "bano", "act like", "be my",
