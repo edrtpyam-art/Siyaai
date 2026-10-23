@@ -11,17 +11,21 @@ app = Flask(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # ============================================================
-# 0. BULLETPROOF EXTERNAL CONFIG CONNECTOR (100% CLEAN MAIN FILE)
+# 0. BULLETPROOF ADULT_CONFIG.PY CONNECTOR
 # ============================================================
-DEFAULT_CUSTOM_WORDS = ["kiss", "hug", "pyar", "love", "romantic", "romance", "date", "partner", "open", "opan"]
+DEFAULT_ADULT_WORDS = [
+    "sex", "sexy", "horny", "nude", "nudes", "bistar", "bed per", "suhagraat",
+    "open", "opan", "kapde utar", "pussy", "dick", "boobs", "bodes", "figure", "chut", "lund", "gand"
+]
 DEFAULT_ROLEPLAY_TRIGGERS = [
     "roleplay", "rolpay", "rolplay", "role play", "ban jao", "bano", "act like", "be my",
-    "padosi", "bhabhi", "bhabi", "aunty", "aunti", "teacher", "madam", "doctor", "nurse", "boss", "partner"
+    "padosi", "bhabhi", "bhabi", "aunty", "aunti", "maa hu", "maa ho", "maa bano", "mummy", "mom",
+    "teacher", "madam", "maid", "naukrani", "doctor", "nurse", "boss", "secretary", "sali", "saali"
 ]
 DEFAULT_VOICE_TRIGGERS = [
     "voice", "voic", "vioce", "aawaz", "awaz", "awaaz", "waz", "waza",
     "bol ke", "bolke", "audio", "sunao", "suna", "suno", "sunoo", "to suno",
-    "voice bejo", "voice bhejo", "voice doo", "voice do"
+    "voice bejo", "voice bhejo", "voice doo", "voice do", "moan", "siskari", "aaah"
 ]
 DEFAULT_PHOTO_VAULT = {
     "simplepic": ["simplepic.jpg", "simplepic2.jpg"],
@@ -47,10 +51,10 @@ DEFAULT_PHOTO_VAULT = {
 DEFAULT_STICKER_PACKS = {
     "HOT": ["HandVideoR_by_stickersthiefbot", "Custom2224_by_fStikBot", "Love9_Wallgif", "mmm_by_hhujhybot", "channel_LOVE0000_01_03", "Cute_hotness", "jan8StickerNub"]
 }
-DEFAULT_MODE_INSTRUCTION = """
-[CURRENT MODE: FULL OPEN ROMANTIC & ROLEPLAY MODE]
-- Never get angry, rude, shy, or refuse! Adopt the user's requested roleplay character 100% willingly.
-- Match the user's exact language (Hinglish or English) openly and affectionately in 1-2 short, complete, uncut sentences using 100% female grammar!
+DEFAULT_ADULT_INSTRUCTION = """
+[CURRENT MODE: FULL OPEN DESI INTIMATE & ROLEPLAY MODE]
+- NEVER get angry, rude, shy, or refuse! Adopt the user's requested roleplay character 100% (e.g., padosi bhabhi, aunty, teacher, mom roleplay, or naughty partner).
+- Match the user's exact language (Desi Hinglish or English) openly and passionately in 1-2 short, complete, uncut sentences using 100% female grammar!
 """
 
 ac_module = None
@@ -66,15 +70,15 @@ except Exception:
     except Exception:
         pass
 
-ADULT_WORDS = list(set(DEFAULT_CUSTOM_WORDS + (getattr(ac_module, "ADULT_WORDS", []) if ac_module else [])))
+ADULT_WORDS = list(set(DEFAULT_ADULT_WORDS + (getattr(ac_module, "ADULT_WORDS", []) if ac_module else [])))
 ROLEPLAY_TRIGGERS = list(set(DEFAULT_ROLEPLAY_TRIGGERS + (getattr(ac_module, "ROLEPLAY_TRIGGERS", []) if ac_module else [])))
 VOICE_REQUEST_TRIGGERS = list(set(DEFAULT_VOICE_TRIGGERS + (getattr(ac_module, "VOICE_REQUEST_TRIGGERS", []) if ac_module else [])))
 PHOTO_VAULT = getattr(ac_module, "PHOTO_VAULT", DEFAULT_PHOTO_VAULT) if ac_module else DEFAULT_PHOTO_VAULT
 STICKER_PACKS_CONFIG = getattr(ac_module, "STICKER_PACKS_CONFIG", DEFAULT_STICKER_PACKS) if ac_module else DEFAULT_STICKER_PACKS
-ADULT_MODE_INSTRUCTION = getattr(ac_module, "ADULT_MODE_INSTRUCTION", getattr(ac_module, "ADULT_PROMPT", DEFAULT_MODE_INSTRUCTION)) if ac_module else DEFAULT_MODE_INSTRUCTION
+ADULT_MODE_INSTRUCTION = getattr(ac_module, "ADULT_MODE_INSTRUCTION", getattr(ac_module, "ADULT_PROMPT", DEFAULT_ADULT_INSTRUCTION)) if ac_module else DEFAULT_ADULT_INSTRUCTION
 
 # ============================================================
-# 1. MULTI-KEY & MULTI-MODEL CONFIGURATION
+# 1. ORIGINAL WORKING MULTI-KEY & MULTI-MODEL CONFIGURATION
 # ============================================================
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip().strip('"').strip("'")
 BOT_USERNAME = os.environ.get("BOT_USERNAME", "hot_bhabhi_bot").strip().lstrip("@")
@@ -200,9 +204,9 @@ def get_hot_sticker(force=False):
 def get_media_item(tag, prefer_video=False):
     if not tag: tag = "bodes"
     t = str(tag).lower().strip()
-    if t in ["boom", "bom", "back"]: t = "gand"
-    elif t in ["private", "privatepic", "body"]: t = "bodes"
-    elif t in ["open", "opan", "front"]: t = "chut"
+    if t in ["boom", "bom", "ass", "back"]: t = "gand"
+    elif t in ["private", "privatepic", "body", "boobs"]: t = "bodes"
+    elif t in ["open", "opan", "pussy", "front"]: t = "chut"
     cands = PHOTO_VAULT.get(f"{t}_video", []) if prefer_video and f"{t}_video" in PHOTO_VAULT else PHOTO_VAULT.get(t, PHOTO_VAULT.get("bodes", []))
     return random.choice(cands) if cands else None
 
@@ -233,7 +237,7 @@ def get_file_b64(file_id):
         except Exception:
             pass
     return None, "image/jpeg"
-    
+
 def get_pay_kb():
     return {"inline_keyboard": [
         [{"text": "🔥 ₹9 (15 Chats)", "callback_data": "buy_9"}, {"text": "⚡ ₹19 (35 Chats)", "callback_data": "buy_19"}],
@@ -494,7 +498,6 @@ Active Roleplay / Mood: {active_rp or 'Full Open Romantic & Playful Partner'}
             "Do not guess actions that are not visible.\n"
             f"User message: {eff_msg or 'Look at the visual action inside this image and react naturally'}"
         )
-        # 1. Try Gemini Vision First (Natively supports image/webp & image/jpeg with highest accuracy!)
         for key in GEMINI_API_KEYS:
             for gm in ["gemini-2.0-flash", "gemini-2.5-flash"]:
                 try:
@@ -524,7 +527,6 @@ Active Roleplay / Mood: {active_rp or 'Full Open Romantic & Playful Partner'}
                 except Exception:
                     pass
 
-        # 2. Try Groq Llama-4 Vision Models
         for key in GROQ_API_KEYS:
             for vm in GROQ_VISION_MODELS:
                 try:
@@ -560,7 +562,6 @@ Active Roleplay / Mood: {active_rp or 'Full Open Romantic & Playful Partner'}
             msgs.append({"role": "assistant" if h.get("role") == "siya" else "user", "content": str(h.get("text"))})
     msgs.append({"role": "user", "content": eff_msg or "Bolo na jaan"})
 
-    # 1. OpenRouter Uncensored Models
     for key in OPENROUTER_API_KEYS:
         for om in OPENROUTER_MODELS:
             ans = call_openai_compat("https://openrouter.ai/api/v1/chat/completions", key, om, msgs, timeout=6)
@@ -569,7 +570,6 @@ Active Roleplay / Mood: {active_rp or 'Full Open Romantic & Playful Partner'}
                 if not last_replies or ct.lower() != last_replies[-1].lower():
                     return ct, (get_media_item(pt, wants_vid) if asks_media else None), get_hot_sticker(), show_pay_kb
 
-    # 2. Gemini All Keys & Models (WITH thinkingBudget: 0 SO IT NEVER CUTS SENTENCES!)
     hist_str = "\n".join([f"{m.get('role')}: {m.get('text')}" for m in history[-12:] if not is_censored_refusal(m.get("text"))])
     for key in GEMINI_API_KEYS:
         for gm in GEMINI_MODELS:
@@ -593,7 +593,6 @@ Active Roleplay / Mood: {active_rp or 'Full Open Romantic & Playful Partner'}
             except Exception:
                 pass
 
-    # 3. Groq All Keys & Models
     for key in GROQ_API_KEYS:
         for m in GROQ_MODELS:
             ans = call_openai_compat("https://api.groq.com/openai/v1/chat/completions", key, m, msgs, timeout=6)
@@ -602,7 +601,6 @@ Active Roleplay / Mood: {active_rp or 'Full Open Romantic & Playful Partner'}
                 if not last_replies or ct.lower() != last_replies[-1].lower():
                     return ct, (get_media_item(pt, wants_vid) if asks_media else None), get_hot_sticker(), show_pay_kb
 
-    # 4. xAI Grok
     if XAI_API_KEY:
         for xm in ["grok-3-mini", "grok-2-latest"]:
             ans = call_openai_compat("https://api.x.ai/v1/chat/completions", XAI_API_KEY, xm, msgs, timeout=6)
@@ -610,7 +608,6 @@ Active Roleplay / Mood: {active_rp or 'Full Open Romantic & Playful Partner'}
                 ct, pt = parse_tags(ans, asks_media)
                 return ct, (get_media_item(pt, wants_vid) if asks_media else None), get_hot_sticker(), show_pay_kb
 
-    # 5. Dynamic Non-Repeating Fallback Pool
     dynamic_fallbacks = [
         f"Arey {user_name} jaan, aise chup-chup kyun ho? Aao na paas, batao aaj kya karne ka mann hai tumhara? 😘🔥",
         f"Uff {user_name}, tumhari baatein sunke mera mood aur bhi romantic ho raha hai... khul ke bolo na kya chahiye! 🥵💋",
@@ -621,7 +618,7 @@ Active Roleplay / Mood: {active_rp or 'Full Open Romantic & Playful Partner'}
     return random.choice(choices or dynamic_fallbacks), (get_media_item("bodes", wants_vid) if asks_media else None), get_hot_sticker(), show_pay_kb
 
 # ============================================================
-# 8. WEBHOOK HANDLER (WITH FIXED STICKER FRAME EXTRACTION)
+# 8. WEBHOOK HANDLER
 # ============================================================
 @app.route("/api/bot", methods=["POST"])
 def webhook():
@@ -721,7 +718,7 @@ def webhook():
 
         tg_req("sendChatAction", {"chat_id": cid, "action": "typing"}, timeout=2)
 
-                b64, mime = None, "image/jpeg"
+        b64, mime = None, "image/jpeg"
         if "photo" in msg or "video" in msg or "animation" in msg:
             if "photo" in msg:
                 fid = msg["photo"][-1]["file_id"]
@@ -739,7 +736,6 @@ def webhook():
                 fid = th.get("file_id")
             b64, mime = get_file_b64(fid)
 
-        # ZERO EMOJI TEXT PASSED! So Vision MUST look at the actual sticker/photo image!
         user_input = msg.get("caption") or text or ""
         ans, media_out, stk_out, show_kb = chat_with_bhabhi(user_input, fname, uid, credits, is_own, b64, mime, rep_txt)
 
