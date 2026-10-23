@@ -1,4 +1,4 @@
-From flask import Flask, request, jsonify
+from flask import Flask, request, jsonify
 import os, requests, time, re, html, random, base64, struct, json, traceback, importlib.util
 from urllib.parse import quote
 from io import BytesIO
@@ -721,7 +721,7 @@ def webhook():
 
         tg_req("sendChatAction", {"chat_id": cid, "action": "typing"}, timeout=2)
 
-                b64, mime = None, "image/jpeg"
+        b64, mime = None, "image/jpeg"
         if "photo" in msg or "video" in msg or "animation" in msg:
             if "photo" in msg:
                 fid = msg["photo"][-1]["file_id"]
@@ -737,7 +737,7 @@ def webhook():
                 fid = stk.get("file_id") or th.get("file_id")
             else:
                 fid = th.get("file_id")
-             b64, mime = get_file_b64(fid)
+            b64, mime = get_file_b64(fid)
 
         # ZERO EMOJI TEXT PASSED! So Vision MUST look at the actual sticker/photo image!
         user_input = msg.get("caption") or text or ""
