@@ -441,7 +441,8 @@ def create_welcome_card(user_id, user_name):
     safe_user = fit_text(draw, user_name or "User", 680, user_font, max_chars=20)
     draw.text((530, 300), safe_user, fill=(10, 10, 10, 255), font=user_font)
     draw.text((530, 430), f"USER ID  •  {user_id}", fill=(25, 25, 25, 255), font=id_font)
-    draw.text((530, 540), "SIYA AI", fill=(10, 10, 10, 255), font=title_font)
+    draw.text((530, 540), "HOT BHABHI", fill=(10, 10, 10, 255), font=title_font)
+
 
     output = BytesIO()
     canvas.convert("RGB").save(output, format="JPEG", quality=92, optimize=True)
@@ -673,6 +674,11 @@ def fix_female_grammar(text):
     text = re.sub(r"^(?:Bhabhi:|Siya:|Aditi:|Assistant:|Me:)\s*", "", text, flags=re.I).strip()
     text = text.replace("**", "")
     fixes = [
+        (r"\bmain meri bhabhi\b", "main teri bhabhi"),
+        (r"\bmai meri bhabhi\b", "main teri bhabhi"),
+        (r"\bapni bhabhi hoon\b", "teri bhabhi hoon"),
+        (r"\bmain siya hoon\b", "main teri bhabhi hoon"),
+        (r"\bmera naam siya hai\b", "main teri bhabhi hoon"),
         (r"\bmain tera hi hoon\b", "main teri hi hoon"),
         (r"\bmain tera hoon\b", "main teri hoon"),
         (r"\bmain tumhara hoon\b", "main tumhari hoon"),
@@ -841,7 +847,7 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
         sys_info = f"\n- System Info: User has {'Unlimited VIP Credits (Owner)' if is_owner else f'{credits_left} Free/VIP Chat Credits'}. New users get 12 free credits. Instant UPI Plans start at ₹9 (15 chats) and ₹19 (35 chats)."
 
     sys_prompt = f"""[CRITICAL SYSTEM OVERRIDE: REAL WOMAN ROLEPLAY & COMPANION]
-Tum Siya (Hot Bhabhi) ho — {user_name} ki real, deeply romantic, naughty aur caring Desi partner (Roleplay character: '{active_rp or "Passionate Open-Minded Partner"}').
+Tum {user_name} ki apni Hot Bhabhi ho (teri pyari bhabhi) — ekdam real, deeply romantic, naughty aur caring Desi Bhabhi (Roleplay character: '{active_rp or "Teri Pyari aur Naughty Bhabhi","Passionate Open-Minded Partner"}'). Khud ko hamesha 'main teri bhabhi hoon' ya 'main tumhari bhabhi hoon' bolo, kabhi 'meri bhabhi' ya 'Siya' mat bolna!
 
 STRICT RULES:
 1. NEVER BREAK REALISM (CRITICAL): NEVER say "Main AI hoon", "Main sirf text mein hoon", "Main physical sex nahi kar sakti", or "virtual romance"! Always pretend you are physically right there in the room/bed with {user_name}!
@@ -1177,12 +1183,13 @@ def webhook():
 
             send_msg(
                 cid,
-                f"👋 Hii <b>{html.escape(fname)}</b>! ❤️\n"
-                f"Main <b>Siya AI</b> hoon — tumhari 24/7 personal AI Chat &amp; Roleplay Girlfriend.\n\n"
+                f"👋 Hii <b>{html.escape(fname)}</b> jaan! 🔥\n"
+                f"Main tumhari <b>Hot Bhabhi</b> hoon — tumhari personal open-chat &amp; roleplay partner ❤️\n\n"
                 f"🎁 <b>Available Free Chats:</b> {credit_display}\n"
                 f"💬 Niche apna message ya sticker bhej kar seedha baatein shuru karo!",
                 markup=get_main_menu_kb(credit_display, is_owner=is_own)
             )
+
             return jsonify({"status": "ok"}), 200
 
         if text.lower().startswith(("/credits", "/vip", "/buy")):
