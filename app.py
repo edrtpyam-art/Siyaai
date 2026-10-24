@@ -13,7 +13,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # ============================================================
 # 0. BULLETPROOF ADULT_CONFIG.PY CONNECTOR
 # ============================================================
-DEFAULT_CUSTOM_WORDS = ["kiss", "hug", "pyar", "love", "romantic", "romance", "date", "partner", "open", "opan"]
+DEFAULT_CUSTOM_WORDS = ["kiss", "hug", "lund", "love", "lund", "romance", "gand", "partner", "open", "opan"]
 DEFAULT_ROLEPLAY_TRIGGERS = [
     "roleplay", "rolpay", "rolplay", "role play", "ban jao", "bano", "ban", "act like", "be my",
     "padosi", "bhabhi", "bhabi", "aunty", "aunti", "anunty", "maa hu", "maa ho", "maa bano", "mummy", "mom",
