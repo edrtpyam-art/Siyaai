@@ -840,7 +840,9 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
 
     photo_instruction = ""
     if asks_media:
-        photo_instruction = "\n- User asked for a photo/video! Include ONE tag at the end: `[PHOTO: bodes]`, `[PHOTO: chut]`, `[PHOTO: gand]`, `[PHOTO: kiss]`, or `[PHOTO: simplepic]`."
+        media_file = get_media_item(PHOTO_VAULT, py_photo_tag or "bodes", wants_video)
+        clean_text = f"Ye lo {user_name} meri jaan, sirf tumhare liye bhej rahi hoon... dekh kar batao kaisi lagi! 🥵💋"
+        return clean_text, media_file, get_hot_sticker(force=True), show_pay_kb
 
     sys_info = ""
     if asks_help:
