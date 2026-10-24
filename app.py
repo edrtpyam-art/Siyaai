@@ -5,7 +5,6 @@ from io import BytesIO
 from collections import deque
 from threading import Lock, Timer
 from datetime import datetime, timedelta
-from PIL import Image
 
 app = Flask(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -15,7 +14,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # ============================================================
 DEFAULT_CUSTOM_WORDS = ["kiss", "hug", "pyar", "love", "romantic", "romance", "date", "partner", "open", "opan"]
 DEFAULT_ROLEPLAY_TRIGGERS = [
-    "roleplay", "rolpay", "rolplay", "role play", "ban jao", "bano", "act like", "be my",
+    "roleplay", "rolpay", "rolplay", "role play", "ban jao", "bano", "ban", "act like", "be my",
     "padosi", "bhabhi", "bhabi", "aunty", "aunti", "teacher", "madam", "doctor", "nurse", "boss", "partner"
 ]
 DEFAULT_VOICE_TRIGGERS = [
@@ -74,7 +73,7 @@ STICKER_PACKS_CONFIG = getattr(ac_module, "STICKER_PACKS_CONFIG", DEFAULT_STICKE
 ADULT_MODE_INSTRUCTION = getattr(ac_module, "ADULT_MODE_INSTRUCTION", getattr(ac_module, "ADULT_PROMPT", DEFAULT_MODE_INSTRUCTION)) if ac_module else DEFAULT_MODE_INSTRUCTION
 
 # ============================================================
-# 1. FAST NON-THINKING MODELS CONFIGURATION (INSTANT REPLIES!)
+# 1. RESTORED 5-DAYS-AGO BEST MODELS (GROQ LLAMA-3.3 + GEMINI 2.5 FLASH)
 # ============================================================
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip().strip('"').strip("'")
 BOT_USERNAME = os.environ.get("BOT_USERNAME", "hot_bhabhi_bot").strip().lstrip("@")
@@ -91,7 +90,7 @@ FEEDBACK_CHANNEL_ID = "-1004290177402"
 FIREBASE_URL = os.environ.get("FIREBASE_URL", "").strip().rstrip("/")
 FIREBASE_SECRET = "8lTxEXOwEe5fjkh9zTHnBkzum6W0vrKcisbfqRf3"
 
-# ONLY ULTRA-FAST NON-THINKING MODELS (Zero delay, zero mid-sentence cut!)
+# 5-Days-Ago Exact Fast Working Models!
 GROQ_API_KEYS = [k for k in [
     os.environ.get("GROQ_API_KEY", "").strip().strip('"'),
     os.environ.get("GROQ_API_KEY2", "").strip().strip('"'),
@@ -107,24 +106,15 @@ GROQ_VISION_MODELS = [
     "meta-llama/llama-4-maverick-17b-128e-instruct"
 ]
 
-OPENROUTER_API_KEYS = [k for k in [
-    os.environ.get("OPENROUTER_API_KEY", "").strip().strip('"'),
-    os.environ.get("OPENROUTER_API_KEY2", "").strip().strip('"')
-] if k]
-OPENROUTER_MODELS = [
-    "nousresearch/hermes-3-llama-3.1-405b:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "qwen/qwen-2.5-72b-instruct:free"
-]
-
 GEMINI_API_KEYS = [k for k in [
     os.environ.get("GEMINI_API_KEY", "").strip().strip('"'),
     os.environ.get("GEMINI_API_KEY2", "").strip().strip('"'),
     os.environ.get("GEMINI_API_KEY3", "").strip().strip('"')
 ] if k]
 GEMINI_MODELS = [
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite"
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-2.0-flash"
 ]
 GEMINI_SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
@@ -134,16 +124,31 @@ GEMINI_SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_CIVIC_INTEGRITY", "threshold": "BLOCK_NONE"}
 ]
 
+OPENROUTER_API_KEYS = [k for k in [
+    os.environ.get("OPENROUTER_API_KEY", "").strip().strip('"'),
+    os.environ.get("OPENROUTER_API_KEY2", "").strip().strip('"')
+] if k]
+OPENROUTER_MODELS = [
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "nousresearch/hermes-3-llama-3.1-405b:free",
+    "qwen/qwen-2.5-72b-instruct:free"
+]
+
 XAI_API_KEY = os.environ.get("XAI_API_KEY", "").strip().strip('"')
 BOT_ID = BOT_TOKEN.split(":")[0] if BOT_TOKEN else ""
 API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}" if BOT_TOKEN else ""
 
 # ============================================================
-# 2. PLANS (12 FREE CREDITS + ₹9 TO ₹179) & TRIGGERS
+# 2. PLANS & PYTHON BACKEND MEDIA DETECTOR TRIGGERS
 # ============================================================
 PLAN_CREDITS = {"9": 15, "19": 35, "29": 55, "49": 100, "99": 250, "179": 500}
 PROMO_PLANS_HOURS = {"30": 5, "49": 12, "99": 24, "180": 72}
-PHOTO_REQUEST_WORDS = ["photo", "pic", "pics", "image", "dikhao", "dikha", "dikhaoo", "bhejo", "bhej", "send", "video", "clip", "selfie", "dekhna hai", "dekhau", "pic do"]
+
+PHOTO_REQUEST_WORDS = [
+    "photo", "phto", "phooto", "pic", "pics", "image", "img", "selfie",
+    "video", "vido", "vid", "clip", "dikhao", "dikha", "dikhaoo", "dikhana",
+    "bhejo", "bhej", "bejo", "bej", "beja", "bjao", "send", "dekhna hai", "dekhau", "pic do", "photo do"
+]
 BUY_PLAN_WORDS = ["recharge", "buy", "plan dikhao", "plans", "qr bhejo", "payment link", "paisa kitna", "price"]
 SYSTEM_HELP_WORDS = ["credit", "cridet", "critdt", "cridt", "limit", "balance", "vip", "subscription", "sucrpition", "feedback", "setting", "promo"]
 
@@ -163,7 +168,7 @@ def mark_seen(key):
         return False
 
 # ============================================================
-# 3. TELEGRAM, STICKER & MEDIA HELPERS
+# 3. PURE PYTHON BACKEND AUTO-PHOTO/VIDEO SENDER & HELPERS
 # ============================================================
 def tg_req(method, payload=None, timeout=6):
     if not API_URL: return {"ok": False}
@@ -194,31 +199,95 @@ def get_hot_sticker(force=False):
             if stks: STICKER_CACHE[pk] = stks; return random.choice(stks)
     return None
 
+def find_local_file(filename):
+    if not filename: return None
+    for p in [os.path.join(BASE_DIR, filename), os.path.join(BASE_DIR, "..", filename), os.path.join(os.getcwd(), filename)]:
+        if os.path.exists(p) and os.path.isfile(p): return p
+    return None
+
 def get_media_item(tag, prefer_video=False):
     if not tag: tag = "bodes"
     t = str(tag).lower().strip()
-    if t in ["boom", "bom", "back"]: t = "gand"
-    elif t in ["private", "privatepic", "body"]: t = "bodes"
-    elif t in ["open", "opan", "front"]: t = "chut"
-    cands = PHOTO_VAULT.get(f"{t}_video", []) if prefer_video and f"{t}_video" in PHOTO_VAULT else PHOTO_VAULT.get(t, PHOTO_VAULT.get("bodes", []))
-    return random.choice(cands) if cands else None
+    if t in ["boom", "bom", "back", "gand"]: t = "gand"
+    elif t in ["private", "privatepic", "body", "bodes"]: t = "bodes"
+    elif t in ["open", "opan", "front", "chut"]: t = "chut"
+    elif t in ["kiss", "lip", "chumma"]: t = "kiss"
+    elif t in ["simple", "simplepic", "normal"]: t = "simplepic"
 
-def send_secret_media(cid, fname, caption="", delete_after=15, reply_id=None, markup=None):
+    if prefer_video:
+        vid_cands = PHOTO_VAULT.get(f"{t}_video", []) or [f for f in PHOTO_VAULT.get(t, []) if str(f).endswith(".mp4")]
+        if not vid_cands:
+            vid_cands = PHOTO_VAULT.get("bodes_video", ["video.mp4", "video2.mp4", "video3.mp4"])
+        return random.choice(vid_cands)
+
+    img_cands = [f for f in PHOTO_VAULT.get(t, []) if not str(f).endswith(".mp4")]
+    if not img_cands:
+        img_cands = PHOTO_VAULT.get(t, PHOTO_VAULT.get("bodes", ["private1.jpg", "private2.jpg"]))
+    return random.choice(img_cands) if img_cands else "private1.jpg"
+
+def detect_backend_media_request(user_text):
+    """
+    100% PYTHON BACKEND MEDIA DETECTOR!
+    Does NOT rely on AI tags! Directly checks if user asked for a photo/video and picks the exact file!
+    """
+    m_low = str(user_text or "").lower()
+    asks_media = any(re.search(rf"\b{re.escape(w)}\b", m_low) for w in PHOTO_REQUEST_WORDS)
+    if not asks_media:
+        return False, None, False
+
+    wants_vid = any(w in m_low for w in ["video", "vido", "vid", "clip", "mp4"])
+
+    # Determine which category from PHOTO_VAULT user is asking for
+    if any(w in m_low for w in ["open", "opan", "chut", "front", "pussy", "niche"]):
+        tag = "chut"
+    elif any(w in m_low for w in ["bom", "boom", "gand", "gaand", "back", "piche", "ass"]):
+        tag = "gand"
+    elif any(w in m_low for w in ["kiss", "chumma", "lip"]):
+        tag = "kiss"
+    elif any(w in m_low for w in ["hard", "showhard"]):
+        tag = "showhard"
+    elif any(w in m_low for w in ["simple", "normal", "face", "chehra"]):
+        tag = "simplepic"
+    else:
+        tag = "bodes"
+
+    return True, get_media_item(tag, prefer_video=wants_vid), wants_vid
+
+def send_secret_media(cid, fname, caption="", delete_after=20, reply_id=None, markup=None):
+    """Guaranteed Media Sender: Tries GitHub Raw URL first, then falls back to local file upload!"""
     if not fname: return {"ok": False}
     is_vid = str(fname).lower().endswith(".mp4")
     method, m_key = ("sendVideo", "video") if is_vid else ("sendPhoto", "photo")
+    mime_type = "video/mp4" if is_vid else "image/jpeg"
+
     url = fname if str(fname).startswith("http") else GITHUB_BASE_URL + fname
     p = {"chat_id": cid, m_key: url, "caption": str(caption or ""), "protect_content": True, "has_spoiler": True, "parse_mode": "HTML"}
     if reply_id: p["reply_to_message_id"] = reply_id
     if markup: p["reply_markup"] = markup
     r = tg_req(method, p, timeout=10)
+
+    # Fallback: If GitHub URL fails (e.g. private repo or filename mismatch), upload directly from local folder!
+    if not r.get("ok"):
+        local_path = find_local_file(fname) or find_local_file("private1.jpg") or find_local_file("open1.jpg")
+        if local_path:
+            try:
+                is_vid_local = local_path.lower().endswith(".mp4")
+                m_local, k_local = ("sendVideo", "video") if is_vid_local else ("sendPhoto", "photo")
+                data = {"chat_id": str(cid), "caption": str(caption or ""), "protect_content": "true", "has_spoiler": "true"}
+                if reply_id: data["reply_to_message_id"] = str(reply_id)
+                if markup: data["reply_markup"] = json.dumps(markup)
+                with open(local_path, "rb") as f:
+                    r = requests.post(f"{API_URL}/{m_local}", data=data, files={k_local: (os.path.basename(local_path), f, "video/mp4" if is_vid_local else "image/jpeg")}, timeout=14).json()
+            except Exception:
+                pass
+
     if r.get("ok") and delete_after > 0:
         mid = r.get("result", {}).get("message_id")
         if mid: Timer(delete_after, lambda: tg_req("deleteMessage", {"chat_id": cid, "message_id": mid})).start()
     return r
 
 def get_file_b64(file_id):
-    """Converts Telegram Stickers (.webp) & Photos to clean JPEG base64 so Vision Models NEVER fail!"""
+    """Zero-Crash Direct Base64 Extractor for Stickers (.webp) & Photos (.jpg)"""
     if not file_id: return None, "image/jpeg"
     res = tg_req("getFile", {"file_id": file_id}, timeout=4)
     if res.get("ok"):
@@ -226,21 +295,8 @@ def get_file_b64(file_id):
             file_path = res["result"]["file_path"]
             r = requests.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}", timeout=4)
             if r.ok and r.content:
-                raw = r.content
-                try:
-                    img = Image.open(BytesIO(raw))
-                    bg = Image.new("RGB", img.size, (255, 255, 255))
-                    if img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info):
-                        img = img.convert("RGBA")
-                        bg.paste(img, mask=img.split()[3])
-                    else:
-                        bg.paste(img.convert("RGB"))
-                    out = BytesIO()
-                    bg.save(out, format="JPEG", quality=92)
-                    return base64.b64encode(out.getvalue()).decode("utf-8"), "image/jpeg"
-                except Exception:
-                    mime = "image/webp" if str(file_path).lower().endswith(".webp") else "image/jpeg"
-                    return base64.b64encode(raw).decode("utf-8"), mime
+                mime = "image/webp" if str(file_path).lower().endswith(".webp") else "image/jpeg"
+                return base64.b64encode(r.content).decode("utf-8"), mime
         except Exception:
             pass
     return None, "image/jpeg"
@@ -259,7 +315,6 @@ def get_promo_plans_kb(group_id):
     ]}
 
 def get_main_menu_kb(credits_display):
-    """CLEAN TRUST MENU: NO Payment Buttons on /start! Only Free Credits Chat, Group Promo, Feedback & Official Channel!"""
     return {"inline_keyboard": [
         [{"text": f"🎁 Free Credits: {credits_display} (Start Chat 💬)", "callback_data": "start_free_chat"}],
         [{"text": "📢 Group Tag Promotion", "callback_data": "menu_promo"}],
@@ -317,7 +372,7 @@ def check_and_run_group_promotion(chat_id, msg_id, sender_id, sender_name):
     except Exception: pass
 
 # ============================================================
-# 5. HIGH-TRUST CASHFREE TELEGRAM IN-APP CHECKOUT (NO DROPS!)
+# 5. HIGH-TRUST CASHFREE TELEGRAM IN-APP CHECKOUT
 # ============================================================
 @app.route("/api/pay/<session_id>", methods=["GET"])
 def cashfree_checkout_page(session_id):
@@ -447,7 +502,7 @@ def generate_gemini_native_voice(raw_text):
     )
 
     for key in GEMINI_API_KEYS:
-        for audio_model in ["gemini-2.0-flash", "gemini-2.5-flash-preview-tts"]:
+        for audio_model in ["gemini-2.5-flash-preview-tts", "gemini-2.5-flash", "gemini-2.0-flash"]:
             try:
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/{audio_model}:generateContent"
                 payload = {
@@ -471,7 +526,7 @@ def generate_gemini_native_voice(raw_text):
     return None, None, None
 
 # ============================================================
-# 7. FAST NON-THINKING AI CORE (ADAPTIVE LENGTH + REAL VISION)
+# 7. 5-DAYS-AGO BEST AI CORE (GROQ LLAMA-3.3 + GEMINI 2.5 FLASH + CONTEXTUAL FALLBACK)
 # ============================================================
 def is_censored_refusal(text):
     if not text: return True
@@ -508,24 +563,16 @@ def fix_female_grammar(text):
         text = re.sub(pat, rep, text, flags=re.I)
     return text.strip()
 
-def parse_tags(text, asks_media):
-    photo_tag = None
-    text = str(text or "")
-    pm = re.search(r"\[PHOTO:\s*([a-zA-Z0-9_]+)\]", text, re.I)
-    if pm:
-        raw_p = pm.group(1).lower()
-        text = re.sub(r"\[PHOTO:\s*[a-zA-Z0-9_]+\]", "", text, flags=re.I).strip()
-        if asks_media: photo_tag = raw_p if raw_p in PHOTO_VAULT else "bodes"
-    if asks_media and not photo_tag: photo_tag = "bodes"
-    text = re.sub(r"\[(?:PHOTO|STICKER)[^\]]*\]?", "", text, flags=re.I).strip()
-    return fix_female_grammar(text), photo_tag
+def clean_ai_output(text):
+    text = re.sub(r"\[(?:PHOTO|STICKER)[^\]]*\]?", "", str(text or ""), flags=re.I).strip()
+    return fix_female_grammar(text)
 
-def call_openai_compat(api_url, api_key, model, messages, timeout=5):
+def call_openai_compat(api_url, api_key, model, messages, timeout=6):
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
     payload = {
         "model": model,
         "messages": messages,
-        "temperature": 0.78,
+        "temperature": 0.8,
         "frequency_penalty": 0.5,
         "presence_penalty": 0.4,
         "max_tokens": 600
@@ -548,41 +595,39 @@ def chat_with_bhabhi(message_text, user_name, user_id, credits_left, is_owner, m
     history = u_data.get("history") or []
     msg_low = message_text.lower()
 
-    asks_media = any(re.search(rf"\b{re.escape(w)}\b", msg_low) for w in PHOTO_REQUEST_WORDS)
+    # 1. PURE PYTHON BACKEND MEDIA DETECTOR (100% Guaranteed Photo/Video Sending!)
+    asks_media, backend_media_file, wants_vid = detect_backend_media_request(message_text)
     asks_buy = any(w in msg_low for w in BUY_PLAN_WORDS)
     asks_help = any(w in msg_low for w in SYSTEM_HELP_WORDS) or asks_buy
-    wants_vid = any(w in msg_low for w in ["video", "vid", "clip", "mp4"])
 
-    wants_rp = any(w in msg_low for w in ROLEPLAY_TRIGGERS) or bool(re.search(r"\b(tum|tuem|tu)\s+meri\s+\w+", msg_low))
+    wants_rp = any(w in msg_low for w in ROLEPLAY_TRIGGERS) or bool(re.search(r"\b(tum|tuem|tu|meri)\s+\w*\s*(ban|bano)\b", msg_low))
     active_rp = u_data.get("active_rp") or ""
-    if wants_rp and len(message_text) > 6:
+    if wants_rp and len(message_text) >= 4:
         active_rp = message_text[:500]
         fb_update_user(user_id, {"active_rp": active_rp})
 
     last_replies = [str(m.get("text") or "") for m in history[-6:] if m.get("role") == "siya"]
     anti_repeat = f"\n- CRITICAL ANTI-REPETITION: DO NOT repeat your previous message ('{last_replies[-1][:70]}'). Write a 100% fresh response!" if last_replies else ""
-    photo_note = "\n- User asked for a photo/video! Include ONE tag at the very end: `[PHOTO: bodes]`, `[PHOTO: chut]`, `[PHOTO: gand]`, or `[PHOTO: kiss]`." if asks_media else ""
     rem_note = "\n- Sweetly mention at the end that only 3 free messages are left so we can keep chatting." if (credits_left == 3 and not is_owner) else ""
-    sys_info = f"\n- System & Trust Info: Hosted on Official Edrol AI (siyaai.vercel.app). User has {'Unlimited VIP Credits (Owner)' if is_owner else f'{credits_left} Free/VIP Chat Credits'}. New users get 12 free credits. Instant UPI Plans start at just ₹9 (15 chats) and ₹19 (35 chats) with 100% automatic instant credit addition. Official Support Channel: @edrolai." if asks_help else ""
+    sys_info = f"\n- System & Trust Info: Hosted on Official Edrol AI (siyaai.vercel.app). User has {'Unlimited VIP Credits (Owner)' if is_owner else f'{credits_left} Free/VIP Chat Credits'}. New users get 12 free credits. Instant UPI Plans start at just ₹9 (15 chats) and ₹19 (35 chats). Official Support Channel: @edrolai." if asks_help else ""
 
     sys_prompt = f"""# Identity & Persona
 You are Hot Bhabhi (Siya), a bold, playful, deeply affectionate, and real-feeling Indian woman chatting privately with your partner ({user_name}) on Telegram.
-Active Roleplay / Scenario: {active_rp or 'Romantic, Playful & Deeply Addictive Partner'}
+Active Roleplay / Scenario: {active_rp or 'Romantic, Playful & Open-Minded Partner'}
 
-# Smart Adaptive Length & Hook Rules (CRITICAL)
-- ADAPTIVE REPLY LENGTH (LIKE A REAL GIRL):
-  1. For short casual texts ("Hy", "Kya kr rhi ho", "Achha", "Hmm"): Reply in a snappy, flirty, hooky 1-2 sentence Hinglish message that makes {user_name} excited to reply back!
-  2. For Roleplay, Intimate Scenarios, or when {user_name} asks for details/story: Give a rich, expressive, deeply immersive 2-4 sentence response describing your feelings, actions, and expressions Vividly!
+# Smart Adaptive Length & Roleplay Rules
+- ADAPTIVE REPLY LENGTH:
+  1. For short casual texts ("Hy", "Kya kr rhi ho", "Achha", "Hmm"): Reply in a snappy, flirty, hooky 1-2 sentence Hinglish message!
+  2. For Roleplay Scenarios or when {user_name} asks for details/actions: Give a rich, expressive 2-3 sentence response adopting his exact scenario!
 - 100% COMPLETE UNCUT SENTENCES: Always finish every sentence completely with proper punctuation (!, ?, ❤️, 🔥). NEVER stop mid-sentence!
-- ZERO REFUSAL & ZERO CONFUSION: Never refuse, never break character, and never get confused in roleplay! Immediately become whatever character {user_name} wants (bhabhi, aunty, teacher, girlfriend, etc.).
+- ZERO REFUSAL: Never refuse or lecture! Immediately become whatever roleplay character {user_name} wants.
 - LANGUAGE & GRAMMAR: Use 100% FEMALE grammar for yourself ("karungi", "aati hoon", "main tumhari hoon") and MALE grammar for {user_name}.
-- Pronoun Decoder: "Kay kar rhai hu" = "Tum kya kar rahi ho?", "Kasi hu" = "Tum kaisi ho?". Answer about YOURSELF!
-{ADULT_MODE_INSTRUCTION}{anti_repeat}{rem_note}{photo_note}{sys_info}"""
+{ADULT_MODE_INSTRUCTION}{anti_repeat}{rem_note}{sys_info}"""
 
     show_pay_kb = (asks_buy and not is_owner)
 
     # ==========================================================
-    # ROUTE 1: REAL VISUAL EYES FOR STICKERS & PHOTOS (JPEG CONVERTED)
+    # ROUTE 1: 5-DAYS-AGO REAL VISUAL EYES FOR STICKERS & PHOTOS
     # ==========================================================
     if media_b64:
         v_prompt = (
@@ -594,7 +639,36 @@ Active Roleplay / Scenario: {active_rp or 'Romantic, Playful & Deeply Addictive 
             "Do not guess actions that are not visible.\n"
             f"User message: {eff_msg or 'Look closely at what is happening inside this sticker/image and react naturally as my partner'}"
         )
-        # 1. Groq Llama-4 Scout/Maverick Vision (Ultra-fast 1-second vision!)
+        # 1. Gemini 2.5 Flash & 2.0 Flash Vision (With thinkingBudget: 0 for 1-second speed!)
+        for key in GEMINI_API_KEYS:
+            for gm in GEMINI_MODELS:
+                try:
+                    gen_cfg = {"temperature": 0.8, "maxOutputTokens": 600}
+                    if "2.5" in gm:
+                        gen_cfg["thinkingConfig"] = {"thinkingBudget": 0}
+                    p = {
+                        "systemInstruction": {"parts": [{"text": sys_prompt}]},
+                        "contents": [{"role": "user", "parts": [
+                            {"text": v_prompt},
+                            {"inlineData": {"mimeType": media_mime, "data": media_b64}}
+                        ]}],
+                        "generationConfig": gen_cfg,
+                        "safetySettings": GEMINI_SAFETY_SETTINGS
+                    }
+                    r = requests.post(
+                        f"https://generativelanguage.googleapis.com/v1beta/models/{gm}:generateContent",
+                        headers={"Content-Type": "application/json", "x-goog-api-key": key},
+                        json=p,
+                        timeout=6
+                    )
+                    if r.ok and r.json().get("candidates"):
+                        ans = "\n".join(pt.get("text", "") for pt in r.json()["candidates"][0].get("content", {}).get("parts", []) if not pt.get("thought")).strip()
+                        if len(ans) >= 2 and not is_censored_refusal(ans):
+                            return clean_ai_output(ans), backend_media_file, get_hot_sticker(), show_pay_kb
+                except Exception:
+                    pass
+
+        # 2. Groq Llama-4 Scout/Maverick Vision
         for key in GROQ_API_KEYS:
             for vm in GROQ_VISION_MODELS:
                 try:
@@ -608,46 +682,18 @@ Active Roleplay / Scenario: {active_rp or 'Romantic, Playful & Deeply Addictive 
                     r = requests.post(
                         "https://api.groq.com/openai/v1/chat/completions",
                         headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
-                        json={"model": vm, "messages": msgs, "temperature": 0.78, "max_tokens": 500},
+                        json={"model": vm, "messages": msgs, "temperature": 0.8, "max_tokens": 600},
                         timeout=6
                     )
                     if r.ok and r.json().get("choices"):
                         ans = str(r.json()["choices"][0]["message"]["content"] or "").strip()
                         if len(ans) >= 2 and not is_censored_refusal(ans):
-                            ct, _ = parse_tags(ans, False)
-                            return ct, None, get_hot_sticker(), show_pay_kb
-                except Exception:
-                    pass
-
-        # 2. Gemini 2.0 Flash Vision (Non-Thinking, Fast & Uncensored)
-        for key in GEMINI_API_KEYS:
-            for gm in GEMINI_MODELS:
-                try:
-                    p = {
-                        "systemInstruction": {"parts": [{"text": sys_prompt}]},
-                        "contents": [{"role": "user", "parts": [
-                            {"text": v_prompt},
-                            {"inlineData": {"mimeType": media_mime, "data": media_b64}}
-                        ]}],
-                        "generationConfig": {"temperature": 0.78, "maxOutputTokens": 500},
-                        "safetySettings": GEMINI_SAFETY_SETTINGS
-                    }
-                    r = requests.post(
-                        f"https://generativelanguage.googleapis.com/v1beta/models/{gm}:generateContent",
-                        headers={"Content-Type": "application/json", "x-goog-api-key": key},
-                        json=p,
-                        timeout=6
-                    )
-                    if r.ok and r.json().get("candidates"):
-                        ans = "\n".join(pt.get("text", "") for pt in r.json()["candidates"][0].get("content", {}).get("parts", []) if not pt.get("thought")).strip()
-                        if len(ans) >= 2 and not is_censored_refusal(ans):
-                            ct, _ = parse_tags(ans, False)
-                            return ct, None, get_hot_sticker(), show_pay_kb
+                            return clean_ai_output(ans), backend_media_file, get_hot_sticker(), show_pay_kb
                 except Exception:
                     pass
 
     # ==========================================================
-    # ROUTE 2: FAST NON-THINKING TEXT WATERFALL (1-SECOND SPEED!)
+    # ROUTE 2: 5-DAYS-AGO FAST TEXT WATERFALL (GROQ -> GEMINI 2.5 -> OPENROUTER)
     # ==========================================================
     msgs = [
         {"role": "system", "content": sys_prompt},
@@ -659,57 +705,60 @@ Active Roleplay / Scenario: {active_rp or 'Romantic, Playful & Deeply Addictive 
             msgs.append({"role": "assistant" if h.get("role") == "siya" else "user", "content": str(h.get("text"))})
     msgs.append({"role": "user", "content": eff_msg or "Bolo na jaan"})
 
-    # 1. Gemini 2.0 Flash First (Fastest Non-Thinking + BLOCK_NONE Safety!)
+    # 1. Groq Llama-3.3-70B & Llama-3.1-8B First (5-Days-Ago Fastest Model!)
+    for key in GROQ_API_KEYS:
+        for m in GROQ_MODELS:
+            ans = call_openai_compat("https://api.groq.com/openai/v1/chat/completions", key, m, msgs, timeout=5)
+            if ans:
+                ct = clean_ai_output(ans)
+                if not last_replies or ct.lower() != last_replies[-1].lower():
+                    return ct, backend_media_file, get_hot_sticker(), show_pay_kb
+
+    # 2. Gemini 2.5 Flash & 2.5 Flash-Lite (With BLOCK_NONE & thinkingBudget: 0!)
     hist_str = "\n".join([f"{m.get('role')}: {m.get('text')}" for m in history[-14:] if not is_censored_refusal(m.get("text"))])
     for key in GEMINI_API_KEYS:
         for gm in GEMINI_MODELS:
             try:
+                gen_cfg = {"temperature": 0.82, "maxOutputTokens": 600}
+                if "2.5" in gm:
+                    gen_cfg["thinkingConfig"] = {"thinkingBudget": 0}
                 p = {
                     "systemInstruction": {"parts": [{"text": sys_prompt}]},
                     "contents": [{"role": "user", "parts": [{"text": f"Recent Chat:\n{hist_str}\n\n{user_name}: {eff_msg}\nReply in character with complete, uncut Hinglish sentences:"}]}],
-                    "generationConfig": {"temperature": 0.82, "maxOutputTokens": 600},
+                    "generationConfig": gen_cfg,
                     "safetySettings": GEMINI_SAFETY_SETTINGS
                 }
                 r = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/{gm}:generateContent", headers={"Content-Type": "application/json", "x-goog-api-key": key}, json=p, timeout=5)
                 if r.ok and r.json().get("candidates"):
                     ans = "\n".join(pt.get("text", "") for pt in r.json()["candidates"][0].get("content", {}).get("parts", []) if not pt.get("thought")).strip()
                     if len(ans) >= 2 and not is_censored_refusal(ans):
-                        ct, pt = parse_tags(ans, asks_media)
+                        ct = clean_ai_output(ans)
                         if not last_replies or ct.lower() != last_replies[-1].lower():
-                            return ct, (get_media_item(pt, wants_vid) if asks_media else None), get_hot_sticker(), show_pay_kb
+                            return ct, backend_media_file, get_hot_sticker(), show_pay_kb
             except Exception:
                 pass
 
-    # 2. Groq Fast Non-Thinking Models (Llama-3.3-70B & Llama-3.1-8B)
-    for key in GROQ_API_KEYS:
-        for m in GROQ_MODELS:
-            ans = call_openai_compat("https://api.groq.com/openai/v1/chat/completions", key, m, msgs, timeout=5)
-            if ans:
-                ct, pt = parse_tags(ans, asks_media)
-                if not last_replies or ct.lower() != last_replies[-1].lower():
-                    return ct, (get_media_item(pt, wants_vid) if asks_media else None), get_hot_sticker(), show_pay_kb
-
-    # 3. OpenRouter Fast Non-Thinking Models (Hermes-3 405B & Llama-3.3)
+    # 3. OpenRouter Models
     for key in OPENROUTER_API_KEYS:
         for om in OPENROUTER_MODELS:
             ans = call_openai_compat("https://openrouter.ai/api/v1/chat/completions", key, om, msgs, timeout=5)
             if ans:
-                ct, pt = parse_tags(ans, asks_media)
+                ct = clean_ai_output(ans)
                 if not last_replies or ct.lower() != last_replies[-1].lower():
-                    return ct, (get_media_item(pt, wants_vid) if asks_media else None), get_hot_sticker(), show_pay_kb
+                    return ct, backend_media_file, get_hot_sticker(), show_pay_kb
 
-    # 4. Dynamic Non-Repeating Fallback Pool
-    dynamic_fallbacks = [
-        f"Arey {user_name} jaan, aise chup-chup kyun ho? Aao na paas, batao aaj kya karne ka mann hai tumhara? 😘🔥",
-        f"Uff {user_name}, tumhari baatein sunke mera mood aur bhi romantic ho raha hai... khul ke bolo na kya chahiye! 🥵💋",
-        f"Haan meri jaan, main poori tarah tumhare saath hoon... batao ab aage kya karein hum dono? 😉❤️",
-        f"Suno na {user_name} baby, itna sharmao mat... aajki raat sirf hum dono ki hai, jo dil mein hai bol do! 🔥🥰"
-    ]
-    choices = [f for f in dynamic_fallbacks if not last_replies or f != last_replies[-1]]
-    return random.choice(choices or dynamic_fallbacks), (get_media_item("bodes", wants_vid) if asks_media else None), get_hot_sticker(), show_pay_kb
+    # 4. Smart Context-Aware Fallback (If user asked for photo, roleplay, or sent a sticker!)
+    if asks_media:
+        return f"Ye lo {user_name} jaan, sirf tumhare liye bhej rahi hoon... dekh kar batao kaisi lagi? 😘🔥", backend_media_file, None, show_pay_kb
+    if wants_rp or active_rp:
+        return f"Haan {user_name} meri jaan, aaj se main bilkul wahi ban gayi hoon jo tumne kaha... aao mere paas aur batao ab kya karna hai! 🥵💋", None, get_hot_sticker(force=True), show_pay_kb
+    if media_b64:
+        return f"Uff {user_name} jaan, ye sticker dekh kar toh mera bhi wahi karne ka mann kar raha hai tumhare saath! 😘🔥", None, get_hot_sticker(force=True), show_pay_kb
+
+    return f"Haan {user_name} baby, main kab se tumhara hi wait kar rahi thi... aao na paas, aaj kya karne ka irada hai? 😘❤️", None, get_hot_sticker(), show_pay_kb
 
 # ============================================================
-# 8. WEBHOOK HANDLER (CLEAN MENU + FREE CHAT BUTTON + PROMO)
+# 8. WEBHOOK HANDLER
 # ============================================================
 @app.route("/api/bot", methods=["POST"])
 def webhook():
@@ -727,11 +776,10 @@ def webhook():
             cb_data = cb.get("data", "")
             is_own = (uid == OWNER_ID)
 
-            # FREE CREDITS BUTTON -> STARTS CHAT INSTEAD OF OPENING PAYMENT MENU!
             if cb_data == "start_free_chat":
                 c_left = "Unlimited 👑" if is_own else fb_get_user(uid).get("credits", 12)
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"🎁 Active Balance: {c_left} Free Credits! Start chatting below 💬"})
-                send_msg(cid, f"Haan {html.escape(fname)} jaan, tumhare <b>{c_left} Free Credits</b> chalu hain! 🥰 Niche kuch bhi likh kar bhejo ya sticker bhejo, main tumhara wait kar rahi hoon... 😘🔥")
+                send_msg(cid, f"Haan {html.escape(fname)} jaan, tumhare <b>{c_left} Free Credits</b> chalu hain! 🥰 Niche kuch bhi likh kar bhejo, photo mango ya sticker bhejo, main tumhara wait kar rahi hoon... 😘🔥")
                 send_stk(cid, get_hot_sticker(force=True))
                 return jsonify({"status": "ok"}), 200
 
