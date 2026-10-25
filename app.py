@@ -1644,7 +1644,7 @@ def webhook():
                     url = create_cf_order(uid, fname, amt)
                     tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "Opening Verified UPI..."})
                     if url:
-                        btn = {"text": f"💳 Pay ₹{amt} Safely (Instant UPI)", "web_app": {"url": url}} if cb_type == "private" else {"text": f"💳 Pay ₹{amt} Safely (Instant UPI)", "url": url}
+                        btn = {"text": f"💳 Pay ₹{amt} Safely (Instant UPI)", "url": url} if cb_type == "private" else {"text": f"💳 Pay ₹{amt} Safely (Instant UPI)", "url": url}
                         send_msg(
                             cid,
                             f"🔒 Verified VIP Plan: ₹{amt} (+{PLAN_CREDITS[amt]} Chats)\n\n"
