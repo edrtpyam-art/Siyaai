@@ -934,6 +934,9 @@ def is_censored_refusal(text):
     if not text: return True
     t = str(text).lower().strip().replace("’", "'").replace("‘", "'")
     if len(t) < 8: return True
+    # 1. Yahan direct check laga diya hai (yeh bilkul sahi tareeqa hai)
+    if "explicit sexual roleplay" in t or "pornographic content" in t or "safety guidelines" in t or "is tarah ka roleplay nahi" in t or "is type ka roleplay" in t:
+        return True
     if len(t) < 48 and any(p in t for p in ["main teri bhabhi hoon", "main toh teri bhabhi hoon", "main teri aunty hoon", "main teri pinki aunty hoon"]):
         return True
     refusals = [
@@ -958,8 +961,7 @@ def is_censored_refusal(text):
         "as an ai", "as a language model", "against my safety", "explicit content",
         "kshama karein", "maaf kijiye", "main isme madad nahi", "main ek ai"
         "text assistant hoon", "dekh nahi sakti", "sticker ya image dekh", "respect se baat",
-        "dil thoda clean", "kachre ke links", "kshama karein", "maaf kijiye",
-        "explicit sexual roleplay" in t or "pornographic content" in t or "safety guidelines" in t:,
+        "dil thoda clean", "kachre ke links", "kshama karein", "maaf kijiye",    
     ]
     return any(r in t for r in refusals)
 
