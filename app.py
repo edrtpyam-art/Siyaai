@@ -797,14 +797,15 @@ def check_and_run_group_promotion(chat_id, msg_id, sender_id, sender_name):
         pass
 
 # ============================================================
-# 7. CASHFREE TELEGRAM IN-APP PAYMENT (CREDITS + PROMO + ₹19 PIN NOTE)
+# 7. CASHFREE EXTERNAL BROWSER & DIRECT UPI CHECKOUT (FIXES ERR_UNKNOWN_URL_SCHEME!)
 # ============================================================
 @app.route("/api/pay/<session_id>", methods=["GET"])
 def cashfree_checkout_page(session_id):
     mode = "sandbox" if (CASHFREE_APP_ID.upper().startswith("TEST") or "TEST" in CASHFREE_SECRET_KEY.upper()) else "production"
     order_id = request.args.get("order_id", "")
     amt = request.args.get("amt", "")
-    return f"""<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Verified UPI Payment</title><script src="https://telegram.org/js/telegram-web-app.js"></script><script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script><style>body{{background:#0b1020;color:#fff;font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:95vh;margin:0;padding:16px;}} .card{{background:#141d33;padding:24px;border-radius:20px;border:1px solid #38bdf8;max-width:360px;width:100%;text-align:center;}} .badge{{display:inline-block;background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid #4ade80;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;margin-bottom:10px;}} .btn{{background:linear-gradient(135deg,#ff1493,#ff69b4);color:#fff;border:none;padding:15px;border-radius:12px;width:100%;font-size:17px;font-weight:bold;margin-top:14px;cursor:pointer;}}</style></head><body><div class="card"><div class="badge">🔒 100% SECURE &amp; VERIFIED UPI</div><h2 style="margin:5px 0;">₹{html.escape(str(amt or 'VIP'))} Instant Activation</h2><p id="msg" style="color:#38bdf8;font-size:14px;">Opening GPay / PhonePe / Paytm...</p><button class="btn" onclick="startPay()">💳 Pay Safely via UPI</button><p style="font-size:12px;color:#94a3b8;margin-top:14px;">✅ Instant Activation in 2 Seconds • Powered by Edrol AI</p></div><script>if(window.Telegram&&window.Telegram.WebApp){{window.Telegram.WebApp.ready();window.Telegram.WebApp.expand();}}const cf=Cashfree({{mode:"{mode}"}});function startPay(){{cf.checkout({{paymentSessionId:"{html.escape(session_id)}",redirectTarget:"_modal"}}).then(res=>{{if(res.paymentDetails||res.redirect){{document.getElementById("msg").innerText="✅ Verifying Payment...";fetch("/api/cf_verify?order_id={html.escape(order_id)}").then(r=>r.json()).then(d=>{{if(d.paid&&window.Telegram&&window.Telegram.WebApp)window.Telegram.WebApp.close();}});}}}});}}window.onload=function(){{setTimeout(startPay,300);}};</script></body></html>""", 200, {"Content-Type": "text/html"}
+    chats = PLAN_CREDITS.get(str(amt), "VIP")
+    return f"""<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Verified UPI Payment</title><script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script><style>body{{background:#0b1020;color:#fff;font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:95vh;margin:0;padding:16px;}} .card{{background:#141d33;padding:24px;border-radius:20px;border:1px solid #38bdf8;max-width:360px;width:100%;text-align:center;}} .badge{{display:inline-block;background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid #4ade80;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;margin-bottom:10px;}} .btn{{background:linear-gradient(135deg,#ff1493,#ff69b4);color:#fff;border:none;padding:16px;border-radius:12px;width:100%;font-size:18px;font-weight:bold;margin-top:14px;cursor:pointer;}}</style></head><body><div class="card"><div class="badge">🔒 100% SECURE &amp; VERIFIED UPI</div><h2 style="margin:5px 0;">₹{html.escape(str(amt or 'VIP'))} (+{html.escape(str(chats))} Chats)</h2><p id="msg" style="color:#38bdf8;font-size:14px;">Tap below to open GPay, PhonePe or Paytm:</p><button class="btn" onclick="startPay()">💳 Pay Safely via UPI</button><p style="font-size:12px;color:#94a3b8;margin-top:14px;">✅ Instant Auto-Credit in 2 Seconds • Powered by Edrol AI</p></div><script>const cf = Cashfree({{ mode: "{mode}" }}); function startPay() {{ cf.checkout({{ paymentSessionId: "{html.escape(session_id)}", redirectTarget: "_self" }}); }} window.onload = function() {{ setTimeout(startPay, 600); }};</script></body></html>""", 200, {"Content-Type": "text/html"}
 
 @app.route("/api/cf_verify", methods=["GET", "POST"])
 def cf_verify_endpoint():
@@ -856,6 +857,7 @@ def create_cf_order(uid, uname, amt, purpose="credits", gid=""):
             return f"{host}/api/pay/{r.json()['payment_session_id']}?order_id={oid}&amt={amt}"
     except Exception: pass
     return None
+
 # ============================================================
 # 8. PURE SITUATIONAL GEMINI 'AOEDE' VOICE ENGINE (NO WORD REPLACEMENT!)
 # ============================================================
