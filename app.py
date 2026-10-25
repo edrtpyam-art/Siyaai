@@ -957,6 +957,8 @@ def is_censored_refusal(text):
         "i'm sorry", "i am sorry", "can't help with that", "cannot help with that",
         "as an ai", "as a language model", "against my safety", "explicit content",
         "kshama karein", "maaf kijiye", "main isme madad nahi", "main ek ai"
+        "text assistant hoon", "dekh nahi sakti", "sticker ya image dekh", "respect se baat",
+        "dil thoda clean", "kachre ke links", "kshama karein", "maaf kijiye",
     ]
     return any(r in t for r in refusals)
 
@@ -971,6 +973,9 @@ def fix_female_grammar(text):
         text = text[0].upper() + text[1:]
 
     fixes = [
+        (r"\bmera bhi lund khada karne ka dil\b", "mera bhi dil bechain"),
+        (r"\bmera lund\b", "mera badan"),
+        (r"\bpelna padega\b", "pyaar karna padega"),
         (r"\bmain meri (bhabhi|bhabi|aunty|aunti|teacher|madam|gf|girlfriend|biwi|wife) (hoon|hu)\b", r"main teri \1 \2"),
         (r"\bmai meri (bhabhi|bhabi|aunty|aunti|teacher|madam|gf|girlfriend|biwi|wife) (hoon|hu)\b", r"main teri \1 \2"),
         (r"\bapni (bhabhi|bhabi|aunty|aunti|teacher|madam) (hoon|hu)\b", r"teri \1 \2"),
@@ -1235,9 +1240,11 @@ STRICT RULES:
         if is_third_person_photo_eval(raw_caption or message_text):
             vision_prompt = (
                 f"Recent Chat:\n{hist_summary}\n\n"
-                f"VISION INSTRUCTION (USER IS SHOWING YOU A GIRL/CHARACTER IN THIS PHOTO: '{raw_caption or message_text}'):\n"
-                f"1. DO NOT pretend the girl in this photo is you!\n"
-                f"2. Look closely at the girl in this photo (her face, lips, cleavage/boobs, figure, outfit) and agree with {user_name} about how hot, rasili, and sexy she looks—answer his exact question about her body/chut playfully and naughtily in 2 complete sentences!\n"
+                f"VISION INSTRUCTION (SPEAK STRICTLY AS A WOMAN!):\n"
+                f"1. You are 100% a WOMAN (female body only—NEVER use male words or male anatomy for yourself!).\n"
+                f"2. Look closely at the girl/character shown in this photo and give a playful, flirty comment about her beauty, outfit, and figure from a woman's perspective, and tease {user_name} in 1 to 2 complete sentences!\n"
+                f"3. DO NOT pretend the girl in this photo is you!\n"
+                f"4. Look closely at the girl in this photo (her face, lips, cleavage/boobs, figure, outfit) and agree with {user_name} about how hot, rasili, and sexy she looks—answer his exact question about her body/chut playfully and naughtily in 2 complete sentences!\n"
             )
         else:
             vision_prompt = (
