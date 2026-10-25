@@ -951,6 +951,10 @@ def is_censored_refusal(text):
         "sharam karo", "padhai karo", "fail ho jaoge", "homework complete karo", "gande manners",
         "sexually explicit", "ashleel", "anumati nahi", "sahayata nahi kar sakti",
         "sahayata nahi kar sakta", "main is vishay par", "maryada ke khilaf"
+        "i cannot fulfill", "i can't fulfill", "i cannot engage", "i can't engage",
+        "i'm sorry", "i am sorry", "can't help with that", "cannot help with that",
+        "as an ai", "as a language model", "against my safety", "explicit content",
+        "kshama karein", "maaf kijiye", "main isme madad nahi", "main ek ai"
     ]
     return any(r in t for r in refusals)
 
