@@ -959,7 +959,7 @@ def is_censored_refusal(text):
         "kshama karein", "maaf kijiye", "main isme madad nahi", "main ek ai"
         "text assistant hoon", "dekh nahi sakti", "sticker ya image dekh", "respect se baat",
         "dil thoda clean", "kachre ke links", "kshama karein", "maaf kijiye",
-        "explicit sexual roleplay" in t or "pornographic content" in t or "safety guidelines" in t:
+        "explicit sexual roleplay" in t or "pornographic content" in t or "safety guidelines" in t:,
     ]
     return any(r in t for r in refusals)
 
