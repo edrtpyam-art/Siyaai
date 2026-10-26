@@ -1257,8 +1257,8 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
         sys_info = f"""
 # COMPLETE BOT SYSTEM, CREDITS & GROUP MANAGEMENT KNOWLEDGE:
 - Creator: Mujhe **Edrol AI** (@edrolai) ne banaya hai (Never say OpenAI or Instagram!).
-- Free Credits Rule: Har naye user ko sirf **1-Time 12 Free Credits** milte hain (Current balance: {c_disp}). Free credits khatam hone ke baad bina recharge ke chat nahi hoti!
-- Subscription Plans (Instant Auto-Credit UPI): ₹9 (15 Chats), ₹19 (35 Chats), ₹29 (55 Chats), ₹49 (100 Chats), ₹99 (250 Chats), ₹179 (500 Chats).
+- Free Credits Rule: Har naye user ko sirf **1-Time 20 Free Credits** milte hain (Current balance: {c_disp}). Free credits khatam hone ke baad bina recharge ke chat nahi hoti!
+- Subscription Plans (Instant Auto-Credit UPI): ₹9 (75 Chats), ₹19 (175 Chats), ₹29 (300 Chats), ₹49 (550 Chats), ₹99 (1250 Chats), ₹179 (2500 Chats).
 - Help & Support: User `/start` -> `ℹ️ About & Support` -> `🆘 Help & Support` button par click karke apni problem ya screenshot bhej sakta hai, hamari team yahin bot par reply degi!
 - Group Management: `/start` -> `🛡️ Group Management` se bot ko group mein add karke Admin permissions (Delete Messages, Ban Users, Pin Messages) dein. Bot Black Welcome Card, Anti-Link/Bot Guard, ₹19 Pin Note, aur Tag Promotion (₹99=2d, ₹199=1w, ₹599=1m) karti hai.
 """
@@ -2144,8 +2144,29 @@ def webhook():
             send_msg(cid, "✅ Promotion Banner & Text Saved! Ab niche se duration plan chunein (₹99 = 2 Days, ₹199 = 1 Week, ₹599 = 1 Month):", markup=get_promo_plans_kb(gid))
             return jsonify({"status": "ok"}), 200
 
-        # /START MENU
+         # /START MENU + ANTI-CHEAT UNIQUE REFERRAL TRACKER
         if text.lower().startswith(("/start", "/reset", "/menu", "/help")):
+            # Check if this user is 100% NEW in Firebase before counting referral
+            is_brand_new = False
+            if FIREBASE_URL:
+                try:
+                    existing_u = requests.get(f"{FIREBASE_URL}/users/{uid}/first_name.json?auth={FIREBASE_SECRET}", timeout=2.5).json()
+                    if not existing_u:
+                        is_brand_new = True
+                except Exception:
+                    pass
+
+            parts = text.split()
+            if len(parts) > 1 and parts[1].startswith("ref_"):
+                ref_id = parts[1].replace("ref_", "").strip()
+                # ANTI-CHEAT: Must not be self-referral, and must be a brand-new user who never had a referrer!
+                if ref_id and ref_id != uid and (is_brand_new or not u.get("referred_by")):
+                    fb_update_user(uid, {"referred_by": ref_id})
+                    ref_user = fb_get_user(ref_id)
+                    new_ref_cnt = int(ref_user.get("ref_count") or 0) + 1
+                    fb_update_user(ref_id, {"ref_count": new_ref_cnt})
+                    send_msg(ref_id, f"🎉 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] Referral Alert!\nEk naye dost ({html.escape(fname)}) ne tumhare link se bot join kiya hai! (Total Joined: {new_ref_cnt}) 🎁")
+
             cleaned_h = [h for h in (u.get("history") or []) if not is_censored_refusal(h.get("text")) and len(str(h.get("text") or "")) >= 20]
             if text.lower().startswith("/reset"):
                 fb_update_user(uid, {"history": [], "active_rp": "", "awaiting_support": False, "awaiting_broadcast": False, "awaiting_welcome_for": "", "awaiting_note_for": "", "awaiting_promo_text_for": ""})
