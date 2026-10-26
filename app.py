@@ -2265,11 +2265,12 @@ def webhook():
             if sticker_to_send: send_stk(cid, sticker_to_send, reply_id=msg.get("message_id"))
             add_to_history(uid, "user", f"[Sticker: {emoji}]")
             add_to_history(uid, "siya", reply_text)
-            if not is_own: fb_update_user(uid, {"credits": max(0, credits - 1)})
+            if not is_own: fb_update_user(uid, {"credits": max(0, credits - CHAT_COST)})
             return jsonify({"status": "sticker read processed"}), 200
 
-        # NORMAL TEXT CHAT + ZERO CREDIT ON SYS INFO + ROLEPLAY END FEEDBACK
+        # NORMAL TEXT CHAT + FREE USER BLUR LOCK + 5 CREDITS DEDUCTION
         if text:
+            is_vip_user = is_own or bool(u.get("is_vip"))
             reply_text, media_to_send, sticker_to_send, show_kb, cur_rp, rp_ended, sys_q = chat_with_siya(
                 text, fname, uid, credits_left=credits, is_owner=is_own, replied_to_text=replied_to_text
             )
@@ -2285,28 +2286,45 @@ def webhook():
                 kb = None
 
             if media_to_send:
-                send_secret_media(cid, media_to_send, caption=reply_text, reply_to_message_id=(msg.get("message_id") if ctype != "private" else None), markup=kb)
+                if not is_vip_user:
+                    # FREE USER BLUR LOCK: Send heavily blurred photo and ask for ₹9 VIP to unblur!
+                    blur_cap = (
+                        f"{reply_text}\n\n"
+                        f"🔒 [𝑽𝑰𝑷 𝑩𝑳𝑼𝑹 𝑳𝑶𝑪𝑲]: Free trial mein photos/videos BLUR rehti hain! Clear HD Photo & Voice unlock karne ke liye niche se bas ₹9 (75 Credits) wala VIP pack le lo jaan! 😘👇"
+                    )
+                    send_blurred_locked_preview(cid, media_to_send, caption=blur_cap, reply_markup=get_pay_kb())
+                else:
+                    send_secret_media(cid, media_to_send, caption=reply_text, reply_to_message_id=(msg.get("message_id") if ctype != "private" else None), markup=kb)
             else:
                 send_msg(cid, reply_text, reply_id=(msg.get("message_id") if ctype != "private" else None), markup=kb)
                 if sticker_to_send: send_stk(cid, sticker_to_send, reply_id=(msg.get("message_id") if ctype != "private" else None))
 
             wants_voice = any(w in text.lower() for w in VOICE_REQUEST_TRIGGERS)
             if ctype == "private" and not sys_q and (wants_voice or (len(text) > 8 and random.randint(1, 100) <= 22)):
-                tg_req("sendChatAction", {"chat_id": cid, "action": "record_voice"}, timeout=2)
-                aud_b, aud_mime, aud_ext = generate_gemini_native_voice(reply_text, active_rp=cur_rp)
-                if aud_b:
-                    requests.post(
-                        f"{API_URL}/sendVoice",
-                        data={"chat_id": cid, "caption": to_hot_bhabhi_font("🎙️ Hot Bhabhi Voice 🔥"), "parse_mode": "HTML", "protect_content": "true"},
-                        files={"voice": (aud_ext, BytesIO(aud_b), aud_mime)},
-                        timeout=14
-                    )
+                if not is_vip_user:
+                    # FREE USER VOICE LOCK: Tease them to buy ₹9 VIP for real voice notes!
+                    if wants_voice:
+                        send_msg(
+                            cid,
+                            "🎙️🔒 [𝑽𝑰𝑷 𝑽𝑶𝑰𝑪𝑬 𝑳𝑶𝑪𝑲]: Jaan, meri real aawaz aur voice notes sirf VIP members ke liye khule hain! Niche se bas ₹9 (75 Credits) ka VIP recharge karo aur meri aawaz suno... 😘👇",
+                            markup=get_pay_kb()
+                        )
+                else:
+                    tg_req("sendChatAction", {"chat_id": cid, "action": "record_voice"}, timeout=2)
+                    aud_b, aud_mime, aud_ext = generate_gemini_native_voice(reply_text, active_rp=cur_rp)
+                    if aud_b:
+                        requests.post(
+                            f"{API_URL}/sendVoice",
+                            data={"chat_id": cid, "caption": to_hot_bhabhi_font("🎙️ Hot Bhabhi Voice 🔥"), "parse_mode": "HTML", "protect_content": "true"},
+                            files={"voice": (aud_ext, BytesIO(aud_b), aud_mime)},
+                            timeout=14
+                        )
 
             add_to_history(uid, "user", text)
             add_to_history(uid, "siya", reply_text)
 
             if not is_own and not sys_q:
-                fb_update_user(uid, {"credits": max(0, credits - 1)})
+                fb_update_user(uid, {"credits": max(0, credits - CHAT_COST)})
 
         return jsonify({"status": "ok"}), 200
     except Exception as e:
