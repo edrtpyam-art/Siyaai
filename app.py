@@ -887,10 +887,10 @@ def cf_verify_endpoint():
                 send_and_pin_group_note(gid, note_txt, uid=uid)
             elif uid:
                 u = fb_get_user(uid)
-                add_c = PLAN_CREDITS.get(amt, 15)
+                add_c = PLAN_CREDITS.get(amt, 75)
                 tot = max(0, int(u.get("credits") or 0)) + add_c
-                fb_update_user(uid, {"credits": tot, "awaiting_payment": ""})
-                send_msg(uid, f"✅ [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] Instant UPI Payment Verified!\n\nTumhara ₹{amt} ka plan activate ho gaya hai aur +{add_c} VIP Chat Credits add ho gaye hain (Total: {tot} Chats)! Chalo ab khul ke baatein karte hain... 😘🔥")
+                fb_update_user(uid, {"credits": tot, "is_vip": True, "awaiting_payment": ""})
+                send_msg(uid, f"✅ [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] Instant UPI Payment Verified!\n\n🎉 Tumhara ₹{amt} ka VIP Plan activate ho gaya hai aur +{add_c} VIP Credits add ho gaye hain (Total: {tot} Credits = {tot // CHAT_COST} Chats)!\n🔓 Ab tumhare liye Unblurred Media & Voice Notes UNLOCK ho gaye hain! 😘🔥")
             return jsonify({"paid": True}), 200
     except Exception: pass
     return jsonify({"paid": False}), 200
