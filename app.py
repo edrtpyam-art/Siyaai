@@ -256,28 +256,12 @@ def to_hot_bhabhi_font(text):
 def get_welcome_trust_text(fname, credit_display, lang="hinglish"):
     safe_name = html.escape(fname or "Jaan")
     c_str = html.escape(str(credit_display))
-
-    if lang == "hi":
-        return (
-            f"<b>[𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] 🔥 • Powered by Edrol AI</b>\n\n"
-            f"<b>👋 नमस्ते {safe_name} जान! मैं भाभी हूँ — मैं किसी भी किरदार (Bhabhi, Aunty, Teacher, GF) में खुली चैट/रोलप्ले और स्मार्ट Group Management दोनों करती हूँ! ❤️</b>\n\n"
-            f"<b>🎁 1-Time Free Credits: {c_str} (नए यूजर को 1 बार 12 फ्री क्रेडिट्स मिलते हैं — पहले फ्री चैट करके देखो, जब बोट पसंद आए तभी VIP लो!)</b>\n\n"
-            f"<b>🛡️ ग्रुप कस्टमाइज या मदद के लिए नीचे बटन चुनें:</b>"
-        )
-    elif lang == "en":
-        return (
-            f"<b>[𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] 🔥 • Powered by Edrol AI</b>\n\n"
-            f"<b>👋 Hey {safe_name}! I am Bhabhi — I do both 100% Open Chat/Roleplay in ANY character (Bhabhi, Aunty, Teacher, GF) AND Smart Group Management! ❤️</b>\n\n"
-            f"<b>🎁 1-Time Free Credits: {c_str} (New users get 1-time 12 free credits — try free chat first, buy VIP only when you love our AI!)</b>\n\n"
-            f"<b>🛡️ Choose an option below or send a message to start chatting:</b>"
-        )
-    else:
-        return (
-            f"<b>[𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] 🔥 • Powered by Edrol AI</b>\n\n"
-            f"<b>👋 Hii {safe_name} jaan! Main Bhabhi hoon — main kisi bhi character (Bhabhi, Aunty, Teacher, GF) mein Open Chat/Roleplay aur Smart Group Management dono karti hoon! ❤️</b>\n\n"
-            f"<b>🎁 1-Time Free Credits: {c_str} (Naye user ko 1 time 12 free credits milte hain — pehle free chat karke dekho, pasand aaye tabhi subscription lena!)</b>\n\n"
-            f"<b>🛡️ Group Management ya Help ke liye niche button dabao ya seedha message bhejo:</b>"
-        )
+    return (
+        f"<b>[𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] 🔥 • Powered by Edrol AI</b>\n\n"
+        f"<b>👋 Hii {safe_name} jaan! Main tumhari personal AI Partner aur Smart Group Manager hoon! ❤️</b>\n\n"
+        f"<b>🎁 Free Trial Balance: {c_str} Credits (1 Chat = 5 Credits! Naye users ko 20 Free Credits milte hain — aur 3 doston ko share karne par +25 Credits FREE!)</b>\n\n"
+        f"<b>🛡️ Niche button dabao ya seedha message bhej kar baatein shuru karo:</b>"
+    )
 
 def get_main_menu_kb(credits_display, is_owner=False):
     rows = [
@@ -491,12 +475,15 @@ def get_telegram_file_base64(file_id):
         except Exception: pass
     return None
 
-def get_pay_kb():
-    return {"inline_keyboard": [
-        [{"text": "🔥 ₹9 (15 Chats) - Trial Pack", "callback_data": "buy_9"}, {"text": "⚡ ₹19 (35 Chats)", "callback_data": "buy_19"}],
-        [{"text": "💎 ₹29 (55 Chats) - Popular", "callback_data": "buy_29"}, {"text": "💎 ₹49 (100 Chats)", "callback_data": "buy_49"}],
-        [{"text": "👑 ₹99 (250 Chats)", "callback_data": "buy_99"}, {"text": "🚀 ₹179 (500 Chats)", "callback_data": "buy_179"}]
-    ]}
+def get_pay_kb(include_free_btn=True):
+    rows = [
+        [{"text": "🔥 ₹9 (75 Credits) - Instant Trial", "callback_data": "buy_9"}, {"text": "⚡ ₹19 (175 Credits)", "callback_data": "buy_19"}],
+        [{"text": "💎 ₹29 (300 Credits) - Best Seller", "callback_data": "buy_29"}, {"text": "💎 ₹49 (550 Credits)", "callback_data": "buy_49"}],
+        [{"text": "👑 ₹99 (1250 Credits)", "callback_data": "buy_99"}, {"text": "🚀 ₹179 (2500 Credits)", "callback_data": "buy_179"}]
+    ]
+    if include_free_btn:
+        rows.append([{"text": "🎁 Get +25 Free Credits (5 Chats) — Share & Unlock!", "callback_data": "menu_free_earn"}])
+    return {"inline_keyboard": rows}
 
 def get_promo_plans_kb(group_id):
     return {"inline_keyboard": [
