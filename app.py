@@ -1991,7 +1991,7 @@ def webhook():
             send_msg(cid, "❤️ Thank you jaan! Tumhara feedback Official Channel (@edrolai) me post ho gaya hai! 🥰")
             return jsonify({"status": "ok"}), 200
 
-         if ctype == "private" and u.get("awaiting_welcome_for") and text and not text.startswith("/"):
+        if ctype == "private" and u.get("awaiting_welcome_for") and text and not text.startswith("/"):
             gid = u["awaiting_welcome_for"]
             if gid == "OWNER_PERSONAL_LINK" and is_own:
                 requests.put(f"{FIREBASE_URL}/owner_settings/personal_group_link.json?auth={FIREBASE_SECRET}", json=text.strip(), timeout=3)
