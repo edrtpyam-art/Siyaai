@@ -162,7 +162,19 @@ API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}" if BOT_TOKEN else ""
 # ============================================================
 # 2. PLANS, PROMO & CREATOR/ROLEPLAY TRIGGERS
 # ============================================================
-PLAN_CREDITS = {"9": 15, "19": 35, "29": 55, "49": 100, "99": 250, "179": 500}
+# 1 Chat = 5 Credits! (Psychologically huge numbers so users feel massive value!)
+CHAT_COST = 5
+FREE_START_CREDITS = 20        # 4 Free Chats on start (Hook!)
+REFERRAL_REWARD_CREDITS = 25   # 3 Unique Friends + Join = +25 Credits (5 Free Chats!)
+PLAN_CREDITS = {
+    "9": 75,      # 15 Chats
+    "19": 175,    # 35 Chats
+    "29": 300,    # 60 Chats
+    "49": 550,    # 110 Chats
+    "99": 1250,   # 250 Chats
+    "199": 2500   # 500 Chats
+}
+
 PROMO_PLANS_HOURS = {"99": 48, "199": 168, "599": 720}
 STOP_ROLEPLAY_WORDS = [
     "normal baat", "stop roleplay", "roleplay band", "rolpay band", "mode off",
