@@ -1031,6 +1031,11 @@ def fix_female_grammar(text):
         text = text[0].upper() + text[1:]
 
     fixes = [
+        (r"\bmeri bhabhi ke\b", "mere"),
+        (r"\bmeri bhabhi ko\b", "mujhe"),
+        (r"\bmeri bhabhi\b", "main"),
+        (r"\bmain tera\b", "main teri"),
+        (r"\bkarunga\b", "karungi"),
         (r"\bmera bhi lund khada karne ka dil\b", "mera bhi dil bechain"),
         (r"\bmera lund\b", "mera badan"),
         (r"\bpelna padega\b", "pyaar karna padega"),
@@ -1442,6 +1447,46 @@ def webhook():
             if cb_data == "back_main_menu":
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
                 send_start_banner_or_msg(cid, get_welcome_trust_text(fname, c_disp, lang="hinglish"), get_main_menu_kb(c_disp, is_owner=is_own))
+                return jsonify({"status": "ok"}), 200
+
+           if cb_data == "menu_free_earn":
+                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
+                ref_cnt = int(u_cb.get("ref_count") or 0)
+                claimed_m = int(u_cb.get("claimed_milestones") or 0)
+                needed_total = (claimed_m + 1) * 3
+                rem = max(0, needed_total - ref_cnt)
+                ref_link = f"https://t.me/{BOT_USERNAME}?start=ref_{uid}"
+                share_url = f"https://t.me/share/url?url={quote(ref_link)}&text={quote('🔥 Bhai is AI Bhabhi Bot se baat karke dekh, ekdam real ladki jaisi chat aur voice bhejti hai! Abhi free mein try kar 👇')}"
+                kb = {"inline_keyboard": [
+                    [{"text": "📲 Step 1: Share Link to 3 Friends/Groups", "url": share_url}],
+                    [{"text": "📢 Step 2: Join Official Channel", "url": OFFICIAL_CHANNEL_URL}, {"text": "💬 Join VIP Group", "url": MORE_GROUPS_URL}],
+                    [{"text": f"✅ Verify & Claim +25 Credits ({ref_cnt}/{needed_total} Joined)", "callback_data": "verify_free_earn"}],
+                    [{"text": "⚡ Skip Waiting — Buy ₹9 (75 Credits) Instantly", "callback_data": "buy_9"}]
+                ]}
+                send_msg(
+                    cid,
+                    f"🎁 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] FREE +25 CREDITS (5 CHATS) UNLOCK!\n\n"
+                    f"📊 Tumhare Referrals: {ref_cnt} Users (Agle +25 Credits ke liye {rem} aur naye doston ko join karwao!)\n\n"
+                    f"⚠️ Anti-Cheat Rule: Sirf alag-alag (Unique) Telegram accounts jo pehli baar aapke link se bot start karenge wahi count honge! Apni hi ID par baar-baar share karne se count nahi badhega.\n\n"
+                    f"🔗 Tumhara Invite Link:\n<code>{ref_link}</code>",
+                    markup=kb
+                )
+                return jsonify({"status": "ok"}), 200
+
+            if cb_data == "verify_free_earn":
+                ref_cnt = int(u_cb.get("ref_count") or 0)
+                claimed_m = int(u_cb.get("claimed_milestones") or 0)
+                needed_total = (claimed_m + 1) * 3
+                if ref_cnt < needed_total:
+                    tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"❌ Abhi sirf {ref_cnt}/{needed_total} naye doston ne join kiya hai! Pehle {needed_total - ref_cnt} aur doston ko apna link bhej kar Start karwao!", "show_alert": True})
+                    return jsonify({"status": "ok"}), 200
+                if not check_user_joined_official(uid):
+                    tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "❌ Pehle Step 2 se Official Channel aur VIP Group join karo, tabhi +25 Credits milenge!", "show_alert": True})
+                    return jsonify({"status": "ok"}), 200
+                new_c = c_num + REFERRAL_REWARD_CREDITS
+                fb_update_user(uid, {"credits": new_c, "claimed_milestones": claimed_m + 1})
+                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "🎉 +25 Free Credits Added!", "show_alert": True})
+                send_msg(cid, f"🎉 Badhai ho {html.escape(fname)} jaan! Tumhare 3 naye referrals aur Channel/Group join verify ho gaye hain!\n\n💎 +{REFERRAL_REWARD_CREDITS} Free Credits (5 Free Chats) add kar diye gaye hain (Total Balance: {new_c} Credits)! Chalo ab baatein karte hain... 😘🔥")
                 return jsonify({"status": "ok"}), 200
 
             if cb_data == "menu_about":
