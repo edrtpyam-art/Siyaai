@@ -355,6 +355,7 @@ def check_bot_permissions_and_warn(chat_id, inviter_id, inviter_name):
             f"• Delete Messages\n"
             f"• Ban/Restrict Users\n"
             f"• Pin Messages"
+            f". welcome message"
         )
         send_msg(chat_id, warn_txt)
 
@@ -644,7 +645,9 @@ def fb_get_user(uid, first_name=""):
             fb_update_user(uid, {"first_name": first_name})
         return USER_CACHE[uid]
     d = {
-        "first_name": str(first_name or "User"), "credits": 12, "awaiting_payment": "", "history": [], "active_rp": "",
+        "first_name": str(first_name or "User"), "credits": FREE_START_CREDITS, "is_vip": False,
+        "referred_by": "", "ref_count": 0, "claimed_milestones": 0,
+        "awaiting_payment": "", "history": [], "active_rp": "",
         "awaiting_feedback": False, "awaiting_support": False, "awaiting_broadcast": False,
         "awaiting_promo_text_for": "", "awaiting_promo_mode": "simple", "awaiting_welcome_for": "", "awaiting_note_for": "",
         "pending_note_text": "", "user_groups": {}
@@ -653,7 +656,6 @@ def fb_get_user(uid, first_name=""):
         try:
             r = requests.get(f"{FIREBASE_URL}/users/{uid}.json?auth={FIREBASE_SECRET}", timeout=3).json()
             if isinstance(r, dict):
-                if "credits" not in r: r["credits"] = max(0, 12 - int(r.get("msg_count") or 0))
                 for k, v in d.items():
                     if k not in r or r[k] is None: r[k] = v
                 if first_name and r.get("first_name") in ("", "User"):
@@ -668,6 +670,45 @@ def fb_update_user(uid, data):
     if FIREBASE_URL:
         try: requests.patch(f"{FIREBASE_URL}/users/{uid}.json?auth={FIREBASE_SECRET}", json=data, timeout=3)
         except Exception: pass
+
+def check_user_joined_official(uid):
+    """Checks if user joined Official Channel or Group before giving free referral credits!"""
+    for chat_username in ["@edrolai", "@friendschatinggroup"]:
+        res = tg_req("getChatMember", {"chat_id": chat_username, "user_id": int(uid)}, timeout=3)
+        if res.get("ok"):
+            st = res.get("result", {}).get("status", "")
+            if st in ("Left", "kicked", "left"):
+                return False
+    return True
+
+def send_blurred_locked_preview(chat_id, filename, caption="", reply_markup=None):
+    """Heavily blurs photo for Free Users so they MUST pay ₹9 to see clear media & voice!"""
+    local_p = find_local_file(filename) or find_local_file(START_BANNER_IMAGE)
+    try:
+        from PIL import ImageFilter
+        if local_p:
+            img = Image.open(local_p).convert("RGB")
+        else:
+            r = requests.get(GITHUB_BASE_URL + str(filename), timeout=5)
+            img = Image.open(BytesIO(r.content)).convert("RGB")
+        # Heavy Gaussian Blur so nothing is visible without VIP!
+        blurred = img.filter(ImageFilter.GaussianBlur(radius=32))
+        out = BytesIO()
+        blurred.save(out, format="JPEG", quality=80)
+        out.seek(0)
+        data = {
+            "chat_id": str(chat_id),
+            "caption": to_hot_bhabhi_font(caption),
+            "parse_mode": "HTML",
+            "has_spoiler": "true",
+            "protect_content": "true"
+        }
+        if reply_markup:
+            data["reply_markup"] = json.dumps(reply_markup)
+        files = {"photo": ("vip_locked_preview.jpg", out, "image/jpeg")}
+        return requests.post(f"{API_URL}/sendPhoto", data=data, files=files, timeout=12).json()
+    except Exception:
+        return send_msg(chat_id, caption, markup=reply_markup)
 
 def clear_all_firebase_chat_cache():
     for uid in list(USER_CACHE.keys()):
