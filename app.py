@@ -91,6 +91,8 @@ START_BANNER_IMAGE = "bot.png"
 DEFAULT_PROMO_BANNER = "bot2.png"
 OFFICIAL_CHANNEL_URL = "https://t.me/edrolai"
 MORE_GROUPS_URL = "https://t.me/friendschatinggroup"
+OFFICIAL_CHANNEL_USERNAME = "@edrolai"
+CHAT_COST = 5  # 1 Chat = 5 Credits (User ko bada number dikhane ke liye!)
 FEEDBACK_CHANNEL_ID = "-1004290177402"
 
 FIREBASE_URL = os.environ.get("FIREBASE_URL", "").strip().rstrip("/")
