@@ -1449,7 +1449,7 @@ def webhook():
                 send_start_banner_or_msg(cid, get_welcome_trust_text(fname, c_disp, lang="hinglish"), get_main_menu_kb(c_disp, is_owner=is_own))
                 return jsonify({"status": "ok"}), 200
 
-           if cb_data == "menu_free_earn":
+            if cb_data == "menu_free_earn":
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
                 ref_cnt = int(u_cb.get("ref_count") or 0)
                 claimed_m = int(u_cb.get("claimed_milestones") or 0)
