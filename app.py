@@ -1998,7 +1998,7 @@ def webhook():
                 fb_update_user(uid, {"awaiting_welcome_for": ""})
                 send_msg(cid, f"✅ [𝙃𝙤𝙩 𝘽𝙝𝙖𝙗𝙝𝙞] Aapka Personal Group Link Save Ho Gaya Hai:\n{html.escape(text.strip())}", markup=get_owner_customize_kb())
                 return jsonify({"status": "ok"}), 200
-
+                
         # SAVE CUSTOM WELCOME MESSAGE FOR GROUP
         if ctype == "private" and u.get("awaiting_welcome_for") and text and not text.startswith("/"):
             gid = u["awaiting_welcome_for"]
