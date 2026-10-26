@@ -1018,7 +1018,8 @@ def is_censored_refusal(text):
         "as an ai", "as a language model", "against my safety", "explicit content",
         "kshama karein", "maaf kijiye", "main isme madad nahi", "main ek ai"
         "text assistant hoon", "dekh nahi sakti", "sticker ya image dekh", "respect se baat",
-        "dil thoda clean", "kachre ke links", "kshama karein", "maaf kijiye",    
+        "dil thoda clean", "kachre ke links", "kshama karein", "maaf kijiye", 
+        "main aapki yeh", "kalam nahi kar sakti", "text assistant hoon", "dekh nahi sakti"
     ]
     return any(r in t for r in refusals)
 
