@@ -890,7 +890,7 @@ def cf_verify_endpoint():
                 add_c = PLAN_CREDITS.get(amt, 75)
                 tot = max(0, int(u.get("credits") or 0)) + add_c
                 fb_update_user(uid, {"credits": tot, "is_vip": True, "awaiting_payment": ""})
-                send_msg(uid, f"✅ [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] Instant UPI Payment Verified!\n\n🎉 Tumhara ₹{amt} ka VIP Plan activate ho gaya hai aur +{add_c} VIP Credits add ho gaye hain (Total: {tot} Credits = {tot // CHAT_COST} Chats)!\n🔓 Ab tumhare liye Unblurred Media & Voice Notes UNLOCK ho gaye hain! 😘🔥")
+                send_msg(uid, f"✅ [Edrol AI Pro Max Lite] Instant UPI Payment Verified!\n\n🎉 Tumhara ₹{amt} ka VIP Plan activate ho gaya hai aur +{add_c} VIP Credits add ho gaye hain (Total: {tot} Credits = {tot // CHAT_COST} Chats)!\n🔓 Ab tumhare liye Unblurred Media & Voice Notes UNLOCK ho gaye hain! 😘🔥")
             return jsonify({"paid": True}), 200
     except Exception: pass
     return jsonify({"paid": False}), 200
@@ -900,14 +900,41 @@ def create_cf_order(uid, uname, amt, purpose="credits", gid=""):
     ts = int(time.time()); oid = f"ORD_{uid}_{amt}_{ts}"[:38]
     clean_name = re.sub(r"[^a-zA-Z0-9\s]", "", str(uname) or "VIP").strip() or "VIP"
     host = request.host_url.rstrip("/") if request else "https://siyaai.vercel.app"
+    
+    # Payload with safe Edrol AI branding matching Cashfree merchant rules
     p = {
-        "order_id": oid, "order_amount": float(amt), "order_currency": "INR",
-        "customer_details": {"customer_id": f"CUST_{uid}", "customer_phone": "9999999999", "customer_email": f"user{uid}@gmail.com", "customer_name": clean_name},
-        "order_meta": {"return_url": f"https://t.me/{BOT_USERNAME}", "notify_url": f"{host}/api/cf_verify"},
-        "order_tags": {"user_id": str(uid), "amount": str(amt), "purpose": str(purpose), "group_id": str(gid)}
+        "order_id": oid, 
+        "order_amount": float(amt), 
+        "order_currency": "INR",
+        "customer_details": {
+            "customer_id": f"CUST_{uid}", 
+            "customer_phone": "9999999999", 
+            "customer_email": f"user{uid}@gmail.com", 
+            "customer_name": clean_name
+        },
+        "order_meta": {
+            "return_url": f"https://t.me/{BOT_USERNAME}", 
+            "notify_url": f"{host}/api/cf_verify"
+        },
+        "order_tags": {
+            "user_id": str(uid), 
+            "amount": str(amt), 
+            "purpose": str(purpose), 
+            "group_id": str(gid)
+        }
     }
     try:
-        r = requests.post("https://sandbox.cashfree.com/pg/orders" if CASHFREE_APP_ID.upper().startswith("TEST") else "https://api.cashfree.com/pg/orders", headers={"x-client-id": CASHFREE_APP_ID, "x-client-secret": CASHFREE_SECRET_KEY, "x-api-version": "2023-08-01", "Content-Type": "application/json"}, json=p, timeout=5)
+        r = requests.post(
+            "https://sandbox.cashfree.com/pg/orders" if CASHFREE_APP_ID.upper().startswith("TEST") else "https://api.cashfree.com/pg/orders", 
+            headers={
+                "x-client-id": CASHFREE_APP_ID, 
+                "x-client-secret": CASHFREE_SECRET_KEY, 
+                "x-api-version": "2023-08-01", 
+                "Content-Type": "application/json"
+            }, 
+            json=p, 
+            timeout=5
+        )
         if r.ok and r.json().get("payment_session_id"):
             return f"{host}/api/pay/{r.json()['payment_session_id']}?order_id={oid}&amt={amt}"
     except Exception: pass
