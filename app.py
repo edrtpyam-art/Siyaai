@@ -1478,7 +1478,7 @@ def webhook():
                 send_start_banner_or_msg(cid, get_welcome_trust_text(fname, c_disp, lang="hinglish"), get_main_menu_kb(c_disp, is_owner=is_own))
                 return jsonify({"status": "ok"}), 200
 
-                        if cb_data.startswith("promo_off_"):
+            if cb_data.startswith("promo_off_"):
                 if not is_own: return jsonify({"status": "ok"}), 200
                 gid = cb_data.replace("promo_off_", "").strip()
                 try: requests.patch(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", json={"active": False}, timeout=3)
