@@ -857,7 +857,6 @@ import html
 # 7. CASHFREE 0-CLICK DIRECT UPI CHECKOUT (BYPASS UI)
 # ============================================================
 
-# Yahan purana /api/pay/ hata kar direct_upi wala route lagaya gaya hai
 @app.route("/api/direct_upi/<order_id>", methods=["GET"])
 def cashfree_direct_upi_auto(order_id):
     session_id = request.args.get("session_id", "")
@@ -874,7 +873,6 @@ def cashfree_direct_upi_auto(order_id):
         "Content-Type": "application/json"
     }
     
-    # 1. Cashfree se backend me UPI link nikalna
     payload = {
         "payment_session_id": session_id,
         "payment_method": {
@@ -888,37 +886,37 @@ def cashfree_direct_upi_auto(order_id):
         r = requests.post(f"{base_url}/pg/orders/{order_id}/payments", headers=headers, json=payload, timeout=5)
         res_data = r.json()
         
-        # 2. UPI Intent (upi://pay...) extract karna
-        upi_link = res_data.get("data", {}).get("payload", {}).get("default", "")
+        # FIXED: Cashfree API 2023-08-01 ke according direct URL nikalna
+        upi_link = res_data.get("data", {}).get("url", "")
         
         if upi_link:
-            # 3. Seedha auto-redirect script (Bina Cashfree UI ke)
             return f"""
             <!DOCTYPE html>
             <html>
             <head>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Opening UPI...</title>
+                <title>Redirecting...</title>
             </head>
-            <body style="background-color: #0b1020; margin: 0; display:flex; height:100vh; align-items:center; justify-content:center;">
+            <body style="background-color: #0b1020; color: white; margin: 0; display:flex; flex-direction:column; height:100vh; align-items:center; justify-content:center; font-family:sans-serif;">
+                <h3 style="color:#38bdf8;">Opening UPI App... 🚀</h3>
                 <script>
-                    // Page khulte hi turant UPI App khol dega
+                    // Ye line browser khulte hi instantly UPI app open kar degi
                     window.location.replace("{upi_link}");
                     
-                    // Agar phone ka security auto-redirect roke, to 1.5s baad ye green button dikhega
+                    // Agar phone strict security ki wajah se automatic na kholne de, to button show hoga
                     setTimeout(function() {{
-                        document.body.innerHTML = '<a href="{html.escape(upi_link)}" style="background:#4ade80; color:#0b1020; padding:15px 30px; font-size:20px; font-weight:bold; border-radius:10px; text-decoration:none; font-family:sans-serif; text-align:center;">Pay Safely via UPI App</a>';
-                    }}, 1500);
+                        document.body.innerHTML = '<a href="{html.escape(upi_link)}" style="background:#4ade80; color:#0b1020; padding:15px 30px; font-size:20px; font-weight:bold; border-radius:10px; text-decoration:none; text-align:center;">Pay Safely via UPI App</a>';
+                    }}, 1000);
                 </script>
             </body>
             </html>
             """, 200, {"Content-Type": "text/html"}
+        else:
+            # Agar koi Cashfree limit ya error ho to screen pe asli error dikhayega
+            return f"<body style='background:#0b1020;color:red;'>Cashfree Error: {res_data.get('message', 'Failed to generate link')}</body>", 400
             
     except Exception as e:
-        pass
-        
-    return "Payment failed or expired. Please generate a new link from bot.", 400
-
+        return f"<body style='background:#0b1020;color:red;'>Server Error: {str(e)}</body>", 400
 
 @app.route("/api/cf_verify", methods=["GET", "POST"])
 def cf_verify_endpoint():
