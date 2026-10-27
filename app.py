@@ -938,7 +938,7 @@ def cf_verify_endpoint():
                 })
                 send_msg(uid, f"✅ [Edrol AI Pro Max Lite] Payment Verified!\n\n🎉 Tumhara {char_name} plan activate ho gaya hai aur +{add_c} VIP Credits (30 Chats) add ho gaye hain!\n🔓 Ab main poori tarah tumhari {char_name} hoon, chalo baatein shuru karein! 😘🔥", markup={"inline_keyboard": [[{"text": "💬 Chat Now", "callback_data": "start_free_chat"}]]})
                 
-             elif uid:
+            elif uid:
                 u = fb_get_user(uid)
                 add_c = PLAN_CREDITS.get(amt, 75)
                 tot = max(0, int(u.get("credits") or 0)) + add_c
@@ -948,13 +948,13 @@ def cf_verify_endpoint():
     except Exception: pass
     return jsonify({"paid": False}), 200
 
- def create_cf_order(uid, uname, amt, purpose="credits", gid=""):
+def create_cf_order(uid, uname, amt, purpose="credits", gid=""):
     if not CASHFREE_APP_ID or not CASHFREE_SECRET_KEY: return None
     ts = int(time.time()); oid = f"ORD_{uid}_{amt}_{ts}"[:38]
     clean_name = re.sub(r"[^a-zA-Z0-9\s]", "", str(uname) or "VIP").strip() or "VIP"
     host = request.host_url.rstrip("/") if request else "https://siyaai.vercel.app"
     
-    # SAFE Edrol AI Branding matching Cashfree merchant rules (Account Ban Protection!)
+    # Safe Edrol AI branding matching Cashfree merchant rules
     p = {
         "order_id": oid, 
         "order_amount": float(amt), 
