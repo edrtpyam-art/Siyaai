@@ -854,7 +854,7 @@ def check_and_run_group_promotion(chat_id, msg_id, sender_id, sender_name):
 import html
 
 # ============================================================
-# 7. CASHFREE 0-CLICK DIRECT UPI CHECKOUT (BYPASS UI)
+# 7. CASHFREE 0-CLICK DIRECT UPI CHECKOUT (FIXED ENDPOINT)
 # ============================================================
 
 @app.route("/api/direct_upi/<order_id>", methods=["GET"])
@@ -883,12 +883,25 @@ def cashfree_direct_upi_auto(order_id):
     }
     
     try:
-        r = requests.post(f"{base_url}/pg/orders/{order_id}/payments", headers=headers, json=payload, timeout=5)
+        # EXACT CORRECT ENDPOINT FOR UPI INTENT GENERATION
+        r = requests.post(f"{base_url}/pg/orders/sessions", headers=headers, json=payload, timeout=5)
         res_data = r.json()
         
-        # FIXED: Cashfree API 2023-08-01 ke according direct URL nikalna
-        upi_link = res_data.get("data", {}).get("url", "")
+        # Defensive Programming: Agar Cashfree list bhej de (pichli baar ki tarah), to usko handle karna
+        if isinstance(res_data, list):
+            res_data = res_data[0] if len(res_data) > 0 else {}
+            
+        upi_link = ""
         
+        # Link extract karne ka bulletproof tareeqa
+        if isinstance(res_data, dict):
+            # Try path 1: data -> payload -> default (Standard Cashfree behavior)
+            if "data" in res_data and isinstance(res_data["data"], dict):
+                if "payload" in res_data["data"] and isinstance(res_data["data"]["payload"], dict):
+                    upi_link = res_data["data"]["payload"].get("default", "")
+                else:
+                    upi_link = res_data["data"].get("url", "")
+                    
         if upi_link:
             return f"""
             <!DOCTYPE html>
@@ -900,10 +913,10 @@ def cashfree_direct_upi_auto(order_id):
             <body style="background-color: #0b1020; color: white; margin: 0; display:flex; flex-direction:column; height:100vh; align-items:center; justify-content:center; font-family:sans-serif;">
                 <h3 style="color:#38bdf8;">Opening UPI App... 🚀</h3>
                 <script>
-                    // Ye line browser khulte hi instantly UPI app open kar degi
+                    // Page khulte hi seedha UPI app trigger
                     window.location.replace("{upi_link}");
                     
-                    // Agar phone strict security ki wajah se automatic na kholne de, to button show hoga
+                    // Agar phone block kare to 1 second me ye button aa jayega
                     setTimeout(function() {{
                         document.body.innerHTML = '<a href="{html.escape(upi_link)}" style="background:#4ade80; color:#0b1020; padding:15px 30px; font-size:20px; font-weight:bold; border-radius:10px; text-decoration:none; text-align:center;">Pay Safely via UPI App</a>';
                     }}, 1000);
@@ -912,11 +925,12 @@ def cashfree_direct_upi_auto(order_id):
             </html>
             """, 200, {"Content-Type": "text/html"}
         else:
-            # Agar koi Cashfree limit ya error ho to screen pe asli error dikhayega
-            return f"<body style='background:#0b1020;color:red;'>Cashfree Error: {res_data.get('message', 'Failed to generate link')}</body>", 400
+            # Agar Cashfree ne error diya (jaise amount limit ya test mode issue)
+            err_msg = res_data.get('message', 'Failed to generate UPI link') if isinstance(res_data, dict) else 'Unknown Structure'
+            return f"<body style='background:#0b1020;color:red;padding:20px;'>Cashfree Error: {err_msg}</body>", 400
             
     except Exception as e:
-        return f"<body style='background:#0b1020;color:red;'>Server Error: {str(e)}</body>", 400
+        return f"<body style='background:#0b1020;color:red;padding:20px;'>Server Error: {str(e)}</body>", 400
 
 @app.route("/api/cf_verify", methods=["GET", "POST"])
 def cf_verify_endpoint():
