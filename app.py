@@ -948,7 +948,7 @@ def cf_verify_endpoint():
     except Exception: pass
     return jsonify({"paid": False}), 200
 
-def create_cf_order(uid, uname, amt, purpose="credits", gid=""):
+ def create_cf_order(uid, uname, amt, purpose="credits", gid=""):
     if not CASHFREE_APP_ID or not CASHFREE_SECRET_KEY: return None
     ts = int(time.time()); oid = f"ORD_{uid}_{amt}_{ts}"[:38]
     clean_name = re.sub(r"[^a-zA-Z0-9\s]", "", str(uname) or "VIP").strip() or "VIP"
