@@ -854,7 +854,7 @@ def check_and_run_group_promotion(chat_id, msg_id, sender_id, sender_name):
 import html
 
 # ============================================================
-# 7. CASHFREE 0-CLICK DIRECT UPI CHECKOUT (FIXED ENDPOINT)
+# 7. CASHFREE 0-CLICK DIRECT UPI (FRONTEND JS BYPASS)
 # ============================================================
 
 @app.route("/api/direct_upi/<order_id>", methods=["GET"])
@@ -863,74 +863,53 @@ def cashfree_direct_upi_auto(order_id):
     if not session_id:
         return "Invalid Session", 400
         
-    is_test = CASHFREE_APP_ID.upper().startswith("TEST") or "TEST" in CASHFREE_SECRET_KEY.upper()
-    base_url = "https://sandbox.cashfree.com" if is_test else "https://api.cashfree.com"
+    # Check if Sandbox or Production
+    mode = "sandbox" if (CASHFREE_APP_ID.upper().startswith("TEST") or "TEST" in CASHFREE_SECRET_KEY.upper()) else "production"
     
-    headers = {
-        "x-client-id": CASHFREE_APP_ID,
-        "x-client-secret": CASHFREE_SECRET_KEY,
-        "x-api-version": "2023-08-01",
-        "Content-Type": "application/json"
-    }
-    
-    payload = {
-        "payment_session_id": session_id,
-        "payment_method": {
-            "upi": {
-                "channel": "link"
-            }
-        }
-    }
-    
-    try:
-        # EXACT CORRECT ENDPOINT FOR UPI INTENT GENERATION
-        r = requests.post(f"{base_url}/pg/orders/sessions", headers=headers, json=payload, timeout=5)
-        res_data = r.json()
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Loading UPI...</title>
+        <!-- Load Official Cashfree SDK -->
+        <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
+    </head>
+    <body style="background-color: #0b1020; color: white; margin: 0; display:flex; flex-direction:column; height:100vh; align-items:center; justify-content:center; font-family:sans-serif;">
         
-        # Defensive Programming: Agar Cashfree list bhej de (pichli baar ki tarah), to usko handle karna
-        if isinstance(res_data, list):
-            res_data = res_data[0] if len(res_data) > 0 else {}
-            
-        upi_link = ""
+        <h3 id="statusText" style="color:#38bdf8;">Opening UPI App... 🚀</h3>
+        <p style="color:#94a3b8; font-size:14px;">Please wait a second.</p>
         
-        # Link extract karne ka bulletproof tareeqa
-        if isinstance(res_data, dict):
-            # Try path 1: data -> payload -> default (Standard Cashfree behavior)
-            if "data" in res_data and isinstance(res_data["data"], dict):
-                if "payload" in res_data["data"] and isinstance(res_data["data"]["payload"], dict):
-                    upi_link = res_data["data"]["payload"].get("default", "")
-                else:
-                    upi_link = res_data["data"].get("url", "")
-                    
-        if upi_link:
-            return f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Redirecting...</title>
-            </head>
-            <body style="background-color: #0b1020; color: white; margin: 0; display:flex; flex-direction:column; height:100vh; align-items:center; justify-content:center; font-family:sans-serif;">
-                <h3 style="color:#38bdf8;">Opening UPI App... 🚀</h3>
-                <script>
-                    // Page khulte hi seedha UPI app trigger
-                    window.location.replace("{upi_link}");
-                    
-                    // Agar phone block kare to 1 second me ye button aa jayega
-                    setTimeout(function() {{
-                        document.body.innerHTML = '<a href="{html.escape(upi_link)}" style="background:#4ade80; color:#0b1020; padding:15px 30px; font-size:20px; font-weight:bold; border-radius:10px; text-decoration:none; text-align:center;">Pay Safely via UPI App</a>';
-                    }}, 1000);
-                </script>
-            </body>
-            </html>
-            """, 200, {"Content-Type": "text/html"}
-        else:
-            # Agar Cashfree ne error diya (jaise amount limit ya test mode issue)
-            err_msg = res_data.get('message', 'Failed to generate UPI link') if isinstance(res_data, dict) else 'Unknown Structure'
-            return f"<body style='background:#0b1020;color:red;padding:20px;'>Cashfree Error: {err_msg}</body>", 400
+        <script>
+            // Initialize Cashfree
+            const cf = Cashfree({{ mode: "{mode}" }});
             
-    except Exception as e:
-        return f"<body style='background:#0b1020;color:red;padding:20px;'>Server Error: {str(e)}</body>", 400
+            // UI bypass karke direct UPI Intent (GPay/PhonePe) ko call karna
+            let payOptions = {{
+                paymentMethod: {{
+                    upi: {{
+                        channel: "link"
+                    }}
+                }},
+                paymentSessionId: "{html.escape(session_id)}"
+            }};
+            
+            // Page load hote hi instant execute
+            window.onload = function() {{
+                setTimeout(function() {{
+                    cf.pay(payOptions).then(function(result) {{
+                        if(result.error) {{
+                            // Agar fir bhi Cashfree roke, toh actual error dikhayega
+                            document.getElementById('statusText').innerHTML = "Payment Error: " + result.error.message;
+                            document.getElementById('statusText').style.color = "#ef4444";
+                        }}
+                    }});
+                }}, 400); // 0.4 second delay taaki SDK fully load ho jaye
+            }};
+        </script>
+    </body>
+    </html>
+    """, 200, {"Content-Type": "text/html"}
 
 @app.route("/api/cf_verify", methods=["GET", "POST"])
 def cf_verify_endpoint():
