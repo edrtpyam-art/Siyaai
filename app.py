@@ -902,20 +902,48 @@ def cf_verify_endpoint():
             uid, amt = str(tags.get("user_id") or ""), str(tags.get("amount") or "9")
             purpose = str(tags.get("purpose") or "credits")
             gid = str(tags.get("group_id") or "")
+            
             if purpose == "promo" and gid:
                 hrs = PROMO_PLANS_HOURS.get(amt, 48)
                 requests.patch(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", json={"active": True, "expires_at": time.time() + (hrs * 3600)}, timeout=3)
                 if uid: send_msg(uid, "✅ [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] Payment Verified! Tumhara Group Tag Promotion LIVE ho gaya hai! 🚀🔥")
+            
             elif purpose == "pin_note" and gid and uid:
                 u = fb_get_user(uid)
                 note_txt = u.get("pending_note_text") or "Welcome to our Group!"
                 send_and_pin_group_note(gid, note_txt, uid=uid)
+                
+            elif purpose == "custom_rp" and uid:
+                u = fb_get_user(uid)
+                add_c = 250  # Custom Rp = 50 Chats (250 Credits)
+                tot = max(0, int(u.get("credits") or 0)) + add_c
+                fb_update_user(uid, {"credits": tot, "is_vip": True, "awaiting_payment": ""})
+                send_msg(uid, f"✅ [Edrol AI Pro Max Lite] Payment Verified!\n\n🎉 Tumhara Custom Roleplay (₹129) activate ho gaya hai aur +{add_c} VIP Credits (50 Chats) add ho gaye hain!\n🔓 Ab poori kahani tumhare hisaab se chalegi, setup bhejo! 😘🔥")
+                
+            elif purpose.startswith("char_") and uid:
+                char_key = purpose.replace("char_", "")
+                u = fb_get_user(uid)
+                char_info = DIAMOND_CHARACTERS.get(char_key, {})
+                char_name = char_info.get("name", "Premium Character")
+                add_c = char_info.get("credits", 150)  # Standard 30 Chats (150 Credits)
+                tot = max(0, int(u.get("credits") or 0)) + add_c
+                
+                # Payment hote hi bot khud usi character ki memory load kar legi!
+                fb_update_user(uid, {
+                    "credits": tot, 
+                    "is_vip": True, 
+                    "awaiting_payment": "",
+                    "active_rp": f"{char_name} - {char_info.get('brain_prompt', '')}",
+                    "active_vault": char_info.get("vault_tag", "bhabhi")
+                })
+                send_msg(uid, f"✅ [Edrol AI Pro Max Lite] Payment Verified!\n\n🎉 Tumhara {char_name} plan activate ho gaya hai aur +{add_c} VIP Credits (30 Chats) add ho gaye hain!\n🔓 Ab main poori tarah tumhari {char_name} hoon, chalo baatein shuru karein! 😘🔥", markup={"inline_keyboard": [[{"text": "💬 Chat Now", "callback_data": "start_free_chat"}]]})
+                
             elif uid:
                 u = fb_get_user(uid)
                 add_c = PLAN_CREDITS.get(amt, 75)
                 tot = max(0, int(u.get("credits") or 0)) + add_c
                 fb_update_user(uid, {"credits": tot, "is_vip": True, "awaiting_payment": ""})
-                send_msg(uid, f"✅ [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] Instant UPI Payment Verified!\n\n🎉 Tumhara ₹{amt} ka VIP Plan activate ho gaya hai aur +{add_c} VIP Credits add ho gaye hain (Total: {tot} Credits = {tot // CHAT_COST} Chats)!\n🔓 Ab tumhare liye Unblurred Media & Voice Notes UNLOCK ho gaye hain! 😘🔥")
+                send_msg(uid, f"✅ [Edrol AI Pro Max Lite] Instant UPI Payment Verified!\n\n🎉 Tumhara VIP Plan activate ho gaya hai aur +{add_c} VIP Credits add ho gaye hain!\n🔓 Ab tumhare liye Unblurred Media UNLOCK ho gaye hain! 😘🔥")
             return jsonify({"paid": True}), 200
     except Exception: pass
     return jsonify({"paid": False}), 200
@@ -925,14 +953,41 @@ def create_cf_order(uid, uname, amt, purpose="credits", gid=""):
     ts = int(time.time()); oid = f"ORD_{uid}_{amt}_{ts}"[:38]
     clean_name = re.sub(r"[^a-zA-Z0-9\s]", "", str(uname) or "VIP").strip() or "VIP"
     host = request.host_url.rstrip("/") if request else "https://siyaai.vercel.app"
+    
+    # SAFE Edrol AI Branding matching Cashfree merchant rules (Account Ban Protection!)
     p = {
-        "order_id": oid, "order_amount": float(amt), "order_currency": "INR",
-        "customer_details": {"customer_id": f"CUST_{uid}", "customer_phone": "9999999999", "customer_email": f"user{uid}@gmail.com", "customer_name": clean_name},
-        "order_meta": {"return_url": f"https://t.me/{BOT_USERNAME}", "notify_url": f"{host}/api/cf_verify"},
-        "order_tags": {"user_id": str(uid), "amount": str(amt), "purpose": str(purpose), "group_id": str(gid)}
+        "order_id": oid, 
+        "order_amount": float(amt), 
+        "order_currency": "INR",
+        "customer_details": {
+            "customer_id": f"CUST_{uid}", 
+            "customer_phone": "9999999999", 
+            "customer_email": f"user{uid}@gmail.com", 
+            "customer_name": clean_name
+        },
+        "order_meta": {
+            "return_url": f"https://t.me/{BOT_USERNAME}", 
+            "notify_url": f"{host}/api/cf_verify"
+        },
+        "order_tags": {
+            "user_id": str(uid), 
+            "amount": str(amt), 
+            "purpose": str(purpose), 
+            "group_id": str(gid)
+        }
     }
     try:
-        r = requests.post("https://sandbox.cashfree.com/pg/orders" if CASHFREE_APP_ID.upper().startswith("TEST") else "https://api.cashfree.com/pg/orders", headers={"x-client-id": CASHFREE_APP_ID, "x-client-secret": CASHFREE_SECRET_KEY, "x-api-version": "2023-08-01", "Content-Type": "application/json"}, json=p, timeout=5)
+        r = requests.post(
+            "https://sandbox.cashfree.com/pg/orders" if CASHFREE_APP_ID.upper().startswith("TEST") else "https://api.cashfree.com/pg/orders", 
+            headers={
+                "x-client-id": CASHFREE_APP_ID, 
+                "x-client-secret": CASHFREE_SECRET_KEY, 
+                "x-api-version": "2023-08-01", 
+                "Content-Type": "application/json"
+            }, 
+            json=p, 
+            timeout=5
+        )
         if r.ok and r.json().get("payment_session_id"):
             return f"{host}/api/pay/{r.json()['payment_session_id']}?order_id={oid}&amt={amt}"
     except Exception: pass
