@@ -274,27 +274,35 @@ def get_welcome_trust_text(fname, credit_display, lang="hinglish"):
     safe_name = html.escape(fname or "Jaan")
     c_str = html.escape(str(credit_display))
     return (
-        f"<b>[𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] 🔥 • Powered by Edrol AI</b>\n\n"
-        f"<b>👋 Hii {safe_name} jaan! Main tumhari personal AI Partner aur Smart Group Manager hoon! ❤️</b>\n\n"
-        f"<b>🎁 Free Trial Balance: {c_str} Credits (1 Chat = 5 Credits! Naye users ko 20 Free Credits milte hain — aur 3 doston ko share karne par +25 Credits FREE!)</b>\n\n"
-        f"<b>🛡️ Niche button dabao ya seedha message bhej kar baatein shuru karo:</b>"
+        f"<b>💥EDROLAI @edrolai :</b>"
+        f"<b>🔥 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] • Private Romantic & Roleplay Hub🎀 aur Smart Group Manager hoon!  ❤️</b>\n\n"
+        f"<b>👋 Hii {safe_name} jaan! Main tumhari personal bold AI partner hoon. Mere sath khul kar romantic aur dark roleplay ka maza lo... 😘🥵</b>\n\n"
+        f"<b>💎 Tumhara Balance: {c_str} Credits (1 Chat = 5 Credits)</b>\n\n"
+        f"<b>👇 Niche diye gaye options se apni pasand ka roleplay mode chuno ya Chat start karo:</b>"
     )
 
 def get_main_menu_kb(credits_display, is_owner=False):
     rows = [
+        [{"text": f"💬 Start Chat Now ({credits_display} Credits) 🔥", "callback_data": "start_free_chat"}],
+        [{"text": "🎭 Roleplay & Character Hub 💖", "callback_data": "menu_roleplay_hub"}],
         [
-            {"text": "🇮🇳 Hinglish", "callback_data": "lang_hinglish"},
-            {"text": "🇮🇳 हिंदी", "callback_data": "lang_hi"},
-            {"text": "🇬🇧 English", "callback_data": "lang_en"}
+            {"text": "📖 How to Use Bot (Guide)", "url": OFFICIAL_CHANNEL_URL},
+            {"text": "🛡️ Group Management", "callback_data": "menu_group_mgmt"}
         ],
-        [{"text": f"🎁 Free Credits: {credits_display} (Start Chat 💬)", "callback_data": "start_free_chat"}],
-        [
-            {"text": "🛡️ Group Management", "callback_data": "menu_group_mgmt"},
-            {"text": "ℹ️ About & Support", "callback_data": "menu_about"}
-        ]
+        [{"text": "ℹ️ About & Support", "callback_data": "menu_about"}]
     ]
     if is_owner:
         rows.append([{"text": "👑 Owner Control Panel", "callback_data": "menu_owner_customize"}])
+    return {"inline_keyboard": rows}
+
+def get_roleplay_hub_kb(is_vip=False):
+    rows = []
+    for cid, info in DIAMOND_CHARACTERS.items():
+        lock_str = "🔓" if is_vip else f"🔒 [₹{info['price']}]"
+        rows.append([{"text": f"{info['name']} {lock_str}", "callback_data": f"rp_char_{cid}"}])
+    
+    rows.append([{"text": f"✨ 13. Custom Roleplay (Apni Story) {'🔓' if is_vip else '🔒 [₹99]'}", "callback_data": "rp_char_custom"}])
+    rows.append([{"text": "⬅️ Back to Main Menu", "callback_data": "back_main_menu"}])
     return {"inline_keyboard": rows}
 
 def get_about_menu_kb():
