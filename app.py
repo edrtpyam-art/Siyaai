@@ -938,7 +938,7 @@ def cf_verify_endpoint():
                 })
                 send_msg(uid, f"✅ [Edrol AI Pro Max Lite] Payment Verified!\n\n🎉 Tumhara {char_name} plan activate ho gaya hai aur +{add_c} VIP Credits (30 Chats) add ho gaye hain!\n🔓 Ab main poori tarah tumhari {char_name} hoon, chalo baatein shuru karein! 😘🔥", markup={"inline_keyboard": [[{"text": "💬 Chat Now", "callback_data": "start_free_chat"}]]})
                 
-            elif uid:
+             elif uid:
                 u = fb_get_user(uid)
                 add_c = PLAN_CREDITS.get(amt, 75)
                 tot = max(0, int(u.get("credits") or 0)) + add_c
