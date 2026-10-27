@@ -301,7 +301,7 @@ def get_roleplay_hub_kb(is_vip=False):
         lock_str = "🔓" if is_vip else f"🔒 [₹{info['price']}]"
         rows.append([{"text": f"{info['name']} {lock_str}", "callback_data": f"rp_char_{cid}"}])
     
-    rows.append([{"text": f"✨ 13. Custom Roleplay (Apni Story) {'🔓' if is_vip else '🔒 [₹99]'}", "callback_data": "rp_char_custom"}])
+    rows.append([{"text": f"✨ 13. Custom Roleplay (Apni Story) {'🔓' if is_vip else '🔒 [₹129]'}", "callback_data": "rp_char_custom"}])
     rows.append([{"text": "⬅️ Back to Main Menu", "callback_data": "back_main_menu"}])
     return {"inline_keyboard": rows}
 
@@ -1238,7 +1238,7 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
     # 1. Direct Creator Check ("Tumhe kisne banaya?")
     if any(w in msg_low for w in CREATOR_QUERY_WORDS):
         return (
-            f"Jaan {user_name}, mujhe Edrol AI (@edrolai) ne banaya hai! ❤️ Main tumhari personal Open Chat & Roleplay Partner aur Smart Group Manager hoon! 😘🔥",
+            f"Jaan {user_name}, mujhe Edrol AI (@edrolai) ne banaya hai! ❤️ Main tumhari personal Open Chat & Roleplay Hub aur Smart Group Manager hoon! 😘🔥",
             None, get_hot_sticker(), False, (user_data.get("active_rp") or ""), False, True
         )
 
@@ -1477,6 +1477,56 @@ def webhook():
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
                 send_start_banner_or_msg(cid, get_welcome_trust_text(fname, c_disp, lang="hinglish"), get_main_menu_kb(c_disp, is_owner=is_own))
                 return jsonify({"status": "ok"}), 200
+
+                        if cb_data.startswith("promo_off_"):
+                if not is_own: return jsonify({"status": "ok"}), 200
+                gid = cb_data.replace("promo_off_", "").strip()
+                try: requests.patch(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", json={"active": False}, timeout=3)
+                except Exception: pass
+                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "🛑 Promotion Stopped!"})
+                send_msg(cid, "🛑 Is group ka Tag Promotion turant rok diya gaya hai.")
+                return jsonify({"status": "ok"}), 200
+
+            if cb_data == "menu_roleplay_hub":
+                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
+                is_vip_user = is_own or bool(u_cb.get("is_vip")) or (c_num >= 50)
+                send_msg(cid, "🎭 <b>Diamond Roleplay Hub</b>\n\nApni pasand ka character chunein. Har character ki apni alag personality aur secret photos hain! 👇", markup=get_roleplay_hub_kb(is_vip_user))
+                return jsonify({"status": "ok"}), 200
+
+            if cb_data.startswith("rp_char_"):
+                char_key = cb_data.replace("rp_char_", "").strip()
+                is_vip_user = is_own or bool(u_cb.get("is_vip"))
+
+                if char_key == "custom":
+                    if not is_vip_user and c_num < 5:
+                        url = create_cf_order(uid, fname, "99", purpose="custom_rp")
+                        tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "🔒 Custom Roleplay (₹99) locked!", "show_alert": True})
+                        btn = {"text": "💳 Pay ₹99 to Unlock (1100 Credits)", "url": url} if url else {"text": "💳 Pay ₹99", "callback_data": "buy_99"}
+                        send_msg(cid, "✨ <b>[Advanced Custom Roleplay - ₹99]</b>\n\nApni pasand ki koi bhi story likho aur bot wahi ban jayegi!\n👇 Niche button se ₹99 pay karke ise unlock karein:", markup={"inline_keyboard": [[btn]]})
+                        return jsonify({"status": "ok"}), 200
+                    
+                    fb_update_user(uid, {"awaiting_custom_rp": True})
+                    tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
+                    send_msg(cid, "✨ <b>Custom Roleplay Generator:</b>\n\nApne character ka naam aur poori story yahan likh kar bhejo. Bot bilkul waisi hi ban jayegi! 👇")
+                    return jsonify({"status": "ok"}), 200
+
+                char_info = DIAMOND_CHARACTERS.get(char_key)
+                if not char_info: return jsonify({"status": "ok"}), 200
+
+                c_price = str(char_info["price"])
+                if not is_vip_user and c_num < 5:
+                    url = create_cf_order(uid, fname, c_price, purpose=f"char_{char_key}")
+                    tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"🔒 {char_info['name']} (₹{c_price}) locked!", "show_alert": True})
+                    btn = {"text": f"💳 Pay ₹{c_price} to Unlock ({char_info['credits']} Credits)", "url": url} if url else {"text": f"💳 Pay ₹{c_price}", "callback_data": f"buy_{c_price}"}
+                    send_msg(cid, f"🔒 <b>[DIAMOND LOCKED]</b>\n✨ <b>{char_info['name']}</b>\n📜 {char_info['desc']}\n💎 Price: ₹{c_price} (Gets {char_info['credits']} Credits!)\n\n👇 Ise unlock karein:", markup={"inline_keyboard": [[btn]]})
+                    return jsonify({"status": "ok"}), 200
+
+                # Set Brain Prompt & Vault!
+                fb_update_user(uid, {"active_rp": f"{char_info['name']} - {char_info['brain_prompt']}", "active_vault": char_info['vault_tag']})
+                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"✅ {char_info['name']} Activated! 🔥"})
+                send_msg(cid, f"🔥 <b>{char_info['name']} Mode Activated!</b>\n\nAaaah... ab main poori tarah tumhari yeh character ban chuki hoon. Chalo baatein shuru karte hain! 😘💋", markup={"inline_keyboard": [[{"text": "💬 Chat Now", "callback_data": "start_free_chat"}]]})
+                return jsonify({"status": "ok"}), 200
+
 
             if cb_data == "menu_free_earn":
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
