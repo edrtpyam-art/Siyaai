@@ -851,16 +851,74 @@ def check_and_run_group_promotion(chat_id, msg_id, sender_id, sender_name):
     except Exception:
         pass
 
+import html
+
 # ============================================================
-# 7. CASHFREE EXTERNAL BROWSER & DIRECT UPI CHECKOUT (FIXES ERR_UNKNOWN_URL_SCHEME!)
+# 7. CASHFREE 0-CLICK DIRECT UPI CHECKOUT (BYPASS UI)
 # ============================================================
-@app.route("/api/pay/<session_id>", methods=["GET"])
-def cashfree_checkout_page(session_id):
-    mode = "sandbox" if (CASHFREE_APP_ID.upper().startswith("TEST") or "TEST" in CASHFREE_SECRET_KEY.upper()) else "production"
-    order_id = request.args.get("order_id", "")
-    amt = request.args.get("amt", "")
-    chats = PLAN_CREDITS.get(str(amt), "VIP")
-    return f"""<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Verified UPI Payment</title><script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script><style>body{{background:#0b1020;color:#fff;font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:95vh;margin:0;padding:16px;}} .card{{background:#141d33;padding:24px;border-radius:20px;border:1px solid #38bdf8;max-width:360px;width:100%;text-align:center;}} .badge{{display:inline-block;background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid #4ade80;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;margin-bottom:10px;}} .btn{{background:linear-gradient(135deg,#ff1493,#ff69b4);color:#fff;border:none;padding:16px;border-radius:12px;width:100%;font-size:18px;font-weight:bold;margin-top:14px;cursor:pointer;}}</style></head><body><div class="card"><div class="badge">🔒 100% SECURE &amp; VERIFIED UPI</div><h2 style="margin:5px 0;">₹{html.escape(str(amt or 'VIP'))} (+{html.escape(str(chats))} Chats)</h2><p id="msg" style="color:#38bdf8;font-size:14px;">Tap below to open GPay, PhonePe or Paytm:</p><button class="btn" onclick="startPay()">💳 Pay Safely via UPI</button><p style="font-size:12px;color:#94a3b8;margin-top:14px;">✅ Instant Auto-Credit in 2 Seconds • Powered by Edrol AI</p></div><script>const cf = Cashfree({{ mode: "{mode}" }}); function startPay() {{ cf.checkout({{ paymentSessionId: "{html.escape(session_id)}", redirectTarget: "_self" }}); }} window.onload = function() {{ setTimeout(startPay, 600); }};</script></body></html>""", 200, {"Content-Type": "text/html"}
+
+# Yahan purana /api/pay/ hata kar direct_upi wala route lagaya gaya hai
+@app.route("/api/direct_upi/<order_id>", methods=["GET"])
+def cashfree_direct_upi_auto(order_id):
+    session_id = request.args.get("session_id", "")
+    if not session_id:
+        return "Invalid Session", 400
+        
+    is_test = CASHFREE_APP_ID.upper().startswith("TEST") or "TEST" in CASHFREE_SECRET_KEY.upper()
+    base_url = "https://sandbox.cashfree.com" if is_test else "https://api.cashfree.com"
+    
+    headers = {
+        "x-client-id": CASHFREE_APP_ID,
+        "x-client-secret": CASHFREE_SECRET_KEY,
+        "x-api-version": "2023-08-01",
+        "Content-Type": "application/json"
+    }
+    
+    # 1. Cashfree se backend me UPI link nikalna
+    payload = {
+        "payment_session_id": session_id,
+        "payment_method": {
+            "upi": {
+                "channel": "link"
+            }
+        }
+    }
+    
+    try:
+        r = requests.post(f"{base_url}/pg/orders/{order_id}/payments", headers=headers, json=payload, timeout=5)
+        res_data = r.json()
+        
+        # 2. UPI Intent (upi://pay...) extract karna
+        upi_link = res_data.get("data", {}).get("payload", {}).get("default", "")
+        
+        if upi_link:
+            # 3. Seedha auto-redirect script (Bina Cashfree UI ke)
+            return f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Opening UPI...</title>
+            </head>
+            <body style="background-color: #0b1020; margin: 0; display:flex; height:100vh; align-items:center; justify-content:center;">
+                <script>
+                    // Page khulte hi turant UPI App khol dega
+                    window.location.replace("{upi_link}");
+                    
+                    // Agar phone ka security auto-redirect roke, to 1.5s baad ye green button dikhega
+                    setTimeout(function() {{
+                        document.body.innerHTML = '<a href="{html.escape(upi_link)}" style="background:#4ade80; color:#0b1020; padding:15px 30px; font-size:20px; font-weight:bold; border-radius:10px; text-decoration:none; font-family:sans-serif; text-align:center;">Pay Safely via UPI App</a>';
+                    }}, 1500);
+                </script>
+            </body>
+            </html>
+            """, 200, {"Content-Type": "text/html"}
+            
+    except Exception as e:
+        pass
+        
+    return "Payment failed or expired. Please generate a new link from bot.", 400
+
 
 @app.route("/api/cf_verify", methods=["GET", "POST"])
 def cf_verify_endpoint():
@@ -890,53 +948,30 @@ def cf_verify_endpoint():
                 add_c = PLAN_CREDITS.get(amt, 75)
                 tot = max(0, int(u.get("credits") or 0)) + add_c
                 fb_update_user(uid, {"credits": tot, "is_vip": True, "awaiting_payment": ""})
-                send_msg(uid, f"✅ [Edrol AI Pro Max Lite] Instant UPI Payment Verified!\n\n🎉 Tumhara ₹{amt} ka VIP Plan activate ho gaya hai aur +{add_c} VIP Credits add ho gaye hain (Total: {tot} Credits = {tot // CHAT_COST} Chats)!\n🔓 Ab tumhare liye Unblurred Media & Voice Notes UNLOCK ho gaye hain! 😘🔥")
+                send_msg(uid, f"✅ [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] Instant UPI Payment Verified!\n\n🎉 Tumhara ₹{amt} ka VIP Plan activate ho gaya hai aur +{add_c} VIP Credits add ho gaye hain (Total: {tot} Credits = {tot // CHAT_COST} Chats)!\n🔓 Ab tumhare liye Unblurred Media & Voice Notes UNLOCK ho gaye hain! 😘🔥")
             return jsonify({"paid": True}), 200
     except Exception: pass
     return jsonify({"paid": False}), 200
+
 
 def create_cf_order(uid, uname, amt, purpose="credits", gid=""):
     if not CASHFREE_APP_ID or not CASHFREE_SECRET_KEY: return None
     ts = int(time.time()); oid = f"ORD_{uid}_{amt}_{ts}"[:38]
     clean_name = re.sub(r"[^a-zA-Z0-9\s]", "", str(uname) or "VIP").strip() or "VIP"
     host = request.host_url.rstrip("/") if request else "https://siyaai.vercel.app"
-    
-    # Payload with safe Edrol AI branding matching Cashfree merchant rules
     p = {
-        "order_id": oid, 
-        "order_amount": float(amt), 
-        "order_currency": "INR",
-        "customer_details": {
-            "customer_id": f"CUST_{uid}", 
-            "customer_phone": "9999999999", 
-            "customer_email": f"user{uid}@gmail.com", 
-            "customer_name": clean_name
-        },
-        "order_meta": {
-            "return_url": f"https://t.me/{BOT_USERNAME}", 
-            "notify_url": f"{host}/api/cf_verify"
-        },
-        "order_tags": {
-            "user_id": str(uid), 
-            "amount": str(amt), 
-            "purpose": str(purpose), 
-            "group_id": str(gid)
-        }
+        "order_id": oid, "order_amount": float(amt), "order_currency": "INR",
+        "customer_details": {"customer_id": f"CUST_{uid}", "customer_phone": "9999999999", "customer_email": f"user{uid}@gmail.com", "customer_name": clean_name},
+        "order_meta": {"return_url": f"https://t.me/{BOT_USERNAME}", "notify_url": f"{host}/api/cf_verify"},
+        "order_tags": {"user_id": str(uid), "amount": str(amt), "purpose": str(purpose), "group_id": str(gid)}
     }
     try:
-        r = requests.post(
-            "https://sandbox.cashfree.com/pg/orders" if CASHFREE_APP_ID.upper().startswith("TEST") else "https://api.cashfree.com/pg/orders", 
-            headers={
-                "x-client-id": CASHFREE_APP_ID, 
-                "x-client-secret": CASHFREE_SECRET_KEY, 
-                "x-api-version": "2023-08-01", 
-                "Content-Type": "application/json"
-            }, 
-            json=p, 
-            timeout=5
-        )
+        base_url = "https://sandbox.cashfree.com/pg/orders" if CASHFREE_APP_ID.upper().startswith("TEST") else "https://api.cashfree.com/pg/orders"
+        r = requests.post(base_url, headers={"x-client-id": CASHFREE_APP_ID, "x-client-secret": CASHFREE_SECRET_KEY, "x-api-version": "2023-08-01", "Content-Type": "application/json"}, json=p, timeout=5)
         if r.ok and r.json().get("payment_session_id"):
-            return f"{host}/api/pay/{r.json()['payment_session_id']}?order_id={oid}&amt={amt}"
+            session_id = r.json()['payment_session_id']
+            # Link ko update kiya gaya taaki naye direct_upi route par jaye
+            return f"{host}/api/direct_upi/{oid}?session_id={session_id}"
     except Exception: pass
     return None
 
