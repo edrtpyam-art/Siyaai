@@ -854,7 +854,7 @@ def check_and_run_group_promotion(chat_id, msg_id, sender_id, sender_name):
 import html
 
 # ============================================================
-# 7. CASHFREE 0-CLICK DIRECT UPI (FRONTEND JS BYPASS)
+# 7. CASHFREE DIRECT UPI (PROFESSIONAL SECURE UI + JS SDK)
 # ============================================================
 
 @app.route("/api/direct_upi/<order_id>", methods=["GET"])
@@ -863,48 +863,159 @@ def cashfree_direct_upi_auto(order_id):
     if not session_id:
         return "Invalid Session", 400
         
-    # Check if Sandbox or Production
     mode = "sandbox" if (CASHFREE_APP_ID.upper().startswith("TEST") or "TEST" in CASHFREE_SECRET_KEY.upper()) else "production"
     
     return f"""
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
     <head>
+        <meta charset="UTF-8"> <!-- Fixes the weird emoji text issue -->
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Loading UPI...</title>
-        <!-- Load Official Cashfree SDK -->
+        <title>Secure UPI Payment</title>
         <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
+        <style>
+            body {{
+                background-color: #0b1020;
+                color: #f8fafc;
+                font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                margin: 0;
+                padding: 20px;
+                box-sizing: border-box;
+            }}
+            .payment-card {{
+                background: #141d33;
+                border: 1px solid #38bdf8;
+                border-radius: 20px;
+                padding: 35px 25px;
+                max-width: 360px;
+                width: 100%;
+                text-align: center;
+                box-shadow: 0 15px 30px rgba(0,0,0,0.6);
+            }}
+            .secure-badge {{
+                display: inline-block;
+                background: rgba(34, 197, 94, 0.15);
+                color: #4ade80;
+                border: 1px solid #4ade80;
+                padding: 6px 14px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: 700;
+                margin-bottom: 20px;
+            }}
+            .title {{
+                font-size: 22px;
+                margin: 0 0 8px 0;
+                color: #ffffff;
+                font-weight: 600;
+            }}
+            .subtitle {{
+                color: #94a3b8;
+                font-size: 14px;
+                margin-bottom: 30px;
+                line-height: 1.5;
+            }}
+            .pay-btn {{
+                background: linear-gradient(135deg, #ff1493, #ff69b4);
+                color: #ffffff;
+                border: none;
+                padding: 16px 20px;
+                font-size: 18px;
+                font-weight: bold;
+                border-radius: 12px;
+                width: 100%;
+                cursor: pointer;
+                box-shadow: 0 4px 15px rgba(255, 20, 147, 0.4);
+                transition: transform 0.2s ease, opacity 0.2s;
+            }}
+            .pay-btn:active {{
+                transform: scale(0.97);
+            }}
+            .logos-container {{
+                margin-top: 25px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 15px;
+            }}
+            .upi-logo-text {{
+                font-size: 12px;
+                color: #cbd5e1;
+                background: #1e293b;
+                padding: 5px 10px;
+                border-radius: 6px;
+                border: 1px solid #334155;
+            }}
+            .error-text {{
+                color: #ef4444;
+                font-size: 14px;
+                margin-top: 15px;
+                display: none;
+                background: rgba(239, 68, 68, 0.1);
+                padding: 10px;
+                border-radius: 8px;
+            }}
+        </style>
     </head>
-    <body style="background-color: #0b1020; color: white; margin: 0; display:flex; flex-direction:column; height:100vh; align-items:center; justify-content:center; font-family:sans-serif;">
-        
-        <h3 id="statusText" style="color:#38bdf8;">Opening UPI App... 🚀</h3>
-        <p style="color:#94a3b8; font-size:14px;">Please wait a second.</p>
+    <body>
+        <div class="payment-card">
+            <div class="secure-badge">🔒 100% SECURE & VERIFIED</div>
+            
+            <h2 class="title">Complete Payment</h2>
+            <p class="subtitle">Click the button below to pay directly from your installed UPI app.</p>
+            
+            <button class="pay-btn" onclick="startUPIApp()" id="payBtn">💳 Pay Safely via UPI</button>
+            
+            <div id="errorMsg" class="error-text"></div>
+            
+            <div class="logos-container">
+                <span class="upi-logo-text">GPay</span>
+                <span class="upi-logo-text">PhonePe</span>
+                <span class="upi-logo-text">Paytm</span>
+            </div>
+            
+            <p style="font-size:12px; color:#64748b; margin-top:25px; margin-bottom:0;">Powered by Cashfree Payments</p>
+        </div>
         
         <script>
-            // Initialize Cashfree
             const cf = Cashfree({{ mode: "{mode}" }});
-            
-            // UI bypass karke direct UPI Intent (GPay/PhonePe) ko call karna
             let payOptions = {{
                 paymentMethod: {{
-                    upi: {{
-                        channel: "link"
-                    }}
+                    upi: {{ channel: "link" }}
                 }},
                 paymentSessionId: "{html.escape(session_id)}"
             }};
             
-            // Page load hote hi instant execute
+            function startUPIApp() {{
+                const btn = document.getElementById('payBtn');
+                const errDiv = document.getElementById('errorMsg');
+                
+                btn.innerText = "Opening UPI App...";
+                btn.style.opacity = "0.8";
+                errDiv.style.display = "none";
+                
+                cf.pay(payOptions).then(function(result) {{
+                    if(result.error) {{
+                        // Cashfree backend limits ya user cancellation
+                        errDiv.innerText = result.error.message || "Payment cancelled or failed.";
+                        errDiv.style.display = "block";
+                        btn.innerText = "💳 Try Again";
+                        btn.style.opacity = "1";
+                    }}
+                }});
+            }}
+            
+            // Try to auto-open if browser allows it, otherwise wait for button click
             window.onload = function() {{
                 setTimeout(function() {{
-                    cf.pay(payOptions).then(function(result) {{
-                        if(result.error) {{
-                            // Agar fir bhi Cashfree roke, toh actual error dikhayega
-                            document.getElementById('statusText').innerHTML = "Payment Error: " + result.error.message;
-                            document.getElementById('statusText').style.color = "#ef4444";
-                        }}
-                    }});
-                }}, 400); // 0.4 second delay taaki SDK fully load ho jaye
+                    // Catch is used to silently fail if Telegram blocks the auto-redirect
+                    cf.pay(payOptions).catch(e => console.log("Auto-redirect blocked, waiting for user click."));
+                }}, 600);
             }};
         </script>
     </body>
