@@ -1497,12 +1497,12 @@ def webhook():
                 char_key = cb_data.replace("rp_char_", "").strip()
                 is_vip_user = is_own or bool(u_cb.get("is_vip"))
 
-                if char_key == "custom":
+                    if char_key == "custom":
                     if not is_vip_user and c_num < 5:
-                        url = create_cf_order(uid, fname, "99", purpose="custom_rp")
-                        tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "🔒 Custom Roleplay (₹99) locked!", "show_alert": True})
-                        btn = {"text": "💳 Pay ₹99 to Unlock (1100 Credits)", "url": url} if url else {"text": "💳 Pay ₹99", "callback_data": "buy_99"}
-                        send_msg(cid, "✨ <b>[Advanced Custom Roleplay - ₹99]</b>\n\nApni pasand ki koi bhi story likho aur bot wahi ban jayegi!\n👇 Niche button se ₹99 pay karke ise unlock karein:", markup={"inline_keyboard": [[btn]]})
+                        url = create_cf_order(uid, fname, "129", purpose="custom_rp")
+                        tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "🔒 Custom Roleplay (₹129) locked!", "show_alert": True})
+                        btn = {"text": "💳 Pay ₹129 to Unlock (50 Chats)", "url": url} if url else {"text": "💳 Pay ₹129", "callback_data": "buy_129"}
+                        send_msg(cid, "✨ <b>[Advanced Custom Roleplay - ₹129]</b>\n\nApni pasand ki koi bhi story likho aur bot wahi ban jayegi! (Sath me milenge 50 VIP Chats!)\n👇 Niche button se ₹129 pay karke ise unlock karein:", markup={"inline_keyboard": [[btn]]})
                         return jsonify({"status": "ok"}), 200
                     
                     fb_update_user(uid, {"awaiting_custom_rp": True})
@@ -1514,11 +1514,12 @@ def webhook():
                 if not char_info: return jsonify({"status": "ok"}), 200
 
                 c_price = str(char_info["price"])
+                c_chats = char_info["credits"] // CHAT_COST
                 if not is_vip_user and c_num < 5:
                     url = create_cf_order(uid, fname, c_price, purpose=f"char_{char_key}")
                     tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"🔒 {char_info['name']} (₹{c_price}) locked!", "show_alert": True})
-                    btn = {"text": f"💳 Pay ₹{c_price} to Unlock ({char_info['credits']} Credits)", "url": url} if url else {"text": f"💳 Pay ₹{c_price}", "callback_data": f"buy_{c_price}"}
-                    send_msg(cid, f"🔒 <b>[DIAMOND LOCKED]</b>\n✨ <b>{char_info['name']}</b>\n📜 {char_info['desc']}\n💎 Price: ₹{c_price} (Gets {char_info['credits']} Credits!)\n\n👇 Ise unlock karein:", markup={"inline_keyboard": [[btn]]})
+                    btn = {"text": f"💳 Pay ₹{c_price} to Unlock ({c_chats} Chats)", "url": url} if url else {"text": f"💳 Pay ₹{c_price}", "callback_data": f"buy_{c_price}"}
+                    send_msg(cid, f"🔒 <b>[DIAMOND LOCKED]</b>\n✨ <b>{char_info['name']}</b>\n📜 {char_info['desc']}\n💎 Price: ₹{c_price} (Gets {c_chats} Premium Chats!)\n\n👇 Ise unlock karein:", markup={"inline_keyboard": [[btn]]})
                     return jsonify({"status": "ok"}), 200
 
                 # Set Brain Prompt & Vault!
@@ -1526,7 +1527,6 @@ def webhook():
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"✅ {char_info['name']} Activated! 🔥"})
                 send_msg(cid, f"🔥 <b>{char_info['name']} Mode Activated!</b>\n\nAaaah... ab main poori tarah tumhari yeh character ban chuki hoon. Chalo baatein shuru karte hain! 😘💋", markup={"inline_keyboard": [[{"text": "💬 Chat Now", "callback_data": "start_free_chat"}]]})
                 return jsonify({"status": "ok"}), 200
-
 
             if cb_data == "menu_free_earn":
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
