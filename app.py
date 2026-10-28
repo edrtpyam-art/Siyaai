@@ -885,14 +885,9 @@ def get_all_broadcast_targets():
     return list(targets)
 
 def check_and_run_group_promotion(chat_id, msg_id, sender_id, sender_name):
-    """
-    Tags 5 to 6 users per minute (minimum 11 seconds gap between tags)
-    and sends Photo/Video Banner (or default bot2.png) + Sponsor Text + Chat with Bhabhi button!
-    """
     gid = str(chat_id)
     now = time.time()
     ts_list = [t for t in promo_rate_tracker.get(gid, []) if now - t < 60]
-    # Max 5 to 6 tags per minute AND at least 11 seconds gap since the last tag!
     if len(ts_list) >= 6 or (ts_list and (now - ts_list[-1]) < 11):
         promo_rate_tracker[gid] = ts_list
         return
@@ -903,14 +898,14 @@ def check_and_run_group_promotion(chat_id, msg_id, sender_id, sender_name):
                 requests.patch(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", json={"active": False}, timeout=2.5)
                 return
             promo_rate_tracker[gid] = ts_list + [now]
+            clean_promo_txt, kb = build_rose_style_promo_msg_and_kb(promo.get("text", ""))
             tag_msg = (
                 f"👋 Hey <a href=\"tg://user?id={sender_id}\">{html.escape(sender_name)}</a>! ✨\n\n"
                 f"📢 [𝑺𝒑𝒐𝒏𝒔𝒐𝒓𝒆𝒅 𝑯𝒊𝒈𝒉𝒍𝒊𝒈𝒉𝒕]:\n"
-                f"{html.escape(str(promo.get('text', '')))}"
+                f"{html.escape(clean_promo_txt)}"
             )
             media_src = promo.get("media") or DEFAULT_PROMO_BANNER
             media_type = promo.get("media_type") or "photo"
-            kb = {"inline_keyboard": [[{"text": "💬 Chat with Bhabhi", "url": f"https://t.me/{BOT_USERNAME}?start=promo"}]]}
             res = send_local_or_url_media(chat_id, media_src, caption=tag_msg, protect=False, spoiler=False, reply_to_message_id=msg_id, reply_markup=kb, media_type_override=media_type)
             if not res.get("ok"):
                 send_msg(chat_id, tag_msg, reply_id=msg_id, markup=kb)
