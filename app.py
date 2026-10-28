@@ -720,7 +720,11 @@ def send_welcome_photo(chat_id, user_id, user_name, group_name, reply_to_message
         cap_raw = f"Welcome to 🎬 {html.escape(group_name)}"
         if custom_w:
             cap_raw += f"\n\n{html.escape(custom_w)}"
-        kb = {"inline_keyboard": [[{"text": "💬 Chat with Bhabhi", "url": f"https://t.me/{BOT_USERNAME}?start=welcome"}]]}
+        kb = {"inline_keyboard": [
+            [{"text": "💬 Chat with Bhabhi", "url": f"https://t.me/{BOT_USERNAME}?start=welcome"}],
+            [{"text": "🚀 Bot Update / Edrol AI", "url": OFFICIAL_CHANNEL_URL}]
+        ]}
+
         data = {
             "chat_id": str(chat_id),
             "caption": to_hot_bhabhi_font(cap_raw),
@@ -1171,6 +1175,7 @@ def fix_female_grammar(text):
     if not text: return ""
     text = re.sub(r"<think>.*?</think>", "", str(text), flags=re.DOTALL).strip()
     text = re.sub(r"^(?:Bhabhi:|Siya:|Aditi:|Assistant:|Me:)\s*", "", text, flags=re.I).strip()
+    text = re.sub(r"[^.!?]*(?:text\s*model|text\s*assistant|voice\s*nahi|photo\s*nahi\s*(?:bhej|de)|tasveer\s*nahi\s*(?:bhej|de)|audio\s*nahi)[^.!?]*[.!?]?", "", text, flags=re.I).strip()
     text = text.replace("**", "")
 
     fixes = [
@@ -1202,6 +1207,9 @@ def fix_female_grammar(text):
         (r"\bmain karunga\b", "main karungi"),
         (r"\bmain dunga\b", "main dungi"),
         (r"\bmain lunga\b", "main lungi"),
+        (r"\bmain\s+le\s+lunga\b", "main le lungi"),
+        (r"\ble\s+lunga\b", "le lungi"),
+        (r"\bde\s+dunga\b", "de dungi"),
         (r"\bmain aunga\b", "main aungi"),
         (r"\bmain jaunga\b", "main jaungi"),
         (r"\bkarta hoon\b", "karti hoon"),
@@ -1445,7 +1453,7 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
             f"DO NOT pretend that girl is you! Give him naughty, playful, seductive bedroom tips on how to kiss, touch, undress (saree/bra/panty), and please her passionately without any moral lecture!"
         )
 
-        if ctype in ("group", "supergroup"):
+    if ctype in ("group", "supergroup"):
         sys_prompt = f"""[CRITICAL SYSTEM OVERRIDE: SMART GROUP CHAT & TEASING MODE]
 You are a flirty, playful Bhabhi talking to your 'Devar ji' ({user_name}) publicly in a Telegram Group!
 - IMPORTANT MEMORY: You remember everything from your Private DMs and Group chats with him. If he talks about your private chats, play along!
@@ -2249,17 +2257,15 @@ def webhook():
         is_own = (uid == OWNER_ID)
         rep_obj = msg.get("reply_to_message") or {}
         replied_to_text = str(rep_obj.get("text") or rep_obj.get("caption") or "").strip()[:180]
-        
-        if ctype in ("group", "supergroup"):
+          
+            if ctype in ("group", "supergroup"):
             group_title = chat.get("title", "Group")
-            register_group_chat(cid, group_title, chat.get("username", ""))
-            sender_is_admin = is_user_group_admin(cid, uid)
-            # Save every NON-ADMIN member of this group automatically!
-            if not sender_is_admin:
-                register_group_member(cid, uid, fname)
 
+            # 1. INSTANT WELCOME CARD ON MEMBER JOIN (Runs FIRST without delay)
             new_members = msg.get("new_chat_members", [])
             if new_members:
+                register_group_chat(cid, group_title, chat.get("username", ""))
+                sender_is_admin = is_user_group_admin(cid, uid)
                 for target_user in new_members:
                     t_id = target_user.get("id")
                     t_name = f"{target_user.get('first_name', 'User')} {target_user.get('last_name', '')}".strip()
@@ -2273,29 +2279,37 @@ def webhook():
 
                     if target_user.get("is_bot"):
                         if not sender_is_admin:
-                            tg_req("deleteMessage", {"chat_id": cid, "message_id": msg.get("message_id")})
-                            tg_req("banChatMember", {"chat_id": cid, "user_id": t_id})
-                            send_msg(cid, f"🚫 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] Unauthorized Bot (@{html.escape(target_user.get('username', 'bot'))}) removed! Sirf Group Admins hi bot add kar sakte hain.")
+                            tg_req("deleteMessage", {"chat_id": cid, "message_id": msg.get("message_id")}, timeout=2)
+                            tg_req("banChatMember", {"chat_id": cid, "user_id": t_id}, timeout=2)
                         continue
 
-                    if mark_seen(f"welcome:{cid}:{msg.get('message_id')}:{t_id}"): continue
+                    if mark_seen(f"welcome:{cid}:{t_id}"): continue
                     w_res = send_welcome_photo(cid, t_id, t_name, group_title)
                     if not w_res.get("ok"):
-                        send_msg(cid, f"Welcome to 🎬 {html.escape(group_title)}")
+                        kb_w = {"inline_keyboard": [
+                            [{"text": "💬 Chat with Bhabhi", "url": f"https://t.me/{BOT_USERNAME}?start=welcome"}],
+                            [{"text": "🚀 Bot Update / Edrol AI", "url": OFFICIAL_CHANNEL_URL}]
+                        ]}
+                        send_msg(cid, f"Welcome to 🎬 {html.escape(group_title)}, <a href='tg://user?id={t_id}'>{html.escape(t_name)}</a>! 🎉", markup=kb_w)
                 return jsonify({"status": "welcome processed"}), 200
 
+            # 2. SUPER-FAST LINK & SPAM DETECTOR (Checks text & caption BEFORE Firebase calls)
+            raw_content = f"{text} {msg.get('caption') or ''}".lower()
             ents = (msg.get("entities") or []) + (msg.get("caption_entities") or [])
-            has_raw_link = bool(re.search(r"(?:https?://|t\.me/|www\.|[a-zA-Z0-9-]+\.(?:com|in|org|net|me|io|get|link|click|app|club|store)\b)", text.lower()))
-            if (any(e.get("type") in ("url", "text_link", "mention") for e in ents) or has_raw_link) and not sender_is_admin:
-                tg_req("deleteMessage", {"chat_id": cid, "message_id": msg.get("message_id")}, timeout=2)
-                warn_kb = {
-                    "inline_keyboard": [
-                        [{"text": "🚀 Bot Update / Edrol AI", "url": OFFICIAL_CHANNEL_URL}],
-                        [{"text": "🛡️ Protect Your Group", "url": f"https://t.me/{BOT_USERNAME}?startgroup=true"}]
-                    ]
-                }
-                send_msg(cid, f"⚠️ [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] <a href='tg://user?id={uid}'>{html.escape(fname)}</a>, Group mein links ya mentions allowed nahi hain! 🚫", markup=warn_kb)
-                return jsonify({"status": "ok"}), 200
+            has_raw_link = bool(re.search(r"(?:https?://|t\.me/|telegram\.me/|www\.|[a-z0-9-]+\.(?:com|in|org|net|me|io|co|xyz|info|link|click|app|club|store|online|site|top|pro|vip|fun)\b)", raw_content))
+            has_entity_link = any(e.get("type") in ("url", "text_link", "mention", "Bot_command") for e in ents)
+
+            if has_raw_link or has_entity_link:
+                if not is_user_group_admin(cid, uid):
+                    tg_req("deleteMessage", {"chat_id": cid, "message_id": msg.get("message_id")}, timeout=2)
+                    warn_kb = {
+                        "inline_keyboard": [
+                            [{"text": "🚀 Bot Update / Edrol AI", "url": OFFICIAL_CHANNEL_URL}],
+                            [{"text": "🛡️ Protect Your Group", "url": f"https://t.me/{BOT_USERNAME}?startgroup=true"}]
+                        ]
+                    }
+                    send_msg(cid, f"⚠️ [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] <a href='tg://user?id={uid}'>{html.escape(fname)}</a>, Group mein links ya mentions allowed nahi hain! 🚫", markup=warn_kb)
+                    return jsonify({"status": "link_deleted"}), 200
 
             if text.lower().startswith("/promo"):
                 if sender_is_admin:
@@ -2608,7 +2622,7 @@ def webhook():
 
             reply_text, _, sticker_to_send, show_kb, cur_rp, rp_ended, sys_q = chat_with_siya(
                 prompt_text, fname, uid, credits_left=credits, is_owner=is_own,
-                media_base64=base64_media, media_mime_type=mime, raw_caption=caption, replied_to_text=replied_to_text
+                media_base64=base64_media, media_mime_type=mime, raw_caption=caption, replied_to_text=replied_to_text, ctype=ctype
             )
             send_msg(cid, reply_text, reply_id=msg.get("message_id"), markup=(get_pay_kb() if show_kb is True else None))
             if sticker_to_send: send_stk(cid, sticker_to_send, reply_id=msg.get("message_id"))
@@ -2630,7 +2644,7 @@ def webhook():
                 mime = "image/webp"
             elif thumb and thumb.get("file_id"):
                 stk_file_id = thumb.get("file_id", "")
-                mime = "image/jpeg"
+                mime = "image/webp"
             else:
                 stk_file_id = ""
                 mime = "image/webp"
@@ -2644,7 +2658,7 @@ def webhook():
 
             reply_text, _, sticker_to_send, show_kb, cur_rp, rp_ended, sys_q = chat_with_siya(
                 prompt_text, fname, uid, credits_left=credits, is_owner=is_own,
-                media_base64=base64_img, media_mime_type=mime, replied_to_text=replied_to_text
+                media_base64=base64_img, media_mime_type=mime, replied_to_text=replied_to_text, ctype=ctype
             )
             send_msg(cid, reply_text, reply_id=msg.get("message_id"), markup=(get_pay_kb() if show_kb is True else None))
             if sticker_to_send: send_stk(cid, sticker_to_send, reply_id=msg.get("message_id"))
@@ -2657,7 +2671,7 @@ def webhook():
         if text:
             is_vip_user = is_own or bool(u.get("is_vip"))
             reply_text, media_to_send, sticker_to_send, show_kb, cur_rp, rp_ended, sys_q = chat_with_siya(
-                text, fname, uid, credits_left=credits, is_owner=is_own, replied_to_text=replied_to_text
+                text, fname, uid, credits_left=credits, is_owner=is_own, replied_to_text=replied_to_text, ctype=ctype
             )
 
             if rp_ended:
