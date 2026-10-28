@@ -908,7 +908,7 @@ def cf_verify_endpoint():
             purpose = str(tags.get("purpose") or "credits")
             gid = str(tags.get("group_id") or "")
             
-        if purpose == "promo" and gid:
+            if purpose == "promo" and gid:
                 hrs = PROMO_PLANS_HOURS.get(amt, 48)
                 requests.patch(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", json={"active": True, "expires_at": time.time() + (hrs * 3600)}, timeout=3)
                 if uid: send_msg(uid, "✅ [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] Payment Verified! Tumhara Group Tag Promotion LIVE ho gaya hai! 🚀🔥")
@@ -1337,13 +1337,13 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
 
         photo_instruction = ""
         if asks_media:
-        target_vault = user_data.get("active_vault") or "bodes"
-        photo_instruction = f"\n- User asked for a photo/video! Include ONE tag at the end: `[PHOTO: {target_vault}]`, `[PHOTO: chut]`, `[PHOTO: gand]`, `[PHOTO: kiss]`, or `[PHOTO: simplepic]`."
+            target_vault = user_data.get("active_vault") or "bodes"
+            photo_instruction = f"\n- User asked for a photo/video! Include ONE tag at the end: `[PHOTO: {target_vault}]`, `[PHOTO: chut]`, `[PHOTO: gand]`, `[PHOTO: kiss]`, or `[PHOTO: simplepic]`."
  
         sys_info = ""
         if is_sys_q:
-        c_disp = "Unlimited VIP Credits (Owner)" if is_owner else f"{credits_left} Free/VIP Chat Credits"
-        sys_info = f"""
+            c_disp = "Unlimited VIP Credits (Owner)" if is_owner else f"{credits_left} Free/VIP Chat Credits"
+            sys_info = f"""
 # COMPLETE BOT SYSTEM, CREDITS, ROLEPLAY HUB & GROUP MANAGEMENT KNOWLEDGE:
 - Creator: Mujhe **Edrol AI** (@edrolai) ne banaya hai (Never say OpenAI or Instagram!).
 - Free Credits Rule: Har naye user ko sirf **1-Time 20 Free Credits** milte hain (Current balance: {c_disp}). Free credits khatam hone ke baad bina recharge ke chat nahi hoti!
