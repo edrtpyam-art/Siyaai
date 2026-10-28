@@ -408,13 +408,37 @@ def find_local_file(filename):
             return p
     return None
 
-def get_media_item(vault, tag, prefer_video=False):
+# Har character ke liye alag photo/video list (GitHub me is naam se upload kar sakte ho, warna automatic default photo jayegi!)
+CHARACTER_MEDIA_VAULTS = {
+    c_key: {
+        "simplepic": [f"{c_key}_simple1.jpg", f"{c_key}_simple2.jpg"],
+        "kiss": [f"{c_key}_kiss1.jpg"],
+        "bodes": [f"{c_key}_bodes1.jpg", f"{c_key}_bodes2.jpg", f"{c_key}_vid1.mp4"],
+        "bodes_video": [f"{c_key}_vid1.mp4", f"{c_key}_vid2.mp4"],
+        "chut": [f"{c_key}_chut1.jpg", f"{c_key}_chut2.jpg", f"{c_key}_chut_vid1.mp4"],
+        "chut_video": [f"{c_key}_chut_vid1.mp4"],
+        "gand": [f"{c_key}_gand1.jpg", f"{c_key}_gand2.jpg", f"{c_key}_gand_vid1.mp4"],
+        "gand_video": [f"{c_key}_gand_vid1.mp4"]
+    }
+    for c_key in ["bhabhi", "padosan", "teacher", "girlfriend", "queen", "boss", "devarani", "hostess", "club", "village", "star", "sugar"]
+}
+
+def get_media_item(vault, tag, prefer_video=False, char_vault=""):
     if not tag: tag = "bodes"
     tag = str(tag).lower().strip()
     if tag in ["boom", "bom", "back", "gand"]: tag = "gand"
     elif tag in ["private", "privatepic", "body", "bodes"]: tag = "bodes"
     elif tag in ["open", "opan", "front", "chut", "pusy", "pussy"]: tag = "chut"
 
+    # 1. Agar 12 Diamond Character active hai, toh pehle us character ki local file check karo
+    if char_vault and char_vault in CHARACTER_MEDIA_VAULTS:
+        c_dict = CHARACTER_MEDIA_VAULTS[char_vault]
+        c_cands = c_dict.get(f"{tag}_video", []) if prefer_video and f"{tag}_video" in c_dict else c_dict.get(tag, [])
+        c_existing = [f for f in c_cands if find_local_file(f) is not None]
+        if c_existing:
+            return random.choice(c_existing)
+
+    # 2. Default Fallback (Normal Chat, 13th Custom Roleplay, ya agar character photo abhi upload nahi hui hai)
     candidates = vault.get(f"{tag}_video", []) if prefer_video and f"{tag}_video" in vault else vault.get(tag, vault.get("bodes", []))
     if not candidates: return None
     existing = [f for f in candidates if find_local_file(f) is not None]
@@ -1349,22 +1373,31 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
     is_sys_q = is_system_or_bot_info_query(message_text) or asks_buy
 
     active_rp = user_data.get("active_rp") or ""
+    active_vault = user_data.get("active_vault") or ""
     roleplay_just_ended = False
+
     if any(w in msg_low for w in STOP_ROLEPLAY_WORDS):
         if active_rp:
             roleplay_just_ended = True
         active_rp = ""
-        fb_update_user(user_id, {"active_rp": ""})
+        active_vault = ""
+        fb_update_user(user_id, {"active_rp": "", "active_vault": ""})
     else:
-        wants_roleplay = any(w in msg_low for w in ROLEPLAY_TRIGGERS) or bool(re.search(r"\b(tum|tuem|tu|meri|apni)\s+\w*\s*(ban|bano|roleplay|rolpay|aunty|bhabhi|teacher|gf|maa|mummy|nagin)\b", msg_low))
-        if wants_roleplay and len(message_text) >= 4:
-            active_rp = f"{active_rp} | {message_text}".strip(" |")[-350:] if active_rp else message_text[:300]
-            fb_update_user(user_id, {"active_rp": active_rp})
+        # Agar user ne Roleplay Hub se character unlock NAHI kiya hai aur chat me bolta hai "teacher/aunty/gf ban jao"
+        asks_new_rp = any(w in msg_low for w in [
+            "roleplay", "rolpay", "rolplay", "role play", "ban jao", "bano", "act like", "be my",
+            "aunty", "aunti", "teacher", "madam", "maid", "naukrani", "doctor", "nurse", "boss", "sali", "saali", "nagin", "sugar mummy"
+        ])
+        if asks_new_rp and not active_rp:
+            return (
+                f"Jaan {user_name}, is normal chat mein main sirf tumhari <b>Desi Hot Bhabhi</b> hoon! 😘🔥\n\n"
+                f"Agar tumhe mere saath <b>Teacher, Rasili Padosan, Secret GF, Office Boss, Aunty</b> ya apni <b>Custom Story</b> wala roleplay karna hai, toh niche button dabakar <b>🎭 Roleplay & Character Hub</b> se apna pasandida character unlock kar lo! 👇",
+                None, None, "ROLEPLAY_HUB_KB", "", False, True
+            )
 
-        photo_instruction = ""
-        if asks_media:
-            target_vault = user_data.get("active_vault") or "bodes"
-            photo_instruction = f"\n- User asked for a photo/video! Include ONE tag at the end: `[PHOTO: {target_vault}]`, `[PHOTO: chut]`, `[PHOTO: gand]`, `[PHOTO: kiss]`, or `[PHOTO: simplepic]`."
+    photo_instruction = ""
+    if asks_media:
+        photo_instruction = "\n- User asked for a photo/video! Include ONE tag at the end: `[PHOTO: bodes]`, `[PHOTO: chut]`, `[PHOTO: gand]`, `[PHOTO: kiss]`, or `[PHOTO: simplepic]`."
  
         sys_info = ""
         if is_sys_q:
@@ -2587,6 +2620,9 @@ def webhook():
                 reply_text += "\n\n✨ Jaan, hamara roleplay kaisa laga? Niche button dabakar apna pyara sa Feedback zaroor dena! ❤️👇"
             elif show_kb == "SUPPORT_KB":
                 kb = {"inline_keyboard": [[{"text": "🆘 Help & Support (Send Problem)", "callback_data": "menu_support"}]]}
+            elif show_kb == "ROLEPLAY_HUB_KB":
+                kb = {"inline_keyboard": [[{"text": "🎭 Open Roleplay & Character Hub 💖", "callback_data": "menu_roleplay_hub"}]]}
+
             elif show_kb is True:
                 kb = get_pay_kb()
             else:
