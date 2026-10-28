@@ -946,6 +946,7 @@ def check_and_run_group_promotion(chat_id, msg_id, sender_id, sender_name):
                 if isinstance(b, dict) and b.get("text") and b.get("url"):
                     kb_rows.append([{"text": str(b["text"]), "url": str(b["url"])}])
             kb_rows.append([{"text": "💬 Chat with Bhabhi", "url": f"https://t.me/{BOT_USERNAME}?start=promo"}])
+            kb_rows.append([{"text": "🚀 Bot Update/EdrolAI", "url": OFFICIAL_CHANNEL_URL}])
             kb = {"inline_keyboard": kb_rows}
 
             res = send_local_or_url_media(chat_id, media_src, caption=tag_msg, protect=False, spoiler=False, reply_to_message_id=msg_id, reply_markup=kb, media_type_override=media_type)
