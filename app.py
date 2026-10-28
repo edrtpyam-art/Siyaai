@@ -1128,7 +1128,7 @@ SYSTEM_KNOWLEDGE_TRIGGERS = [
     "kisne banaya", "kis na bnay", "who made you", "edrol", "help", "support", "saport"
 ]
 
-THIRD_PERSON_PHOTO_TRIGGERS = [
+ THIRD_PERSON_PHOTO_TRIGGERS = [
     "ey girsl", "ey girls", "ye girl", "ye ladki", "is ladki", "ess girls", "is girl",
     "isko dekho", "es ko dekho", "es ki", "iski", "kaisi hai", "kasi ha", "kaisi lag rahi",
     "ye kaun", "kon hai", "comment kar", "comment kro", "rate kar", "batao ye",
