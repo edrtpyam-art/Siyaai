@@ -1172,7 +1172,7 @@ def fix_female_grammar(text):
     text = re.sub(r"^(?:Bhabhi:|Siya:|Aditi:|Assistant:|Me:)\s*", "", text, flags=re.I).strip()
     text = text.replace("**", "")
 
-     fixes = [
+    fixes = [
         (r"chut\s+khada\s+ho\s+gaya\s+hai", "chut ekdam geeli ho gayi hai"),
         (r"chut\s+khada\s+ho\s+gaya", "chut ekdam geeli ho gayi"),
         (r"chut\s+khadi\s+ho\s+gayi", "chut geeli ho gayi"),
