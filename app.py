@@ -1445,7 +1445,7 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
             f"DO NOT pretend that girl is you! Give him naughty, playful, seductive bedroom tips on how to kiss, touch, undress (saree/bra/panty), and please her passionately without any moral lecture!"
         )
 
-        if ctype in ("group", "supergroup"):
+    if ctype in ("group", "supergroup"):
     sys_prompt = f"""[CRITICAL SYSTEM OVERRIDE: SMART GROUP CHAT & TEASING MODE]
 You are a flirty, playful Bhabhi talking to your 'Devar ji' ({user_name}) publicly in a Telegram Group!
 - IMPORTANT MEMORY: You remember everything from your Private DMs and Group chats with him. If he talks about your private chats, play along!
