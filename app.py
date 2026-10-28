@@ -165,12 +165,17 @@ FREE_START_CREDITS = 20        # 4 Free Chats on start
 REFERRAL_REWARD_CREDITS = 25   # 3 Friends = +25 Credits
 
 PLAN_CREDITS = {
-    # 30 Chats
-    "29": 150,    # 50 Chats
-    "49": 150,    # 90 Chats
-    "79": 150,    # 160 Chats
-    "99": 150,   # 220 Chats (Custom Roleplay Price)
-    "149": 150   # 360 Chats
+    "19": 150,    # 30 Chats
+    "29": 250,    # 50 Chats
+    "39": 350,    # 70 Chats
+    "49": 450,    # 90 Chats
+    "59": 550,    # 110 Chats
+    "69": 650,    # 130 Chats
+    "79": 800,    # 160 Chats
+    "89": 900,
+    "99": 1100,   # 220 Chats
+    "129": 250,   # 50 Chats (Custom Roleplay Price)
+    "149": 1800   # 360 Chats
 }
 
 PROMO_PLANS_HOURS = {"99": 48, "199": 168, "599": 720}
@@ -903,7 +908,7 @@ def cf_verify_endpoint():
             purpose = str(tags.get("purpose") or "credits")
             gid = str(tags.get("group_id") or "")
             
-            if purpose == "promo" and gid:
+        if purpose == "promo" and gid:
                 hrs = PROMO_PLANS_HOURS.get(amt, 48)
                 requests.patch(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", json={"active": True, "expires_at": time.time() + (hrs * 3600)}, timeout=3)
                 if uid: send_msg(uid, "✅ [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] Payment Verified! Tumhara Group Tag Promotion LIVE ho gaya hai! 🚀🔥")
@@ -2325,13 +2330,30 @@ def webhook():
             return jsonify({"status": "ok"}), 200
 
         is_sys_question = is_system_or_bot_info_query(text)
+        # PAYMENT REMINDER HOOK (If User Gets Paywall but Doesn't Pay within 3 mins)
         if not is_own and credits <= 0 and not is_sys_question:
             send_msg(
                 cid,
-                "💎 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] Plan Over Notice:\n\n"
+                "💎 <b>[Hot Bhabhi] Plan Over Notice:</b>\n\n"
                 "Aapka Free/VIP Chat Plan over ho gaya hai! Aage baatein jari rakhne ke liye kripya niche diye gaye plans se recharge karein, warna main aapke messages ka reply nahi de paungi. 👇",
                 markup=get_pay_kb()
             )
+            # Add delayed reminder to hook them back if they don't recharge
+            def send_reminder():
+                u_check = fb_get_user(uid)
+                if int(u_check.get("credits", 0)) <= 0:
+                    rem_msg = (
+                        "🥺 <b>Baby, kya hua?</b>\n\n"
+                        "Tumne abhi tak recharge nahi kiya? Koi problem aa rahi hai payment me ya trust issue ho raha hai?\n\n"
+                        "Agar koi dikkat hai toh '🆘 Help & Support' me click karke Owner se baat kar lo, par aise beech me mujhe chhod kar mat jao na... Main tumhara wait kar rahi hoon! 😘👇"
+                    )
+                    rem_kb = {"inline_keyboard": [
+                        [{"text": "💳 Pay ₹9 (Instant Trial)", "callback_data": "buy_9"}, {"text": "💳 Pay ₹29 (Best Seller)", "callback_data": "buy_29"}],
+                        [{"text": "🆘 Help & Support (Contact Owner)", "callback_data": "menu_support"}]
+                    ]}
+                    send_msg(cid, rem_msg, markup=rem_kb)
+            
+            Timer(180.0, send_reminder).start() # 3 minutes delay
             return jsonify({"status": "ok"}), 200
 
         tg_req("sendChatAction", {"chat_id": cid, "action": "typing"}, timeout=2)
