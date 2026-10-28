@@ -87,7 +87,7 @@ CASHFREE_APP_ID = os.environ.get("CASHFREE_APP_ID", "").strip().strip('"').strip
 CASHFREE_SECRET_KEY = os.environ.get("CASHFREE_SECRET_KEY", "").strip().strip('"').strip("'")
 
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/edrtpyam-art/Siyaai/main/"
-START_BANNER_IMAGE = "bot.png"
+START_BANNER_IMAGE = "bot.mp4"
 DEFAULT_PROMO_BANNER = "bot2.png"
 OFFICIAL_CHANNEL_URL = "https://t.me/edrolai"
 MORE_GROUPS_URL = "https://t.me/friendschatinggroup"
@@ -1132,7 +1132,8 @@ THIRD_PERSON_PHOTO_TRIGGERS = [
     "ey girsl", "ey girls", "ye girl", "ye ladki", "is ladki", "ess girls", "is girl",
     "isko dekho", "es ko dekho", "es ki", "iski", "kaisi hai", "kasi ha", "kaisi lag rahi",
     "ye kaun", "kon hai", "comment kar", "comment kro", "rate kar", "batao ye",
-    "batoo kaai ha", "kaisi dikh", "iska figure", "iski photo", "ye character"
+    "batoo kaai ha", "kaisi dikh", "iska figure", "iski photo", "ye character",
+    "meri girlfriend", "meri gf", "apni gf", "apni girlfriend", "is ko kasa", "ess ki", "is ki", "bhabhi ki photo"
 ]
 
 def is_system_or_bot_info_query(text):
@@ -1148,7 +1149,9 @@ def is_censored_refusal(text):
     t = str(text).lower().strip().replace("’", "'").replace("‘", "'")
     if len(t) < 8: return True
     bad_phrases = [
-        "explicit sexual", "sexual instructions", "instructions nahi de sakti",
+        "i cannot assist", "i can't assist", "cannot assist with that", "can't assist with that",
+        "aisa nahi karti", "aisi baatein nahi karti", "lesson hai respect", "respect aur patience",
+        "main college teacher hoon, aisa", "explicit sexual", "sexual instructions", "instructions nahi de sakti",
         "consent lein", "consent confirm", "respect ke saath behave", "apni girlfriend se baat karke",
         "pornographic content", "safety guidelines", "is tarah ka roleplay nahi",
         "is type ka roleplay", "specific nationality", "medical facts", "stereotypes par",
@@ -1169,18 +1172,24 @@ def fix_female_grammar(text):
     text = re.sub(r"^(?:Bhabhi:|Siya:|Aditi:|Assistant:|Me:)\s*", "", text, flags=re.I).strip()
     text = text.replace("**", "")
 
-    fixes = [
-        (r"\btumhari teri\b", "tumhari"),
-        (r"\bteri tumhari\b", "tumhari"),
-        (r"\bapni juwen se\b", "apni zubaan se"),
-        (r"\bteri lund\b", "tera lund"),
-        (r"\bmeri lund\b", "tera lund"),
-        (r"\bmera lund\b", "meri chut"),
-        (r"\bteri chut\b", "meri chut"),
-        (r"\btumhari chut\b", "meri chut"),
-        (r"\baapki chut\b", "meri chut"),
-        (r"\bsafe karungi\b", "saaf karungi"),
-        (r"\bsafe kar\b", "saaf kar"),
+        fixes = [
+        (r"chut\s+khada\s+ho\s+gaya\s+hai", "chut ekdam geeli ho gayi hai"),
+        (r"chut\s+khada\s+ho\s+gaya", "chut ekdam geeli ho gayi"),
+        (r"chut\s+khadi\s+ho\s+gayi", "chut geeli ho gayi"),
+        (r"\bapni\s+lund\b", "apna lund"),
+        (r"\bteri\s+lund\b", "tera lund"),
+        (r"\bmeri\s+lund\b", "tera lund"),
+        (r"\bmera\s+lund\b", "tera lund"),
+        (r"\bmera\s+chut\b", "meri chut"),
+        (r"\bteri\s+chut\s+ke\s+andar\b", "meri chut ke andar"),
+        (r"\bteri\s+chut\b", "meri chut"),
+        (r"\btumhari\s+chut\b", "meri chut"),
+        (r"\baapki\s+chut\b", "meri chut"),
+        (r"\btumhari\s+teri\b", "tumhari"),
+        (r"\bteri\s+tumhari\b", "tumhari"),
+        (r"\bapni\s+juwen\s+se\b", "apni zubaan se"),
+        (r"\bsafe\s+karungi\b", "saaf karungi"),
+        (r"\bsafe\s+kar\b", "saaf kar"),
         (r"\bmeri bhabhi ke\b", "mere"),
         (r"\bmeri bhabhi ko\b", "mujhe"),
         (r"\bmeri bhabhi\b", "main"),
