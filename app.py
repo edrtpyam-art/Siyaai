@@ -1399,10 +1399,11 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
     if asks_media:
         photo_instruction = "\n- User asked for a photo/video! Include ONE tag at the end: `[PHOTO: bodes]`, `[PHOTO: chut]`, `[PHOTO: gand]`, `[PHOTO: kiss]`, or `[PHOTO: simplepic]`."
  
-        sys_info = ""
-        if is_sys_q:
-            c_disp = "Unlimited VIP Credits (Owner)" if is_owner else f"{credits_left} Free/VIP Chat Credits"
-            sys_info = f"""
+     sys_info = ""
+     if is_sys_q:
+         c_disp = "Unlimited VIP Credits (Owner)" if is_owner else f"{credits_left} Free/VIP Chat Credits"
+         sys_info = f"""
+         
 # COMPLETE BOT SYSTEM, CREDITS, ROLEPLAY HUB & GROUP MANAGEMENT KNOWLEDGE:
 - Creator: Mujhe **Edrol AI** (@edrolai) ne banaya hai (Never say OpenAI or Instagram!).
 - Free Credits Rule: Har naye user ko sirf **1-Time 20 Free Credits** milte hain (Current balance: {c_disp}). Free credits khatam hone ke baad bina recharge ke chat nahi hoti!
@@ -1505,7 +1506,7 @@ STRICT RULES:
             if success and response_text:
                 clean_text, ai_photo_tag = parse_media_tags(response_text, asks_media, fallback_tag=(py_photo_tag or "bodes"))
                 final_tag = py_photo_tag or ai_photo_tag
-                media_file = get_media_item(PHOTO_VAULT, final_tag, wants_video) if asks_media else None
+                media_file = get_media_item(PHOTO_VAULT, final_tag, wants_video, char_vault=active_vault) if asks_media else None
                 return clean_text, media_file, get_hot_sticker(), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
 
     hist_summary = "\n".join([f"{m.get('role')}: {m.get('text')}" for m in history[-14:] if not is_censored_refusal(m.get('text'))])
@@ -1526,7 +1527,7 @@ STRICT RULES:
             if success and response_text:
                 clean_text, ai_photo_tag = parse_media_tags(response_text, asks_media, fallback_tag=(py_photo_tag or "bodes"))
                 final_tag = py_photo_tag or ai_photo_tag
-                media_file = get_media_item(PHOTO_VAULT, final_tag, wants_video) if asks_media else None
+                media_file = get_media_item(PHOTO_VAULT, final_tag, wants_video, char_vault=active_vault) if asks_media else None
                 return clean_text, media_file, get_hot_sticker(), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
 
     for key in OPENROUTER_API_KEYS:
@@ -1535,10 +1536,10 @@ STRICT RULES:
             if success and response_text:
                 clean_text, ai_photo_tag = parse_media_tags(response_text, asks_media, fallback_tag=(py_photo_tag or "bodes"))
                 final_tag = py_photo_tag or ai_photo_tag
-                media_file = get_media_item(PHOTO_VAULT, final_tag, wants_video) if asks_media else None
+                media_file = get_media_item(PHOTO_VAULT, final_tag, wants_video, char_vault=active_vault) if asks_media else None
                 return clean_text, media_file, get_hot_sticker(), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
 
-    media_file = get_media_item(PHOTO_VAULT, py_photo_tag or "bodes", wants_video) if asks_media else None
+    media_file = get_media_item(PHOTO_VAULT, py_photo_tag or "bodes", wants_video, char_vault=active_vault) if asks_media else None
     if asks_media:
         return f"Ye lo {user_name} meri jaan, sirf tumhare liye apni garma-garam pic bhej rahi hoon... dekh kar batao kaisi lagi! 🥵💋", media_file, None, show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
     return f"Aaaah... aao na {user_name} meri baahon mein, darwaza band hai aur main kab se tumhara hi wait kar rahi thi! 😘🔥", media_file, get_hot_sticker(force=True), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
@@ -2085,7 +2086,7 @@ def webhook():
                 )
                 return jsonify({"status": "ok"}), 200
 
-                        if cb_data.startswith("promo_on_"):
+            if cb_data.startswith("promo_on_"):
                 gid = cb_data.replace("promo_on_", "").strip()
                 if not is_own and not is_user_group_admin(gid, uid):
                     return jsonify({"status": "ok"}), 200
