@@ -2271,10 +2271,16 @@ def webhook():
                 return jsonify({"status": "welcome processed"}), 200
 
             ents = (msg.get("entities") or []) + (msg.get("caption_entities") or [])
-            has_raw_link = bool(re.search(r"(?:https?://|t\.me/|www\.|\b\w+\.(?:com|in|org|net|me|io|get)\b)", text.lower()))
+            has_raw_link = bool(re.search(r"(?:https?://|t\.me/|www\.|\b\w+\.(?:com|in|org|net|me|io|get|link|click|app|club|store)\b)", text.lower()))
             if (any(e.get("type") in ("url", "text_link", "mention") for e in ents) or has_raw_link) and not sender_is_admin:
-                if tg_req("deleteMessage", {"chat_id": cid, "message_id": msg.get("message_id")}).get("ok"):
-                    send_msg(cid, "⚠️ [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] Group mein links/mentions allowed nahi hain! 🚫")
+                tg_req("deleteMessage", {"chat_id": cid, "message_id": msg.get("message_id")}, timeout=2)
+                warn_kb = {
+                    "inline_keyboard": [
+                        [{"text": "🚀 Bot Update / Edrol AI", "url": OFFICIAL_CHANNEL_URL}],
+                        [{"text": "🛡️ Protect Your Group", "url": f"https://t.me/{BOT_USERNAME}?startgroup=true"}]
+                    ]
+                }
+                send_msg(cid, f"⚠️ [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] <a href='tg://user?id={uid}'>{html.escape(fname)}</a>, Group mein links ya mentions allowed nahi hain! 🚫", markup=warn_kb)
                 return jsonify({"status": "ok"}), 200
 
             if text.lower().startswith("/promo"):
