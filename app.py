@@ -1403,6 +1403,7 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
     if is_sys_q:
         c_disp = "Unlimited VIP Credits (Owner)" if is_owner else f"{credits_left} Free/VIP Chat Credits"
         sys_info = f"""
+        
 # COMPLETE BOT SYSTEM, CREDITS, ROLEPLAY HUB & GROUP MANAGEMENT KNOWLEDGE:
 - Creator: Mujhe **Edrol AI** (@edrolai) ne banaya hai (Never say OpenAI or Instagram!).
 - Free Credits Rule: Har naye user ko sirf **1-Time 20 Free Credits** milte hain (Current balance: {c_disp}). Free credits khatam hone ke baad bina recharge ke chat nahi hoti!
@@ -2085,9 +2086,9 @@ def webhook():
                 )
                 return jsonify({"status": "ok"}), 200
 
-             if cb_data.startswith("promo_on_"):
+            if cb_data.startswith("promo_on_"):
                 gid = cb_data.replace("promo_on_", "").strip()
-             if not is_own and not is_user_group_admin(gid, uid):
+                if not is_own and not is_user_group_admin(gid, uid):
                     return jsonify({"status": "ok"}), 200
                 try:
                     p_info = requests.get(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", timeout=2.5).json() or {}
