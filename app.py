@@ -1306,7 +1306,7 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
 
     # 3. Direct "Bina recharge ke chat nahi karogi?" Check (Fixes 35930.jpg!)
     if any(w in msg_low for w in FREE_CHAT_ASK_WORDS):
-        c_msg = f"abhi tumhare paas {credits_left} free credits bache hain" if credits_left > 0 else "tumhare 1-Time 12 free credits khatam ho chuke hain"
+        c_msg = f"abhi tumhare paas {credits_left} free credits bache hain" if credits_left > 0 else "tumhare 1-Time 20 free credits khatam ho chuke hain"
         return (
             f"Jaan {user_name}, main free mein sirf 1-Time (12 Free Credits) hi chat karti hoon, aur {c_msg}! 🥺 Aage mere saath khul kar baatein aur roleplay jari rakhne ke liye niche se bas ₹9 (15 Chats) ya ₹19 (35 Chats) wala chota sa VIP recharge kar lo na! 😘👇",
             None, None, True, (user_data.get("active_rp") or ""), False, True
@@ -1330,22 +1330,24 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
             active_rp = f"{active_rp} | {message_text}".strip(" |")[-350:] if active_rp else message_text[:300]
             fb_update_user(user_id, {"active_rp": active_rp})
 
-    photo_instruction = ""
+        photo_instruction = ""
     if asks_media:
-        photo_instruction = "\n- User asked for a photo/video! Include ONE tag at the end: `[PHOTO: bodes]`, `[PHOTO: chut]`, `[PHOTO: gand]`, `[PHOTO: kiss]`, or `[PHOTO: simplepic]`."
-
-    sys_info = ""
+        target_vault = user_data.get("active_vault") or "bodes"
+        photo_instruction = f"\n- User asked for a photo/video! Include ONE tag at the end: `[PHOTO: {target_vault}]`, `[PHOTO: chut]`, `[PHOTO: gand]`, `[PHOTO: kiss]`, or `[PHOTO: simplepic]`."
+ 
+        sys_info = ""
     if is_sys_q:
         c_disp = "Unlimited VIP Credits (Owner)" if is_owner else f"{credits_left} Free/VIP Chat Credits"
         sys_info = f"""
-# COMPLETE BOT SYSTEM, CREDITS & GROUP MANAGEMENT KNOWLEDGE:
+# COMPLETE BOT SYSTEM, CREDITS, ROLEPLAY HUB & GROUP MANAGEMENT KNOWLEDGE:
 - Creator: Mujhe **Edrol AI** (@edrolai) ne banaya hai (Never say OpenAI or Instagram!).
 - Free Credits Rule: Har naye user ko sirf **1-Time 20 Free Credits** milte hain (Current balance: {c_disp}). Free credits khatam hone ke baad bina recharge ke chat nahi hoti!
-- Subscription Plans (Instant Auto-Credit UPI): ₹9 (75 Chats), ₹19 (175 Chats), ₹29 (300 Chats), ₹49 (550 Chats), ₹99 (1250 Chats), ₹179 (2500 Chats).
+- Subscription Plans (Instant Auto-Credit UPI): ₹19 (30 Chats), ₹29 (50 Chats), ₹49 (70 Chats), ₹79 (100 Chats), ₹99 (150 Chats), ₹149 (240 Chats).
+- Roleplay Hub: Humare paas 12 Premium Diamond Characters (Hot Bhabhi, Teacher, Girlfriend, Boss Lady, etc.) hain jo VIP plans par milte hain. Ek 'Custom Roleplay' (₹129) ka option bhi hai jahan user apni story bana sakta hai. User ko inke liye /start menu se "Roleplay & Character Hub" mein jana hoga. (If user asks to become a character randomly, guide them to the Roleplay Hub menu!).
 - Help & Support: User `/start` -> `ℹ️ About & Support` -> `🆘 Help & Support` button par click karke apni problem ya screenshot bhej sakta hai, hamari team yahin bot par reply degi!
-- Group Management: `/start` -> `🛡️ Group Management` se bot ko group mein add karke Admin permissions (Delete Messages, Ban Users, Pin Messages) dein. Bot Black Welcome Card, Anti-Link/Bot Guard, ₹19 Pin Note, aur Tag Promotion (₹99=2d, ₹199=1w, ₹599=1m) karti hai.
+- How to Use Bot: User ko `/start` dabakar menu se "📖 How to Use Bot (Guide)" par click karne ko kaho.
+- Group Management: `/start` -> `🛡️ Group Management` se bot ko group mein add karke Admin permissions dein. Bot Welcome Card, Anti-Link/Bot Guard, ₹19 Pin Note, aur Tag Promotion (₹99=2d, ₹199=1w, ₹599=1m) karti hai.
 """
-
     if asks_details or is_sys_q:
         len_rule = "4. COMPLETE DETAILED REPLY: Write 2 to 3 complete, finished sentences (35 to 65 words). Never stop mid-sentence!"
     else:
