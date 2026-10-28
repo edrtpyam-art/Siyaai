@@ -531,41 +531,50 @@ def get_promo_type_kb(group_id, is_active=False):
     )
     return {"inline_keyboard": [
         [toggle_btn],
-        [{"text": f"📝 Simple Text + Buttons ({DEFAULT_PROMO_BANNER})", "callback_data": f"promotype_simple_{group_id}"}],
-        [{"text": "🖼️ Custom Banner (Photo/Video) + Buttons", "callback_data": f"promotype_banner_{group_id}"}],
+        [{"text": f"📝 Simple Text Promo ({DEFAULT_PROMO_BANNER})", "callback_data": f"promotype_simple_{group_id}"}],
+        [{"text": "🖼️ Banner (Photo/Video) + Text Promo", "callback_data": f"promotype_banner_{group_id}"}],
+        [{"text": "➕ Add / Edit Link Buttons (Up to 30)", "callback_data": f"promobtn_add_{group_id}"}],
+        [{"text": "🗑️ Clear All Link Buttons", "callback_data": f"promobtn_clear_{group_id}"}],
         [{"text": "🔙 Back", "callback_data": "menu_promo"}]
     ]}
 
-def build_rose_style_promo_msg_and_kb(raw_text):
-    clean_lines = []
-    custom_rows = []
-    btn_pattern = re.compile(r"^(.+?)\s*(?:-\s*|\|\s*)(https?://\S+|t\.me/\S+)$", re.I)
+def get_promo_btn_builder_kb(group_id, btn_count=0):
+    return {"inline_keyboard": [
+        [{"text": f"➕ Add Link Button ({btn_count}/30 Added)", "callback_data": f"promobtn_add_{group_id}"}],
+        [{"text": "🗑️ Clear Buttons", "callback_data": f"promobtn_clear_{group_id}"}],
+        [{"text": "✅ Done & Activate Promotion 🚀", "callback_data": f"promobtn_done_{group_id}"}]
+    ]}
 
-    for line in str(raw_text or "").splitlines():
-        s_line = line.strip()
-        if "&&" in s_line and ("http" in s_line or "t.me/" in s_line):
-            row_btns = []
-            for part in s_line.split("&&"):
-                m = btn_pattern.match(part.strip())
-                if m:
-                    b_txt, b_url = m.group(1).strip(), m.group(2).strip()
-                    if not b_url.startswith("http"): b_url = "https://" + b_url
-                    row_btns.append({"text": b_txt, "url": b_url})
-            if row_btns:
-                custom_rows.append(row_btns)
-                continue
-        m_single = btn_pattern.match(s_line)
-        if m_single:
-            b_txt, b_url = m_single.group(1).strip(), m_single.group(2).strip()
-            if not b_url.startswith("http"): b_url = "https://" + b_url
-            custom_rows.append([{"text": b_txt, "url": b_url}])
+def parse_user_promo_buttons(raw_text, existing_buttons=None):
+    """
+    User chahe 1 button bheje (Line 1: Naam, Line 2: Link)
+    ya 20-30 buttons ek sath bheje, sabko clean buttons bana dega!
+    """
+    btns = list(existing_buttons) if isinstance(existing_buttons, list) else []
+    lines = [ln.strip() for ln in str(raw_text or "").splitlines() if ln.strip()]
+    i = 0
+    while i < len(lines) and len(btns) < 30:
+        line = lines[i]
+        # Format 1: "Button Name - https://t.me/link" (Ek hi line me naam aur link)
+        m = re.match(r"^(.+?)\s*(?:-\s*|\|\s*|=\s*)(https?://\S+|t\.me/\S+|@\w+)$", line, re.I)
+        if m:
+            b_name, b_link = m.group(1).strip(), m.group(2).strip()
+            if b_link.startswith("@"): b_link = "https://t.me/" + b_link.lstrip("@")
+            elif not b_link.startswith("http"): b_link = "https://" + b_link
+            btns.append({"text": b_name[:32], "url": b_link})
+            i += 1
             continue
-        clean_lines.append(line)
-
-    # Last me hamesha Chat with Bhabhi button rahega!
-    custom_rows.append([{"text": "💬 Chat with Bhabhi", "url": f"https://t.me/{BOT_USERNAME}?start=promo"}])
-    final_txt = "\n".join(clean_lines).strip() or "🔥 Join our Official VIP Hub below!"
-    return final_txt, {"inline_keyboard": custom_rows}
+        # Format 2: Line 1 = Button Name, Line 2 = Link (Sabse aasan tarika!)
+        if i + 1 < len(lines) and re.match(r"^(https?://\S+|t\.me/\S+|@\w+)$", lines[i + 1], re.I):
+            b_name = line[:32]
+            b_link = lines[i + 1].strip()
+            if b_link.startswith("@"): b_link = "https://t.me/" + b_link.lstrip("@")
+            elif not b_link.startswith("http"): b_link = "https://" + b_link
+            btns.append({"text": b_name, "url": b_link})
+            i += 2
+            continue
+        i += 1
+    return btns[:30]
 
 # ============================================================
 # 5. EXACT BLACK PROFESSIONAL WELCOME CARD + CUSTOM ADMIN WELCOME TEXT
@@ -898,14 +907,23 @@ def check_and_run_group_promotion(chat_id, msg_id, sender_id, sender_name):
                 requests.patch(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", json={"active": False}, timeout=2.5)
                 return
             promo_rate_tracker[gid] = ts_list + [now]
-            clean_promo_txt, kb = build_rose_style_promo_msg_and_kb(promo.get("text", ""))
             tag_msg = (
                 f"👋 Hey <a href=\"tg://user?id={sender_id}\">{html.escape(sender_name)}</a>! ✨\n\n"
                 f"📢 [𝑺𝒑𝒐𝒏𝒔𝒐𝒓𝒆𝒅 𝑯𝒊𝒈𝒉𝒍𝒊𝒈𝒉𝒕]:\n"
-                f"{html.escape(clean_promo_txt)}"
+                f"{html.escape(str(promo.get('text', '')))}"
             )
             media_src = promo.get("media") or DEFAULT_PROMO_BANNER
             media_type = promo.get("media_type") or "photo"
+
+            # Custom Link Buttons (1 se 30 tak) + Last me hamesha Chat with Bhabhi!
+            saved_btns = promo.get("buttons") or []
+            kb_rows = []
+            for b in saved_btns[:30]:
+                if isinstance(b, dict) and b.get("text") and b.get("url"):
+                    kb_rows.append([{"text": str(b["text"]), "url": str(b["url"])}])
+            kb_rows.append([{"text": "💬 Chat with Bhabhi", "url": f"https://t.me/{BOT_USERNAME}?start=promo"}])
+            kb = {"inline_keyboard": kb_rows}
+
             res = send_local_or_url_media(chat_id, media_src, caption=tag_msg, protect=False, spoiler=False, reply_to_message_id=msg_id, reply_markup=kb, media_type_override=media_type)
             if not res.get("ok"):
                 send_msg(chat_id, tag_msg, reply_id=msg_id, markup=kb)
