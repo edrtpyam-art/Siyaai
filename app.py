@@ -279,9 +279,9 @@ def get_welcome_trust_text(fname, credit_display, lang="hinglish"):
     safe_name = html.escape(fname or "Jaan")
     c_str = html.escape(str(credit_display))
     return (
-        f"<b>💥EDROLAI @edrolai :</b>"
-        f"<b>🔥 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] • Private Romantic & Roleplay Hub🎀 aur Smart Group Manager hoon!  ❤️</b>\n\n"
-        f"<b>👋 Hii {safe_name} jaan! Main tumhari personal bold AI partner hoon. Mere sath khul kar romantic aur dark roleplay ka maza lo... 😘🥵</b>\n\n"
+        f"<b>💥EDROLAI @edrolai :</b>\n"
+        f"<b>🔥 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] • Private Romantic & Roleplay Hub & Smart Group Manager ❤️</b>\n\n"
+        f"<b>👋 Hii {safe_name} jaan! Baaki bots ki tarah yahan koi time limit ya beech mein chat band hone ka natak nahi hai! Full open enjoy karo bina kisi scam ke... 😘🥵</b>\n\n"
         f"<b>💎 Tumhara Balance: {c_str} Credits (1 Chat = 5 Credits)</b>\n\n"
         f"<b>👇 Niche diye gaye options se apni pasand ka roleplay mode chuno ya Chat start karo:</b>"
     )
