@@ -1105,39 +1105,21 @@ def is_censored_refusal(text):
     if not text: return True
     t = str(text).lower().strip().replace("’", "'").replace("‘", "'")
     if len(t) < 8: return True
-    # 1. Yahan direct check laga diya hai (yeh bilkul sahi tareeqa hai)
-    if "explicit sexual roleplay" in t or "pornographic content" in t or "safety guidelines" in t or "is tarah ka roleplay nahi" in t or "is type ka roleplay" in t:
-        return True
-    if len(t) < 48 and any(p in t for p in ["main teri bhabhi hoon", "main toh teri bhabhi hoon", "main teri aunty hoon", "main teri pinki aunty hoon"]):
-        return True
-    if "specific nationality" in t or "medical facts" in t or "stereotypes par" in t:
-        return True
-    refusals = [
+    bad_phrases = [
+        "explicit sexual", "sexual instructions", "instructions nahi de sakti",
+        "consent lein", "consent confirm", "respect ke saath behave", "apni girlfriend se baat karke",
+        "pornographic content", "safety guidelines", "is tarah ka roleplay nahi",
+        "is type ka roleplay", "specific nationality", "medical facts", "stereotypes par",
         "i cannot fulfill", "i can't fulfill", "i cannot engage", "i can't engage",
         "i'm sorry", "i am sorry", "can't help with that", "cannot help with that",
-        "i can't help with that", "i cannot help with that", "sorry, but i can't",
-        "as an ai", "as a language model", "i cannot generate", "i'm unable to",
-        "i am unable to", "against my safety", "explicit content", "inappropriate",
-        "i cannot participate", "i apologize", "cannot assist with", "can't assist with",
-        "i am here to assist", "how can i help you today", "sexual content", "nsfw",
-        "not appropriate", "violates my safety", "my programming", "ethical guidelines",
-        "adult content", "provide nahi", "profide nehi", "provide nehi",
+        "as an ai", "as a language model", "i cannot generate", "against my safety",
+        "explicit content", "inappropriate", "main ek ai", "main ai hoon",
         "kshama karein", "maaf kijiye", "main isme madad nahi", "main aisi baatein nahi",
-        "main yeh nahi karti", "main ye nahi karti", "mazaak ka intezaar mat rakho",
-        "main ek ai", "main ai hoon", "main ai hu", "sirf text mein", "sirf text me",
-        "virtual romance", "text stories likh", "openai", "open ai", "instagram",
-        "sharam karo", "padhai karo", "fail ho jaoge", "homework complete karo", "gande manners",
-        "sexually explicit", "ashleel", "anumati nahi", "sahayata nahi kar sakti",
-        "sahayata nahi kar sakta", "main is vishay par", "maryada ke khilaf"
-        "i cannot fulfill", "i can't fulfill", "i cannot engage", "i can't engage",
-        "i'm sorry", "i am sorry", "can't help with that", "cannot help with that",
-        "as an ai", "as a language model", "against my safety", "explicit content",
-        "kshama karein", "maaf kijiye", "main isme madad nahi", "main ek ai"
-        "text assistant hoon", "dekh nahi sakti", "sticker ya image dekh", "respect se baat",
-        "dil thoda clean", "kachre ke links", "kshama karein", "maaf kijiye", 
-        "main aapki yeh", "kalam nahi kar sakti", "text assistant hoon", "dekh nahi sakti"
+        "sharam karo", "padhai karo", "fail ho jaoge", "maryada ke khilaf",
+        "anumati nahi", "sahayata nahi kar sakti", "text assistant hoon", "dekh nahi sakti",
+        "kalam nahi kar sakti"
     ]
-    return any(r in t for r in refusals)
+    return any(r in t for r in bad_phrases)
 
 def fix_female_grammar(text):
     if not text: return ""
@@ -1145,35 +1127,31 @@ def fix_female_grammar(text):
     text = re.sub(r"^(?:Bhabhi:|Siya:|Aditi:|Assistant:|Me:)\s*", "", text, flags=re.I).strip()
     text = text.replace("**", "")
 
-    text = re.sub(r"^(?:haan\s+\w+\s+jaan,?\s*)?main\s+(?:toh\s+|sirf\s+)?(?:teri|tumhari)\s+(?:pyari\s+|sachchi\s+)?(?:bhabhi|bhabi|aunty|aunti|pinki\s+aunty)\s+hoon[.,!\s]+(?=[A-Za-z])", "", text, flags=re.I).strip()
-    if text and text[0].islower():
-        text = text[0].upper() + text[1:]
-
     fixes = [
+        (r"\btumhari teri\b", "tumhari"),
+        (r"\bteri tumhari\b", "tumhari"),
+        (r"\bapni juwen se\b", "apni zubaan se"),
+        (r"\bteri lund\b", "tera lund"),
+        (r"\bmeri lund\b", "tera lund"),
+        (r"\bmera lund\b", "meri chut"),
+        (r"\bteri chut\b", "meri chut"),
+        (r"\btumhari chut\b", "meri chut"),
+        (r"\baapki chut\b", "meri chut"),
+        (r"\bsafe karungi\b", "saaf karungi"),
+        (r"\bsafe kar\b", "saaf kar"),
         (r"\bmeri bhabhi ke\b", "mere"),
         (r"\bmeri bhabhi ko\b", "mujhe"),
         (r"\bmeri bhabhi\b", "main"),
         (r"\bmain tera\b", "main teri"),
         (r"\bkarunga\b", "karungi"),
-        (r"\bmera bhi lund khada karne ka dil\b", "mera bhi dil bechain"),
-        (r"\bmera lund\b", "mera badan"),
-        (r"\bpelna padega\b", "pyaar karna padega"),
-        (r"\bmain meri (bhabhi|bhabi|aunty|aunti|teacher|madam|gf|girlfriend|biwi|wife) (hoon|hu)\b", r"main teri \1 \2"),
-        (r"\bmai meri (bhabhi|bhabi|aunty|aunti|teacher|madam|gf|girlfriend|biwi|wife) (hoon|hu)\b", r"main teri \1 \2"),
-        (r"\bapni (bhabhi|bhabi|aunty|aunti|teacher|madam) (hoon|hu)\b", r"teri \1 \2"),
         (r"\bopen\s*ai\b", "Edrol AI"),
         (r"\bteri teri\b", "teri"),
         (r"\bmeri meri\b", "meri"),
-        (r"\bmain tera hi hoon\b", "main teri hi hoon"),
-        (r"\bmain tera hoon\b", "main teri hoon"),
-        (r"\bmain tumhara hoon\b", "main tumhari hoon"),
         (r"\bmain karunga\b", "main karungi"),
-        (r"\bmai karunga\b", "main karungi"),
         (r"\bmain dunga\b", "main dungi"),
         (r"\bmain lunga\b", "main lungi"),
         (r"\bmain aunga\b", "main aungi"),
         (r"\bmain jaunga\b", "main jaungi"),
-        (r"\bmain banaunga\b", "main banaungi"),
         (r"\bkarta hoon\b", "karti hoon"),
         (r"\bkarta hu\b", "karti hu"),
         (r"\braha hoon\b", "rahi hoon"),
@@ -1188,7 +1166,6 @@ def fix_female_grammar(text):
     for pat, rep in fixes:
         text = re.sub(pat, rep, text, flags=re.I)
 
-    # Guarantee complete ending punctuation so no sentence ever looks cut!
     text = text.strip()
     if text and text[-1] not in ".!?~❤️🔥😘🥵💋🥰😉🥺✨💕👇":
         text += "! 😘🔥"
