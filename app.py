@@ -1128,7 +1128,7 @@ SYSTEM_KNOWLEDGE_TRIGGERS = [
     "kisne banaya", "kis na bnay", "who made you", "edrol", "help", "support", "saport"
 ]
 
- THIRD_PERSON_PHOTO_TRIGGERS = [
+THIRD_PERSON_PHOTO_TRIGGERS = [
     "ey girsl", "ey girls", "ye girl", "ye ladki", "is ladki", "ess girls", "is girl",
     "isko dekho", "es ko dekho", "es ki", "iski", "kaisi hai", "kasi ha", "kaisi lag rahi",
     "ye kaun", "kon hai", "comment kar", "comment kro", "rate kar", "batao ye",
@@ -1172,7 +1172,7 @@ def fix_female_grammar(text):
     text = re.sub(r"^(?:Bhabhi:|Siya:|Aditi:|Assistant:|Me:)\s*", "", text, flags=re.I).strip()
     text = text.replace("**", "")
 
-        fixes = [
+     fixes = [
         (r"chut\s+khada\s+ho\s+gaya\s+hai", "chut ekdam geeli ho gayi hai"),
         (r"chut\s+khada\s+ho\s+gaya", "chut ekdam geeli ho gayi"),
         (r"chut\s+khadi\s+ho\s+gayi", "chut geeli ho gayi"),
