@@ -1395,15 +1395,14 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
                 None, None, "ROLEPLAY_HUB_KB", "", False, True
             )
 
-        photo_instruction = ""
-        if asks_media:
-             photo_instruction = "\n- User asked for a photo/video! Include ONE tag at the end: `[PHOTO: bodes]`, `[PHOTO: chut]`, `[PHOTO: gand]`, `[PHOTO: kiss]`, or `[PHOTO: simplepic]`."
+     photo_instruction = ""
+     if asks_media:
+         photo_instruction = "\n- User asked for a photo/video! Include ONE tag at the end: `[PHOTO: bodes]`, `[PHOTO: chut]`, `[PHOTO: gand]`, `[PHOTO: kiss]`, or `[PHOTO: simplepic]`."
   
-        sys_info = ""
-         if is_sys_q:
-             c_disp = "Unlimited VIP Credits (Owner)" if is_owner else f"{credits_left} Free/VIP Chat Credits"
-             sys_info = f"""
-         
+     sys_info = ""
+     if is_sys_q:
+         c_disp = "Unlimited VIP Credits (Owner)" if is_owner else f"{credits_left} Free/VIP Chat Credits"
+         sys_info = f"""
 # COMPLETE BOT SYSTEM, CREDITS, ROLEPLAY HUB & GROUP MANAGEMENT KNOWLEDGE:
 - Creator: Mujhe **Edrol AI** (@edrolai) ne banaya hai (Never say OpenAI or Instagram!).
 - Free Credits Rule: Har naye user ko sirf **1-Time 20 Free Credits** milte hain (Current balance: {c_disp}). Free credits khatam hone ke baad bina recharge ke chat nahi hoti!
