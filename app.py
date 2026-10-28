@@ -1348,8 +1348,8 @@ def gemini_request(api_key, model, payload, timeout=10):
                 return False, "Gemini Empty/Blocked"
         return False, f"Gemini ({model}) HTTP {response.status_code}"
     except Exception as e: return False, str(e)
-
-def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=False, media_base64=None, media_mime_type="image/jpeg", raw_caption="", replied_to_text=""):
+    
+def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=False, media_base64=None, media_mime_type="image/jpeg", raw_caption="", replied_to_text="", ctype="private"):
     message_text = str(message_text or "").strip()
     user_data = fb_get_user(user_id, first_name=user_name)
     history = user_data.get("history") or []
