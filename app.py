@@ -2577,6 +2577,17 @@ def webhook():
         # PHOTO, VIDEO & STICKER VISION (DUAL LOGIC!)
         if "photo" in msg or "video" in msg or "animation" in msg:
             caption = msg.get("caption") or ""
+         # FILE ID EXTRACTOR FOR OWNER ONLY
+            if is_own and (text.lower().startswith("/getid") or "getid" in caption.lower()):
+                if "photo" in msg:
+                    f_id = msg["photo"][-1]["file_id"]
+                    send_msg(cid, f"📸 Photo File ID:\n<code>{f_id}</code>")
+                else:
+                    v_obj = msg.get("video") or msg.get("animation") or {}
+                    f_id = v_obj.get("file_id", "")
+                    send_msg(cid, f"📹 Video File ID:\n<code>{f_id}</code>")
+                return jsonify({"status": "file_id_extracted"}), 200
+
             if "photo" in msg:
                 file_id = msg["photo"][-1]["file_id"]
                 mime = "image/jpeg"
