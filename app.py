@@ -2588,10 +2588,8 @@ def webhook():
 
         tg_req("sendChatAction", {"chat_id": cid, "action": "typing"}, timeout=2)
 
-        # PHOTO, VIDEO & STICKER VISION (DUAL LOGIC!)
-        if "photo" in msg or "video" in msg or "animation" in msg:
             caption = msg.get("caption") or ""
-         # FILE ID EXTRACTOR FOR OWNER ONLY
+            # FILE ID EXTRACTOR FOR OWNER ONLY
             if is_own and (text.lower().startswith("/getid") or "getid" in caption.lower()):
                 if "photo" in msg:
                     f_id = msg["photo"][-1]["file_id"]
