@@ -2052,13 +2052,82 @@ def webhook():
                 )
                 return jsonify({"status": "ok"}), 200
 
+                        if cb_data.startswith("promo_on_"):
+                gid = cb_data.replace("promo_on_", "").strip()
+                if not is_own and not is_user_group_admin(gid, uid):
+                    return jsonify({"status": "ok"}), 200
+                try:
+                    p_info = requests.get(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", timeout=2.5).json() or {}
+                    exp_t = float(p_info.get("expires_at") or 0)
+                    if is_own and exp_t < time.time():
+                        exp_t = time.time() + (720 * 3600)
+                    if exp_t > time.time():
+                        requests.patch(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", json={"active": True, "expires_at": exp_t}, timeout=3)
+                        tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "🟢 Promotion Turned ON!", "show_alert": True})
+                        send_msg(cid, "🟢 Is group ka Tag Promotion wapas ON (Active) kar diya gaya hai! 🚀🔥")
+                    else:
+                        tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "⚠️ Plan Expired! Please select a plan.", "show_alert": True})
+                except Exception:
+                    pass
+                return jsonify({"status": "ok"}), 200
+
+            if cb_data.startswith("promobtn_add_"):
+                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
+                gid = cb_data.replace("promobtn_add_", "").strip()
+                fb_update_user(uid, {"awaiting_promo_btn_for": gid})
+                send_msg(
+                    cid,
+                    "🔗 <b>Add Link Button (1 se 30 Buttons tak):</b>\n\n"
+                    "Apni marzi ka koi bhi <b>Button Naam</b> aur uske niche <b>Link</b> likh kar bhejo!\n\n"
+                    "📌 <b>Example (1 Button):</b>\n"
+                    "<code>🔥 JOIN VIP GROUP\nhttps://t.me/friendschatinggroup</code>\n\n"
+                    "📌 <b>Example (Ek sath kai Buttons):</b>\n"
+                    "<code>💋 HOT KAVYA - https://t.me/link1\n🌹 FREE VIDEOS - https://t.me/link2\n👑 OWNER - https://t.me/link3</code>\n\n"
+                    "👇 Abhi apna Button Naam aur Link yahan bhejo:"
+                )
+                return jsonify({"status": "ok"}), 200
+
+            if cb_data.startswith("promobtn_clear_"):
+                gid = cb_data.replace("promobtn_clear_", "").strip()
+                try:
+                    requests.patch(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", json={"buttons": []}, timeout=3)
+                except Exception:
+                    pass
+                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "🗑️ All Link Buttons Cleared!", "show_alert": True})
+                send_msg(cid, "🗑️ Saare Link Buttons hata diye gaye hain! Ab sirf '💬 Chat with Bhabhi' button dikhega.", markup=get_promo_btn_builder_kb(gid, 0))
+                return jsonify({"status": "ok"}), 200
+
+            if cb_data.startswith("promobtn_done_"):
+                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
+                gid = cb_data.replace("promobtn_done_", "").strip()
+                fb_update_user(uid, {"awaiting_promo_btn_for": "", "awaiting_promo_text_for": ""})
+                if is_own:
+                    try:
+                        requests.patch(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", json={"active": True, "expires_at": time.time() + (720 * 3600)}, timeout=3)
+                    except Exception:
+                        pass
+                    send_msg(cid, "👑 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] Owner Privilege: Tumhara Group Tag Promotion (Banner + Caption + Custom Link Buttons) LIVE ho gaya hai! 🚀🔥")
+                    return jsonify({"status": "ok"}), 200
+                send_msg(cid, "✅ Banner, Caption aur Link Buttons Save ho gaye hain! Ab niche se duration plan chunein:", markup=get_promo_plans_kb(gid))
+                return jsonify({"status": "ok"}), 200
+
             if cb_data.startswith("promogrp_"):
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
                 gid = cb_data.replace("promogrp_", "").strip()
+                is_act = False
+                try:
+                    p_info = requests.get(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", timeout=2.5).json()
+                    if isinstance(p_info, dict) and p_info.get("active") and float(p_info.get("expires_at") or 0) > time.time():
+                        is_act = True
+                except Exception:
+                    pass
+                st_str = "🟢 LIVE (ACTIVE)" if is_act else "🔴 OFF (INACTIVE)"
                 send_msg(
                     cid,
-                    "🎨 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] PROMO TYPE:\nAap kaisa Tag Promotion karna chahte hain?",
-                    markup=get_promo_type_kb(gid)
+                    f"🎨 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] PROMO CONTROL PANEL\n"
+                    f"📊 Current Status: {st_str}\n\n"
+                    f"Niche se Promotion ko ON/OFF karein ya Banner/Buttons set karein: 👇",
+                    markup=get_promo_type_kb(gid, is_active=is_act)
                 )
                 return jsonify({"status": "ok"}), 200
 
@@ -2066,7 +2135,7 @@ def webhook():
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
                 gid = cb_data.replace("promotype_simple_", "").strip()
                 fb_update_user(uid, {"awaiting_promo_text_for": gid, "awaiting_promo_mode": "simple"})
-                send_msg(cid, f"📝 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] : Apna Promotion Text likh kar bhejein (Iske saath default {DEFAULT_PROMO_BANNER} banner automatic lag jayega)! 👇")
+                send_msg(cid, f"📝 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] : Apna Promotion Caption/Text likh kar bhejein (Iske baad aapko Link Buttons add karne ka option milega)! 👇")
                 return jsonify({"status": "ok"}), 200
 
             if cb_data.startswith("promotype_banner_"):
@@ -2076,7 +2145,7 @@ def webhook():
                 send_msg(
                     cid,
                     f"🖼️ [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] : Apna Banner Photo ya Video upload karein aur uske Caption me apna Promotion Text likh kar bhejein!\n"
-                    f"(Agar aap bina photo/video ke sirf text bhejenge, toh default {DEFAULT_PROMO_BANNER} lag jayega) 👇"
+                    f"(Iske turant baad aapko 1 se 30 Link Buttons add karne ka option milega) 👇"
                 )
                 return jsonify({"status": "ok"}), 200
 
@@ -2281,7 +2350,43 @@ def webhook():
                 )
             return jsonify({"status": "ok"}), 200
 
-        # SAVE PHOTO/VIDEO BANNER OR SIMPLE TEXT FOR GROUP TAG PROMOTION (1792940447099.jpeg)
+                # SAVE CUSTOM ROLEPLAY STORY (13th OPTION)
+        if ctype == "private" and u.get("awaiting_custom_rp") and text and not text.startswith("/"):
+            fb_update_user(uid, {"awaiting_custom_rp": False, "active_rp": text[:350], "active_vault": "custom"})
+            send_msg(
+                cid,
+                "✨ <b>Custom Roleplay Locked & Loaded!</b>\n\n"
+                "Tumhari yeh story save ho gayi hai aur maine apna character us hisab se set kar liya hai. Ab yahan message bhej kar maza lo... 😘🔥"
+            )
+            return jsonify({"status": "ok"}), 200
+
+        # SAVE CUSTOM LINK BUTTONS FOR GROUP PROMOTION (UP TO 30 BUTTONS)
+        if ctype == "private" and u.get("awaiting_promo_btn_for") and text and not text.lower().startswith("/"):
+            gid = u["awaiting_promo_btn_for"]
+            existing_btns = []
+            try:
+                p_info = requests.get(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", timeout=2.5).json() or {}
+                existing_btns = p_info.get("buttons") or []
+            except Exception:
+                pass
+            updated_btns = parse_user_promo_buttons(text, existing_btns)
+            try:
+                requests.patch(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", json={"buttons": updated_btns}, timeout=3)
+            except Exception:
+                pass
+            fb_update_user(uid, {"awaiting_promo_btn_for": ""})
+            btn_preview = "\n".join([f"{idx+1}. 🔘 {b['text']} -> {b['url']}" for idx, b in enumerate(updated_btns)]) or "No buttons added yet."
+            send_msg(
+                cid,
+                f"✅ <b>Link Buttons Updated ({len(updated_btns)}/30)!</b>\n\n"
+                f"{html.escape(btn_preview)}\n"
+                f"➕ Last Button (Auto): 💬 Chat with Bhabhi\n\n"
+                f"👇 Aur button jodna hai toh <b>'➕ Add Link Button'</b> dabao, warna <b>'✅ Done & Activate'</b> par click karo:",
+                markup=get_promo_btn_builder_kb(gid, len(updated_btns))
+            )
+            return jsonify({"status": "ok"}), 200
+
+        # SAVE PHOTO/VIDEO BANNER OR SIMPLE TEXT FOR GROUP TAG PROMOTION
         if ctype == "private" and u.get("awaiting_promo_text_for") and not text.lower().startswith("/"):
             gid = u["awaiting_promo_text_for"]
             p_text = msg.get("caption") or text or "Join our VIP Group & Chat Now! 🔥"
@@ -2294,6 +2399,24 @@ def webhook():
                 v_obj = msg.get("video") or msg.get("animation") or {}
                 media_id = v_obj.get("file_id") or DEFAULT_PROMO_BANNER
                 media_type = "video"
+
+            existing_btns = []
+            try:
+                old_p = requests.get(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", timeout=2.5).json() or {}
+                existing_btns = old_p.get("buttons") or []
+                requests.patch(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", json={"text": p_text, "media": media_id, "media_type": media_type, "owner_id": uid}, timeout=3)
+            except Exception:
+                pass
+            fb_update_user(uid, {"awaiting_promo_text_for": ""})
+            send_msg(
+                cid,
+                "✅ <b>Banner & Caption Saved!</b>\n\n"
+                "Ab kya aapko Caption ke niche <b>Clickable Link Buttons</b> (1 se 30 tak) add karne hain?\n"
+                "• Button jodne ke liye <b>'➕ Add Link Button'</b> dabayein.\n"
+                "• Agar bina extra button ke seedha chalu karna hai (sirf '💬 Chat with Bhabhi' button ke sath), toh <b>'✅ Done & Activate'</b> dabayein! 👇",
+                markup=get_promo_btn_builder_kb(gid, len(existing_btns))
+            )
+            return jsonify({"status": "ok"}), 200
 
             if is_own:
                 # Owner gets Group Tag Promotion activated 100% FREE immediately!
