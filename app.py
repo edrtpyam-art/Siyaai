@@ -1336,12 +1336,12 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
             fb_update_user(user_id, {"active_rp": active_rp})
 
         photo_instruction = ""
-    if asks_media:
+        if asks_media:
         target_vault = user_data.get("active_vault") or "bodes"
         photo_instruction = f"\n- User asked for a photo/video! Include ONE tag at the end: `[PHOTO: {target_vault}]`, `[PHOTO: chut]`, `[PHOTO: gand]`, `[PHOTO: kiss]`, or `[PHOTO: simplepic]`."
  
         sys_info = ""
-    if is_sys_q:
+        if is_sys_q:
         c_disp = "Unlimited VIP Credits (Owner)" if is_owner else f"{credits_left} Free/VIP Chat Credits"
         sys_info = f"""
 # COMPLETE BOT SYSTEM, CREDITS, ROLEPLAY HUB & GROUP MANAGEMENT KNOWLEDGE:
@@ -1559,7 +1559,7 @@ def webhook():
                 char_key = cb_data.replace("rp_char_", "").strip()
                 is_vip_user = is_own or bool(u_cb.get("is_vip"))
 
-                    if char_key == "custom":
+                if char_key == "custom":
                     if not is_vip_user and c_num < 5:
                         url = create_cf_order(uid, fname, "129", purpose="custom_rp")
                         tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "🔒 Custom Roleplay (₹129) locked!", "show_alert": True})
