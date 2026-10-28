@@ -2087,7 +2087,7 @@ def webhook():
 
              if cb_data.startswith("promo_on_"):
                 gid = cb_data.replace("promo_on_", "").strip()
-                    if not is_own and not is_user_group_admin(gid, uid):
+             if not is_own and not is_user_group_admin(gid, uid):
                     return jsonify({"status": "ok"}), 200
                 try:
                     p_info = requests.get(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", timeout=2.5).json() or {}
