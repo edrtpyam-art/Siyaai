@@ -523,13 +523,49 @@ def get_promo_plans_kb(group_id):
         [{"text": "👑 ₹599 (1 Month Promo)", "callback_data": f"promopay_599_{group_id}"}]
     ]}
 
-def get_promo_type_kb(group_id):
-    """Exact Siya AI Promo Type Selector (1792940447099.jpeg)!"""
+def get_promo_type_kb(group_id, is_active=False):
+    toggle_btn = (
+        {"text": "🛑 Turn OFF Promotion (Stop Tags)", "callback_data": f"promo_off_{group_id}"}
+        if is_active else
+        {"text": "▶️ Turn ON Saved Promotion", "callback_data": f"promo_on_{group_id}"}
+    )
     return {"inline_keyboard": [
-        [{"text": f"📝 Simple Text Promo ({DEFAULT_PROMO_BANNER})", "callback_data": f"promotype_simple_{group_id}"}],
-        [{"text": "🖼️ Banner (Photo/Video) + Text Promo", "callback_data": f"promotype_banner_{group_id}"}],
+        [toggle_btn],
+        [{"text": f"📝 Simple Text + Buttons ({DEFAULT_PROMO_BANNER})", "callback_data": f"promotype_simple_{group_id}"}],
+        [{"text": "🖼️ Custom Banner (Photo/Video) + Buttons", "callback_data": f"promotype_banner_{group_id}"}],
         [{"text": "🔙 Back", "callback_data": "menu_promo"}]
     ]}
+
+def build_rose_style_promo_msg_and_kb(raw_text):
+    clean_lines = []
+    custom_rows = []
+    btn_pattern = re.compile(r"^(.+?)\s*(?:-\s*|\|\s*)(https?://\S+|t\.me/\S+)$", re.I)
+
+    for line in str(raw_text or "").splitlines():
+        s_line = line.strip()
+        if "&&" in s_line and ("http" in s_line or "t.me/" in s_line):
+            row_btns = []
+            for part in s_line.split("&&"):
+                m = btn_pattern.match(part.strip())
+                if m:
+                    b_txt, b_url = m.group(1).strip(), m.group(2).strip()
+                    if not b_url.startswith("http"): b_url = "https://" + b_url
+                    row_btns.append({"text": b_txt, "url": b_url})
+            if row_btns:
+                custom_rows.append(row_btns)
+                continue
+        m_single = btn_pattern.match(s_line)
+        if m_single:
+            b_txt, b_url = m_single.group(1).strip(), m_single.group(2).strip()
+            if not b_url.startswith("http"): b_url = "https://" + b_url
+            custom_rows.append([{"text": b_txt, "url": b_url}])
+            continue
+        clean_lines.append(line)
+
+    # Last me hamesha Chat with Bhabhi button rahega!
+    custom_rows.append([{"text": "💬 Chat with Bhabhi", "url": f"https://t.me/{BOT_USERNAME}?start=promo"}])
+    final_txt = "\n".join(clean_lines).strip() or "🔥 Join our Official VIP Hub below!"
+    return final_txt, {"inline_keyboard": custom_rows}
 
 # ============================================================
 # 5. EXACT BLACK PROFESSIONAL WELCOME CARD + CUSTOM ADMIN WELCOME TEXT
