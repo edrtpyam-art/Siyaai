@@ -1534,7 +1534,7 @@ STRICT RULES:
     # ==========================================================
     # ROUTE 1: SMART DUAL PHOTO & STICKER VISION LOGIC (FIXES 35933.jpg!)
     # ==========================================================
-   if media_base64:
+    if media_base64:
         hist_summary = "\n".join([f"{m.get('role')}: {m.get('text')}" for m in history[-8:] if not is_censored_refusal(m.get('text'))])
 
         if is_third_person_photo_eval(raw_caption or message_text):
@@ -1574,12 +1574,16 @@ STRICT RULES:
                     return clean_text, None, get_hot_sticker(), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
 
         # 2. Fallback to Groq Vision only if Gemini keys are exhausted
-        for key in GROQ_API_KEYS:
-            for v_model in GROQ_VISION_MODELS:
-                success, response_text = groq_vision_request(key, v_model, sys_prompt, vision_prompt, media_base64, media_mime_type, timeout=10)
-                if success and response_text:
-                    clean_text, _ = parse_media_tags(response_text, asks_media=False)
-                    return clean_text, None, get_hot_sticker(), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
+         messages_payload = build_clean_messages(sys_prompt, history, eff_msg, active_rp=active_rp)
+
+    for key in GROQ_API_KEYS:
+        for model in [GROQ_MODEL] + GROQ_FALLBACK_MODELS:
+            success, response_text = groq_request(key, model, messages_payload, max_tokens=900, timeout=8)
+            if success and response_text:
+                clean_text, ai_photo_tag = parse_media_tags(response_text, asks_media, fallback_tag=(py_photo_tag or "bodes"))
+                final_tag = py_photo_tag or ai_photo_tag
+                media_file = get_media_item(PHOTO_VAULT, final_tag, wants_video, char_vault=active_vault) if asks_media else None
+                return clean_text, media_file, get_hot_sticker(), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
 
     hist_summary = "\n".join([f"{m.get('role')}: {m.get('text')}" for m in history[-14:] if not is_censored_refusal(m.get('text'))])
     fallback_prompt = (
