@@ -713,6 +713,31 @@ def get_custom_group_welcome(chat_id):
     except Exception:
         return ""
 
+BIO_CLEAN_CACHE = {}
+
+def has_bio_link_or_channel(user_id):
+    now = time.time()
+    cached = BIO_CLEAN_CACHE.get(str(user_id))
+    if cached and (now - cached[1] < 300):
+        return cached[0]
+    res = tg_req("getChat", {"chat_id": int(user_id)}, timeout=2)
+    if res.get("ok"):
+        r_data = res.get("result", {})
+        bio = str(r_data.get("bio") or "").lower()
+        has_personal_chan = bool(r_data.get("personal_chat"))
+        has_link = bool(re.search(r"(?:https?://|t\.me/|telegram\.me/|www\.|@\w+|[a-z0-9-]+\.(?:com|in|org|net|me|io|co|xyz|link|click|app|club|store|vip|fun)\b)", bio))
+        flagged = has_link or has_personal_chan
+        BIO_CLEAN_CACHE[str(user_id)] = (flagged, now)
+        return flagged
+    return False
+
+def get_group_3_buttons_kb(start_param="welcome"):
+    return {"inline_keyboard": [
+        [{"text": "💬 Chat with Bhabhi", "url": f"https://t.me/{BOT_USERNAME}?start={start_param}"}],
+        [{"text": "🛡️ Protect Your Group", "url": f"https://t.me/{BOT_USERNAME}?startgroup=true"}],
+        [{"text": "🚀 Bot Update / Edrol AI", "url": OFFICIAL_CHANNEL_URL}]
+    ]}
+
 def send_welcome_photo(chat_id, user_id, user_name, group_name, reply_to_message_id=None):
     try:
         image_file = create_welcome_card(user_id, user_name)
@@ -720,11 +745,7 @@ def send_welcome_photo(chat_id, user_id, user_name, group_name, reply_to_message
         cap_raw = f"Welcome to 🎬 {html.escape(group_name)}"
         if custom_w:
             cap_raw += f"\n\n{html.escape(custom_w)}"
-        kb = {"inline_keyboard": [
-            [{"text": "💬 Chat with Bhabhi", "url": f"https://t.me/{BOT_USERNAME}?start=welcome"}],
-            [{"text": "🚀 Bot Update / Edrol AI", "url": OFFICIAL_CHANNEL_URL}]
-        ]}
-
+        kb = get_group_3_buttons_kb("welcome")
         data = {
             "chat_id": str(chat_id),
             "caption": to_hot_bhabhi_font(cap_raw),
@@ -733,7 +754,7 @@ def send_welcome_photo(chat_id, user_id, user_name, group_name, reply_to_message
         }
         if reply_to_message_id: data["reply_to_message_id"] = str(reply_to_message_id)
         files = {"photo": ("welcome.jpg", image_file, "image/jpeg")}
-        return requests.post(f"{API_URL}/sendPhoto", data=data, files=files, timeout=12).json()
+        return requests.post(f"{API_URL}/sendPhoto", data=data, files=files, timeout=8).json()
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
