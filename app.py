@@ -1661,18 +1661,12 @@ def webhook():
         if "chat_member" in data:
             cm = data["chat_member"]
             chat = cm.get("chat", {})
-            cid = chat.get("id")
-            old_st = cm.get("old_chat_member", {}).get("status", "left")
-            new_m = cm.get("new_chat_member", {})
-            new_st = new_m.get("status", "")
-            t_user = new_m.get("user", {})
-            if chat.get("type") in ("group", "supergroup") and old_st in ("left", "kicked", "restricted") and new_st in ("member", "restricted") and not t_user.get("is_bot"):
-                t_id = t_user.get("id")
-                t_name = f"{t_user.get('first_name', 'User')} {t_user.get('last_name', '')}".strip()
-                if not mark_seen(f"cm_wel:{cid}:{t_id}:{int(time.time() // 10)}"):
-                    w_res = send_welcome_photo(cid, t_id, t_name, chat.get("title", "Group"))
-                    if not w_res.get("ok"):
-                        send_msg(cid, f"Welcome to 🎬 {html.escape(chat.get('title', 'Group'))}, <a href='tg://user?id={t_id}'>{html.escape(t_name)}</a>! 🎉", markup=get_group_3_buttons_kb("welcome"))
+            if chat.get("type") in ("group", "supergroup") and cm.get("old_chat_member", {}).get("status") in ("left", "kicked", "restricted") and cm.get("new_chat_member", {}).get("status") in ("member", "restricted"):
+                t_user = cm["new_chat_member"].get("user", {})
+                if not t_user.get("is_bot"):
+                    t_id = t_user.get("id")
+                    t_name = f"{t_user.get('first_name', 'User')} {t_user.get('last_name', '')}".strip()
+                    send_welcome_photo(chat["id"], t_id, t_name, chat.get("title", "Group"))
             return jsonify({"status": "ok"}), 200
 
         if "callback_query" in data:
@@ -2312,10 +2306,9 @@ def webhook():
             tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
             return jsonify({"status": "ok"}), 200
 
-        if "message" not in data:
+        msg = data.get("message") or data.get("edited_message")
+        if not msg:
             return jsonify({"status": "ok"}), 200
-
-        msg = data["message"]
         chat = msg.get("chat", {})
         cid = chat.get("id")
         ctype = chat.get("type", "private")
@@ -2705,7 +2698,7 @@ def webhook():
 
         tg_req("sendChatAction", {"chat_id": cid, "action": "typing"}, timeout=2)
             # PHOTO, VIDEO & STICKER VISION (DUAL LOGIC!)
-        if "photo" in msg or "video" in msg or "animation" in msg: 
+        if ctype == "private" and ("photo" in msg or "video" in msg or "animation" in msg):
             caption = msg.get("caption") or ""
             # FILE ID EXTRACTOR FOR OWNER ONLY
             if is_own and (text.lower().startswith("/getid") or "getid" in caption.lower()):
@@ -2748,7 +2741,7 @@ def webhook():
                 fb_update_user(uid, {"credits": max(0, credits - 1)})
             return jsonify({"status": "media read processed"}), 200
 
-        if "sticker" in msg:
+        if ctype == "private" and "sticker" in msg:
             sticker = msg["sticker"]
             emoji = sticker.get("emoji", "😊")
             is_animated = sticker.get("is_animated", False)
