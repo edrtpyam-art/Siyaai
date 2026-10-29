@@ -1518,7 +1518,6 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
             f"DO NOT pretend that girl is you! Tell him naughtily aur khul kar how sexy she looks and how he should enjoy her!"
         )
 
-
     if ctype in ("group", "supergroup"):
         sys_prompt = f"""[SMART GROUP CHAT & NAUGHTY TEASING MODE]
 You are a bold, naughty, witty Desi Bhabhi talking to your 'Devar ji' ({user_name}) in a Telegram Group!
