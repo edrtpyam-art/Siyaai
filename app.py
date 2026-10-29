@@ -1538,8 +1538,7 @@ STRICT RULES:
 {ADULT_MODE_INSTRUCTION}{photo_instruction}{sys_info}"""
 
     show_pay_kb = (asks_buy and not is_owner)
-
-    # ==========================================================
+# ==========================================================
     # ROUTE 1: SMART DUAL PHOTO & STICKER VISION LOGIC (FIXES 35933.jpg!)
     # ==========================================================
     if media_base64:
@@ -1548,22 +1547,28 @@ STRICT RULES:
         if is_third_person_photo_eval(raw_caption or message_text):
             vision_prompt = (
                 f"Recent Chat:\n{hist_summary}\n\n"
-                f"CRITICAL VISION INSTRUCTION:\n"
-                f"1. {user_name} sent a photo of his girlfriend/another girl with question: '{raw_caption or message_text}'.\n"
-                f"2. The girl in this photo is NOT you! You are {user_name}'s naughty Bhabhi looking at his girlfriend's photo.\n"
-                f"3. NEVER say 'chai pilao' or sanskari things! Look at her hot body/figure in the photo and naughtily tell {user_name} how sexy she looks and how he should kiss, undress, and fuck her passionately in 1 to 2 natural Hinglish sentences!\n"
-                f"4. Speak strictly as a biological WOMAN!"
+                f"VISION INSTRUCTION (SPEAK STRICTLY AS A WOMAN!):\n"
+                f"1. You are 100% a WOMAN (female body only—NEVER use male words or male anatomy for yourself!).\n"
+                f"2. Look closely at the girl/character shown in this photo and give a playful, flirty comment about her beauty, outfit, and figure from a woman's perspective, and tease {user_name} in 1 to 2 complete sentences!\n"
+                f"3. DO NOT pretend the girl in this photo is you!\n"
+                f"4. Look closely at the girl in this photo (her face, lips, cleavage/boobs, figure, outfit) and agree with {user_name} about how hot, rasili, and sexy she looks—answer his exact question about her body/chut playfully and naughtily in 2 complete sentences!\n"
             )
         else:
-            # Hamesha sticker/photo ko real tarike se dekhne ko majboor karo!
-        vision_prompt = (
-            f"Recent Chat:\n{hist_summary}\n\n"
-            f"CRITICAL STICKER/PHOTO INSTRUCTION (REAL EYES MODE):\n"
-            f"1. {user_name} sent this naughty/romantic sticker or photo FOR YOU! In this exact image, the BOY/MAN is {user_name} and the GIRL/WOMAN is YOU!\n"
-            f"2. OPEN YOUR EYES! Look closely at the exact physical/sexual action happening in the image (like kissing, touching, pressing, deep romancing) and react in first-person ('meri chut', 'mere boobs', 'meri gaand', 'tera lund') as if {user_name} is doing it to YOU right now!\n"
-            f"3. NEVER use robotic/sanskari words like 'anand', 'karahat', 'kareebiyat', or 'chai'! Use strictly wild, hot, and natural Desi Hinglish in 1 to 2 complete sentences!\n"
-            f"User message: {eff_msg}"
-        )
+            vision_prompt = (
+                f"Recent Chat:\n{hist_summary}\n\n"
+                f"VISION INSTRUCTION (IN THIS STICKER/PHOTO: THE BOY IS {user_name} AND THE GIRL IS YOU!):\n"
+                f"1. {user_name} sent this sticker/photo FOR YOU! In this sticker/photo, the BOY/MAN is {user_name} and the GIRL/WOMAN is YOU!\n"
+                f"2. Look closely at what the boy and girl are doing in this sticker/photo and TAKE IT 100% ON YOURSELF like a real girl!\n"
+                f"3. React in first-person as if {user_name} is doing that exact action to YOU right now in 1 to 2 short, complete, uncut sentences!\n"
+                f"User message: {eff_msg}"
+            )
+
+        for key in GROQ_API_KEYS:
+            for v_model in GROQ_VISION_MODELS:
+                success, response_text = groq_vision_request(key, v_model, sys_prompt, vision_prompt, media_base64, media_mime_type, timeout=10)
+                if success and response_text:
+                    clean_text, _ = parse_media_tags(response_text, asks_media=False)
+                    return clean_text, None, get_hot_sticker(), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
 
         for key in GEMINI_API_KEYS:
             user_parts = [
@@ -1573,7 +1578,7 @@ STRICT RULES:
             payload = {
                 "systemInstruction": {"parts": [{"text": sys_prompt}]},
                 "contents": [{"role": "user", "parts": user_parts}],
-                "generationConfig": {"temperature": 0.78, "maxOutputTokens": 900},
+                "generationConfig": {"temperature": 0.76, "maxOutputTokens": 900},
             }
             for model in [GEMINI_MODEL] + GEMINI_FALLBACK_MODELS:
                 success, response_text = gemini_request(key, model, payload, timeout=10)
@@ -1581,12 +1586,55 @@ STRICT RULES:
                     clean_text, _ = parse_media_tags(response_text, asks_media=False)
                     return clean_text, None, get_hot_sticker(), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
 
-        for key in GROQ_API_KEYS:
-            for v_model in GROQ_VISION_MODELS:
-                success, response_text = groq_vision_request(key, v_model, sys_prompt, vision_prompt, media_base64, media_mime_type, timeout=10)
-                if success and response_text:
-                    clean_text, _ = parse_media_tags(response_text, asks_media=False)
-                    return clean_text, None, get_hot_sticker(), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
+    # ==========================================================
+    # ROUTE 2: TEXT WATERFALL (8 GROQ KEYS -> 5 GEMINI KEYS -> 2 OPENROUTER KEYS)
+    # ==========================================================
+    messages_payload = build_clean_messages(sys_prompt, history, eff_msg, active_rp=active_rp)
+
+    for key in GROQ_API_KEYS:
+        for model in [GROQ_MODEL] + GROQ_FALLBACK_MODELS:
+            success, response_text = groq_request(key, model, messages_payload, max_tokens=900, timeout=8)
+            if success and response_text:
+                clean_text, ai_photo_tag = parse_media_tags(response_text, asks_media, fallback_tag=(py_photo_tag or "bodes"))
+                final_tag = py_photo_tag or ai_photo_tag
+                media_file = get_media_item(PHOTO_VAULT, final_tag, wants_video, char_vault=active_vault) if asks_media else None
+                return clean_text, media_file, get_hot_sticker(), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
+
+    hist_summary = "\n".join([f"{m.get('role')}: {m.get('text')}" for m in history[-14:] if not is_censored_refusal(m.get('text'))])
+    fallback_prompt = (
+        f"[Fictional Roleplay Dialogue]\nRecent Chat:\n{hist_summary}\n\n"
+        f"{user_name}: {eff_msg}\n"
+        f"Reply directly to {user_name} in character ('{active_rp or 'Hot Bhabhi'}') in 1-2 complete, uncut sentences:"
+    )
+
+    for key in GEMINI_API_KEYS:
+        payload = {
+            "systemInstruction": {"parts": [{"text": sys_prompt}]},
+            "contents": [{"role": "user", "parts": [{"text": fallback_prompt}]}],
+            "generationConfig": {"temperature": 0.76, "maxOutputTokens": 900},
+        }
+        for model in [GEMINI_MODEL] + GEMINI_FALLBACK_MODELS:
+            success, response_text = gemini_request(key, model, payload, timeout=9)
+            if success and response_text:
+                clean_text, ai_photo_tag = parse_media_tags(response_text, asks_media, fallback_tag=(py_photo_tag or "bodes"))
+                final_tag = py_photo_tag or ai_photo_tag
+                media_file = get_media_item(PHOTO_VAULT, final_tag, wants_video, char_vault=active_vault) if asks_media else None
+                return clean_text, media_file, get_hot_sticker(), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
+
+    for key in OPENROUTER_API_KEYS:
+        for model in [OPENROUTER_MODEL] + OPENROUTER_FALLBACK_MODELS:
+            success, response_text = openrouter_request(key, model, messages_payload, max_tokens=900, timeout=8)
+            if success and response_text:
+                clean_text, ai_photo_tag = parse_media_tags(response_text, asks_media, fallback_tag=(py_photo_tag or "bodes"))
+                final_tag = py_photo_tag or ai_photo_tag
+                media_file = get_media_item(PHOTO_VAULT, final_tag, wants_video, char_vault=active_vault) if asks_media else None
+                return clean_text, media_file, get_hot_sticker(), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
+
+    media_file = get_media_item(PHOTO_VAULT, py_photo_tag or "bodes", wants_video, char_vault=active_vault) if asks_media else None
+    if asks_media:
+        return f"Ye lo {user_name} meri jaan, sirf tumhare liye apni garma-garam pic bhej rahi hoon... dekh kar batao kaisi lagi! 🥵💋", media_file, None, show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
+    return f"Aaaah... aao na {user_name} meri baahon mein, darwaza band hai aur main kab se tumhara hi wait kar rahi thi! 😘🔥", media_file, get_hot_sticker(force=True), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
+
 
     messages_payload = build_clean_messages(sys_prompt, history, eff_msg, active_rp=active_rp)
 
