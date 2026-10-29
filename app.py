@@ -1654,6 +1654,23 @@ def webhook():
                 check_bot_permissions_and_warn(cid, inv_id, inv_name)
             return jsonify({"status": "ok"}), 200
 
+                if "chat_member" in data:
+            cm = data["chat_member"]
+            chat = cm.get("chat", {})
+            cid = chat.get("id")
+            old_st = cm.get("old_chat_member", {}).get("status", "left")
+            new_m = cm.get("new_chat_member", {})
+            new_st = new_m.get("status", "")
+            t_user = new_m.get("user", {})
+            if chat.get("type") in ("group", "supergroup") and old_st in ("left", "kicked", "restricted") and new_st in ("member", "restricted") and not t_user.get("is_bot"):
+                t_id = t_user.get("id")
+                t_name = f"{t_user.get('first_name', 'User')} {t_user.get('last_name', '')}".strip()
+                if not mark_seen(f"cm_wel:{cid}:{t_id}:{int(time.time() // 10)}"):
+                    w_res = send_welcome_photo(cid, t_id, t_name, chat.get("title", "Group"))
+                    if not w_res.get("ok"):
+                        send_msg(cid, f"Welcome to 🎬 {html.escape(chat.get('title', 'Group'))}, <a href='tg://user?id={t_id}'>{html.escape(t_name)}</a>! 🎉", markup=get_group_3_buttons_kb("welcome"))
+            return jsonify({"status": "ok"}), 200
+
         if "callback_query" in data:
             cb = data["callback_query"]
             uid = str(cb["from"]["id"])
