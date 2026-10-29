@@ -1186,6 +1186,10 @@ def is_system_or_bot_info_query(text):
     m_low = str(text or "").lower()
     return any(w in m_low for w in SYSTEM_KNOWLEDGE_TRIGGERS + CREATOR_QUERY_WORDS + SUPPORT_HOWTO_WORDS + FREE_CHAT_ASK_WORDS)
 
+def is_third_person_photo_eval(caption_text):
+    c_low = str(caption_text or "").lower()
+    return any(w in c_low for w in THIRD_PERSON_PHOTO_TRIGGERS)
+
 def is_censored_refusal(text):
     if not text: return True
     t = str(text).lower().strip().replace("’", "'").replace("‘", "'")
@@ -2412,18 +2416,6 @@ def webhook():
                     fb_update_user(uid, {"user_groups": ug})
                     send_msg(cid, "✅ Group Linked for Management & Promotion!", markup={"inline_keyboard": [[{"text": "🛡️ Open DM Group Management", "url": f"https://t.me/{BOT_USERNAME}?start=promo"}]]})
                 return jsonify({"status": "ok"}), 200
-
-            # 4. EVERY 2 TO 3 MINUTES AUTO-TAG USER IN GROUP OR WHEN TAGGED (NO BUTTONS ON GROUP CHAT!)
-            is_tagged = (bool(BOT_ID) and str(rep_obj.get("from", {}).get("id", "")) == str(BOT_ID)) or (f"@{BOT_USERNAME.lower()}" in text.lower()) or ("bhabhi" in text.lower())
-            now_ts = time.time()
-            last_grp_chat = USER_CACHE.get(f"grp_chat_ts:{cid}", 0)
-            time_for_auto_tag = (not is_tagged and len(text) > 1 and not text.startswith("/") and (now_ts - last_grp_chat >= 135))
-
-            if is_tagged or time_for_auto_tag:
-                USER_CACHE[f"grp_chat_ts:{cid}"] = now_ts
-            else:
-                check_and_run_group_promotion(cid, msg.get("message_id"), uid, fname)
-                return jsonify({"status": "ok"}), 200
             
             if text.lower().startswith("/promo"):
                 if is_user_group_admin(cid, uid):
@@ -2751,7 +2743,7 @@ def webhook():
                 fb_update_user(uid, {"credits": max(0, credits - 1)})
             return jsonify({"status": "media read processed"}), 200
 
-        if ctype == "private" and "sticker" in msg:
+            if ctype == "private" and "sticker" in msg:
             sticker = msg["sticker"]
             emoji = sticker.get("emoji", "😊")
             is_animated = sticker.get("is_animated", False)
@@ -2760,13 +2752,13 @@ def webhook():
             thumb = sticker.get("thumbnail") or sticker.get("thumb")
             if not is_animated and not is_video_stk:
                 stk_file_id = sticker.get("file_id", "")
-                mime = "image/jpeg"
+                mime = "image/webp"
             elif thumb and thumb.get("file_id"):
                 stk_file_id = thumb.get("file_id", "")
                 mime = "image/jpeg"
             else:
                 stk_file_id = ""
-                mime = "image/jpeg"
+                mime = "image/webp"
 
             base64_img = get_telegram_file_base64(stk_file_id) if stk_file_id else None
             prompt_text = (
