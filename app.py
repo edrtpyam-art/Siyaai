@@ -2311,8 +2311,8 @@ def webhook():
                     send_msg(cid, f"⚠️ [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] <a href='tg://user?id={uid}'>{html.escape(fname)}</a>, Group mein links ya mentions allowed nahi hain! 🚫", markup=warn_kb)
                     return jsonify({"status": "link_deleted"}), 200
 
-                if text.lower().startswith("/promo"):
-                    if is_user_group_admin(cid, uid):
+            if text.lower().startswith("/promo"):
+                if is_user_group_admin(cid, uid):
                     ug = fb_get_user(uid, first_name=fname).get("user_groups") or {}
                     ug[str(cid)] = group_title
                     fb_update_user(uid, {"user_groups": ug})
