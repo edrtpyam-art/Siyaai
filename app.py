@@ -2352,7 +2352,7 @@ def webhook():
                         continue
 
                     # 10-second window so if user leaves and joins again, Welcome Card ALWAYS sends!
-                    if mark_seen(f"cm_wel:{cid}:{t_id}:{int(time.time() // 10)}"): continue
+                    if mark_seen(f"cm_wel:{cid}:{t_id}:{int(time.time() // 3)}"): continue
                     w_res = send_welcome_photo(cid, t_id, t_name, group_title)
                     if not w_res.get("ok"):
                         send_msg(cid, f"Welcome to 🎬 {html.escape(group_title)}, <a href='tg://user?id={t_id}'>{html.escape(t_name)}</a>! 🎉", markup=three_btns_kb)
@@ -3003,6 +3003,14 @@ def health_check():
     </html>
     """
     return html_page, 200, {"Content-Type": "text/html; charset=utf-8"}
+    
+@app.route("/setup")
+def setup_webhook():
+    host = request.host_url.rstrip("/")
+    return jsonify(tg_req("setWebhook", {
+        "url": f"{host}/api/bot",
+        "allowed_updates": ["message", "edited_message", "callback_query", "my_chat_member", "chat_member", "chat_join_request"]
+    }))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "80")), debug=False)
