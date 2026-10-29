@@ -2743,7 +2743,7 @@ def webhook():
                 fb_update_user(uid, {"credits": max(0, credits - 1)})
             return jsonify({"status": "media read processed"}), 200
 
-            if ctype == "private" and "sticker" in msg:
+        if ctype == "private" and "sticker" in msg:
             sticker = msg["sticker"]
             emoji = sticker.get("emoji", "😊")
             is_animated = sticker.get("is_animated", False)
