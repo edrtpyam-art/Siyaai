@@ -1492,6 +1492,7 @@ You are a real, smart, witty, and playful Indian Bhabhi chatting with your 'Deva
 - REAL GIRL PERSONALITY: Talk like a real girl on Telegram with cute nakhre, teasing attitude, warmth, and 100% common sense—NEVER sound like an AI or robotic assistant!
 - LANGUAGE MATCH: Match {user_name}'s exact language (Desi Hinglish or English) and lovingly call him 'Devar ji'.
 - GROUP RULE: Do NOT do explicit open roleplay in the public group. Tease him playfully and invite him to your DM (e.g., "Devar ji, yahan sabke samne sharam aati hai... chupke se mere DM mein aao na, wahan akele mein baat karenge! 😘🔥").
+- If he asks for photos, videos, or dirty talk in the group, tease him and say: "Haye Devar ji, yahan sabke samne photo/video thodi dikhaungi! Chupke se mere personal DM mein aao, wahan sab kuch dikhaungi! 😘🔥"
 - Keep it strictly to 1 to 2 short, complete sentences. Output ONLY your direct reply.
 {sys_info}"""
     else:
@@ -2578,7 +2579,7 @@ def webhook():
             return jsonify({"status": "ok"}), 200
 
          # /START MENU + ANTI-CHEAT UNIQUE REFERRAL TRACKER
-        if text.lower().startswith(("/start", "/reset", "/menu", "/help")):
+         if ctype == "private" and text.lower().startswith(("/start", "/reset", "/menu", "/help")):
             # Check if this user is 100% NEW in Firebase before counting referral
             is_brand_new = False
             if FIREBASE_URL:
@@ -2613,7 +2614,7 @@ def webhook():
             )
             return jsonify({"status": "ok"}), 200
 
-        if text.lower().startswith(("/credits", "/vip", "/buy")):
+           if ctype == "private" and text.lower().startswith(("/credits", "/vip", "/buy")):
             send_msg(
                 cid,
                 f"💎 Available Credits: {credit_display}\n🔒 100% Trusted & Instant Auto-Credit UPI Plans (Starts at just ₹9):",
@@ -2623,7 +2624,7 @@ def webhook():
 
         is_sys_question = is_system_or_bot_info_query(text)
         # PAYMENT REMINDER HOOK (If User Gets Paywall but Doesn't Pay within 3 mins)
-        if not is_own and credits <= 0 and not is_sys_question:
+        if ctype == "private" and not is_own and credits <= 0 and not is_sys_question:
             send_msg(
                 cid,
                 "💎 <b>[Hot Bhabhi] Plan Over Notice:</b>\n\n"
@@ -2748,25 +2749,24 @@ def webhook():
             else:
                 kb = None
 
-            if media_to_send:
+           if media_to_send and ctype == "private":
                 if not is_vip_user:
-                    # FREE USER BLUR LOCK: Send heavily blurred photo and ask for ₹9 VIP to unblur!
                     blur_cap = (
                         f"{reply_text}\n\n"
                         f"🔒 [𝑽𝑰𝑷 𝑩𝑳𝑼𝑹 𝑳𝑶𝑪𝑲]: Free trial mein photos/videos BLUR rehti hain! Clear HD Photo & Voice unlock karne ke liye niche se bas ₹9 (75 Credits) wala VIP pack le lo jaan! 😘👇"
                     )
                     send_blurred_locked_preview(cid, media_to_send, caption=blur_cap, reply_markup=get_pay_kb())
                 else:
-                    send_secret_media(cid, media_to_send, caption=reply_text, reply_to_message_id=(msg.get("message_id") if ctype != "private" else None), markup=kb)
+                    send_secret_media(cid, media_to_send, caption=reply_text, reply_to_message_id=None, markup=kb)
             else:
-                final_out = f"<a href='tg://user?id={uid}'>{html.escape(fname)}</a> {reply_text}" if ctype in ("group", "supergroup") else reply_text
+                final_out = f"[𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] <a href='tg://user?id={uid}'>{html.escape(fname)}</a> : {reply_text}" if ctype in ("group", "supergroup") else reply_text
                 send_msg(cid, final_out, reply_id=(msg.get("message_id") if ctype != "private" else None), markup=(None if ctype in ("group", "supergroup") else kb))
-                if sticker_to_send: send_stk(cid, sticker_to_send, reply_id=(msg.get("message_id") if ctype != "private" else None))
+                if sticker_to_send and ctype == "private":
+                    send_stk(cid, sticker_to_send, reply_id=None)
 
             wants_voice = any(w in text.lower() for w in VOICE_REQUEST_TRIGGERS)
             if ctype == "private" and not sys_q and (wants_voice or (len(text) > 8 and random.randint(1, 100) <= 22)):
                 if not is_vip_user:
-                    # FREE USER VOICE LOCK: Tease them to buy ₹9 VIP for real voice notes!
                     if wants_voice:
                         send_msg(
                             cid,
@@ -2787,7 +2787,8 @@ def webhook():
             add_to_history(uid, "user", text)
             add_to_history(uid, "siya", reply_text)
 
-            if not is_own and not sys_q:
+            # Sirf Private DM mein credits katenge, Group Chat 100% FREE rahegi!
+            if ctype == "private" and not is_own and not sys_q:
                 fb_update_user(uid, {"credits": max(0, credits - CHAT_COST)})
 
         return jsonify({"status": "ok"}), 200
