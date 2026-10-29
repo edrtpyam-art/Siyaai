@@ -2258,7 +2258,7 @@ def webhook():
         rep_obj = msg.get("reply_to_message") or {}
         replied_to_text = str(rep_obj.get("text") or rep_obj.get("caption") or "").strip()[:180]
           
-            if ctype in ("group", "supergroup"):
+        if ctype in ("group", "supergroup"):
             group_title = chat.get("title", "Group")
 
             # 1. INSTANT WELCOME CARD ON MEMBER JOIN (Runs FIRST without delay)
@@ -2311,8 +2311,8 @@ def webhook():
                     send_msg(cid, f"⚠️ [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] <a href='tg://user?id={uid}'>{html.escape(fname)}</a>, Group mein links ya mentions allowed nahi hain! 🚫", markup=warn_kb)
                     return jsonify({"status": "link_deleted"}), 200
 
-            if text.lower().startswith("/promo"):
-                if sender_is_admin:
+                if text.lower().startswith("/promo"):
+                    if is_user_group_admin(cid, uid):
                     ug = fb_get_user(uid, first_name=fname).get("user_groups") or {}
                     ug[str(cid)] = group_title
                     fb_update_user(uid, {"user_groups": ug})
