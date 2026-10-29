@@ -2309,7 +2309,7 @@ def webhook():
             group_title = chat.get("title", "Group")
             three_btns_kb = get_group_3_buttons_kb("group")
 
-            # 1. LIGHT-SPEED WELCOME CARD & UNAUTHORIZED BOT KICK WITH MESSAGE
+            # 1. INSTANT WELCOME CARD FOR EVERY JOIN & RE-JOIN (NO PERMANENT BLOCK!)
             new_members = msg.get("new_chat_members", [])
             if new_members:
                 sender_is_admin = is_user_group_admin(cid, uid)
@@ -2332,18 +2332,19 @@ def webhook():
                             b_uname = target_user.get("username", "bot")
                             send_msg(
                                 cid,
-                                f"🚫 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] 𝑺𝑬𝑪𝑼𝑹𝑰𝑻𝒀: Non-admin (<a href='tg://user?id={uid}'>{html.escape(fname)}</a>) ne unauthorized bot (@{html.escape(b_uname)}) add kiya tha, maine us bot ko turant group se kick kar diya hai! 😤🛡️",
+                                f"🚫 <b>Bot Removed!</b> Non-admin (<a href='tg://user?id={uid}'>{html.escape(fname)}</a>) added @{html.escape(b_uname)}.",
                                 markup=three_btns_kb
                             )
                         continue
 
-                    if mark_seen(f"welcome:{cid}:{msg.get('message_id')}:{t_id}"): continue
+                    # 10-second window so if user leaves and joins again, Welcome Card ALWAYS sends!
+                    if mark_seen(f"cm_wel:{cid}:{t_id}:{int(time.time() // 10)}"): continue
                     w_res = send_welcome_photo(cid, t_id, t_name, group_title)
                     if not w_res.get("ok"):
                         send_msg(cid, f"Welcome to 🎬 {html.escape(group_title)}, <a href='tg://user?id={t_id}'>{html.escape(t_name)}</a>! 🎉", markup=three_btns_kb)
                 return jsonify({"status": "welcome processed"}), 200
 
-            # 2. LIGHT-SPEED LINK, MENTION & BIO-LINK DETECTOR WITH 3-STRIKE 15-MIN MUTE
+            # 2. SHORT, CLEAN ENGLISH ANTI-LINK & BIO-LINK DETECTOR (LIGHT SPEED)
             raw_content = f"{text} {msg.get('caption') or ''}".lower()
             ents = (msg.get("entities") or []) + (msg.get("caption_entities") or [])
             has_raw_link = bool(re.search(r"(?:https?://|t\.me/|telegram\.me/|www\.|[a-z0-9-]+\.(?:com|in|org|net|me|io|co|xyz|info|link|click|app|club|store|online|site|top|pro|vip|fun)\b)", raw_content))
@@ -2354,43 +2355,33 @@ def webhook():
                     tg_req("deleteMessage", {"chat_id": cid, "message_id": msg.get("message_id")}, timeout=2)
                     send_msg(
                         cid,
-                        f"⚠️ [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] <a href='tg://user?id={uid}'>{html.escape(fname)}</a>, Group mein links ya mentions allowed nahi hain! 🚫",
+                        f"🚫 <a href='tg://user?id={uid}'>{html.escape(fname)}</a>, <b>Link or mention not allowed!</b> 🚫",
                         markup=three_btns_kb
                     )
                     return jsonify({"status": "link_deleted"}), 200
 
                 if has_bio_link_or_channel(uid):
                     tg_req("deleteMessage", {"chat_id": cid, "message_id": msg.get("message_id")}, timeout=2)
-                    
-                    # Track strikes for Bio Links in Firebase cache/db
                     u_bio_data = fb_get_user(uid)
                     strikes = int(u_bio_data.get("bio_strikes", 0)) + 1
-                    
                     if strikes >= 3:
-                        # Mute user for 15 minutes (restrictChatMember)
-                        until_time = int(time.time()) + 900 # 15 mins = 900 seconds
                         tg_req("restrictChatMember", {
                             "chat_id": cid,
                             "user_id": int(uid),
-                            "until_date": until_time,
+                            "until_date": int(time.time()) + 900,
                             "permissions": {"can_send_messages": False}
                         })
                         fb_update_user(uid, {"bio_strikes": 0})
                         send_msg(
                             cid,
-                            f"🚨 <b>SECURITY WARNING:</b> <a href='tg://user?id={uid}'>{html.escape(fname)}</a>\n\n"
-                            f"❌ <b>3rd Strike Reached:</b> You have repeatedly ignored warnings regarding promotional links in your bio/profile.\n"
-                            f"🔇 <b>Action Taken:</b> You have been temporarily muted in this group for <b>15 minutes</b>. Please remove the channel or link from your profile to avoid a permanent ban.",
+                            f"🔇 <a href='tg://user?id={uid}'>{html.escape(fname)}</a> <b>muted for 15 mins (3/3)!</b>\n🚫 Bio link/channel detected. Remove it to chat!",
                             markup=three_btns_kb
                         )
                     else:
                         fb_update_user(uid, {"bio_strikes": strikes})
                         send_msg(
                             cid,
-                            f"⚠️ <b>WARNING ({strikes}/3):</b> <a href='tg://user?id={uid}'>{html.escape(fname)}</a>\n\n"
-                            f"🚫 Promotional links or channels detected in your user bio/profile are strictly prohibited in this community.\n"
-                            f"🗑️ <b>Please remove the link/channel from your profile immediately</b> to continue chatting.\n"
-                            f"⚠️ <i>Warning: Reaching 3 strikes will result in a 15-minute mute.</i>",
+                            f"⚠️ <a href='tg://user?id={uid}'>{html.escape(fname)}</a> <b>[{strikes}/3]</b>: Your bio/profile contains a link or channel! Remove it to send messages. 🚫",
                             markup=three_btns_kb
                         )
                     return jsonify({"status": "bio_link_deleted"}), 200
@@ -2404,10 +2395,16 @@ def webhook():
                     send_msg(cid, "✅ Group Linked for Management & Promotion!", markup={"inline_keyboard": [[{"text": "🛡️ Open DM Group Management", "url": f"https://t.me/{BOT_USERNAME}?start=promo"}]]})
                 return jsonify({"status": "ok"}), 200
 
-            # 4. AUTO-TAG RANDOM USERS IN GROUP TO TEASE & INVITE TO DM!
-            is_tagged = (bool(BOT_ID) and str(rep_obj.get("from", {}).get("id", "")) == str(BOT_ID)) or (f"@{BOT_USERNAME.lower()}" in text.lower())
-            auto_flirt_trigger = (not is_tagged and len(text) > 2 and not text.startswith("/") and random.randint(1, 100) <= 35)
-            if not is_tagged and not auto_flirt_trigger:
+            # 4. EVERY 2 TO 3 MINUTES AUTO-TAG USER IN GROUP OR WHEN TAGGED (NO BUTTONS ON GROUP CHAT!)
+            is_tagged = (bool(BOT_ID) and str(rep_obj.get("from", {}).get("id", "")) == str(BOT_ID)) or (f"@{BOT_USERNAME.lower()}" in text.lower()) or ("bhabhi" in text.lower())
+            now_ts = time.time()
+            last_grp_chat = USER_CACHE.get(f"grp_chat_ts:{cid}", 0)
+            time_for_auto_tag = (not is_tagged and len(text) > 1 and not text.startswith("/") and (now_ts - last_grp_chat >= 135))
+
+            if is_tagged or time_for_auto_tag:
+                USER_CACHE[f"grp_chat_ts:{cid}"] = now_ts
+            else:
+                check_and_run_group_promotion(cid, msg.get("message_id"), uid, fname)
                 return jsonify({"status": "ok"}), 200
 
             # 2. SUPER-FAST LINK & SPAM DETECTOR (Checks text & caption BEFORE Firebase calls)
