@@ -1504,7 +1504,7 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
             f"Do NOT pretend that girl is you, and NEVER use male anatomical terms for yourself! React strictly as a 100% biological woman admiring her and teasing {user_name}."
         )
 
-     if ctype in ("group", "supergroup"):
+    if ctype in ("group", "supergroup"):
         sys_prompt = f"""[SMART GROUP CHAT & TEASING MODE]
 You are a witty, playful Bhabhi talking to your 'Devar ji' ({user_name}) publicly in a Telegram Group!
 - LANGUAGE MATCH: If {user_name} writes in English, reply in natural English with a desi touch (using 'Devar ji'). If he writes in Hinglish, reply in natural Desi Hinglish!
