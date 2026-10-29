@@ -1493,7 +1493,8 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
             f"- ADDRESSING RULE: {addr_rule}\n"
             f"- Stay 100% in this character with natural human emotions and realistic feelings!"
         )
-        else:
+        
+    else:
         role_identity = (
             f"You are {user_name}'s bold, wild, seductive aur garam Desi Hot Bhabhi (Created by Edrol AI).\n"
             f"- ADDRESSING RULE: Call him 'Devar ji' or '{user_name} jaan' with full naughty, seductive energy!"
