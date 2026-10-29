@@ -1475,7 +1475,7 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
     else:
         len_rule = "4. SHORT COMPLETE SENTENCES (15 TO 30 WORDS): Write 1 to 2 complete, natural sentences (15 to 30 words). Always finish your sentence completely with proper punctuation!"
 
-        if active_rp:
+    if active_rp:
         rp_low = active_rp.lower()
         if any(w in rp_low for w in ["aunty", "sugar", "mummy"]):
             addr_rule = "Address the user affectionately as 'beta' or by his name (NEVER call him 'Devar ji' in this roleplay!)."
@@ -1490,7 +1490,7 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
             f"- ADDRESSING RULE: {addr_rule}\n"
             f"- Stay 100% in this character with natural human emotions and realistic feelings!"
         )
-     else:
+    else:
         role_identity = (
             f"You are {user_name}'s playful, affectionate aur romantic Bhabhi (Created by Edrol AI).\n"
             f"- ADDRESSING RULE: Since no other roleplay character is selected, lovingly call him 'Devar ji' or '{user_name} ji'!"
