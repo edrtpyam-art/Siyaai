@@ -2302,12 +2302,12 @@ def webhook():
         is_own = (uid == OWNER_ID)
         rep_obj = msg.get("reply_to_message") or {}
         replied_to_text = str(rep_obj.get("text") or rep_obj.get("caption") or "").strip()[:180]
-          
+                
         if ctype in ("group", "supergroup"):
             group_title = chat.get("title", "Group")
             three_btns_kb = get_group_3_buttons_kb("group")
 
-            # 1. INSTANT WELCOME CARD FOR EVERY JOIN & RE-JOIN (NO PERMANENT BLOCK!)
+            # 1. SIYA-STYLE INSTANT WELCOME CARD & SERVICE MESSAGE CLEANUP
             new_members = msg.get("new_chat_members", [])
             if new_members:
                 sender_is_admin = is_user_group_admin(cid, uid)
@@ -2327,35 +2327,25 @@ def webhook():
                         if not sender_is_admin:
                             tg_req("deleteMessage", {"chat_id": cid, "message_id": msg.get("message_id")}, timeout=2)
                             tg_req("banChatMember", {"chat_id": cid, "user_id": t_id}, timeout=2)
-                            b_uname = target_user.get("username", "bot")
-                            send_msg(
-                                cid,
-                                f"🚫 <b>Bot Removed!</b> Non-admin (<a href='tg://user?id={uid}'>{html.escape(fname)}</a>) added @{html.escape(b_uname)}.",
-                                markup=three_btns_kb
-                            )
+                            send_msg(cid, "🚫 <b>[𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] :</b> Non-admin ne bot add kiya tha, maine remove kar diya! 😤", markup=three_btns_kb)
                         continue
 
-                    # 10-second window so if user leaves and joins again, Welcome Card ALWAYS sends!
-                    if mark_seen(f"cm_wel:{cid}:{t_id}:{int(time.time() // 10)}"): continue
-                    w_res = send_welcome_photo(cid, t_id, t_name, group_title)
+                    w_res = send_welcome_photo(cid, t_id, t_name, group_title, service_mid=msg.get("message_id"))
                     if not w_res.get("ok"):
-                        send_msg(cid, f"Welcome to 🎬 {html.escape(group_title)}, <a href='tg://user?id={t_id}'>{html.escape(t_name)}</a>! 🎉", markup=three_btns_kb)
+                        send_msg(cid, f"Welcome to {html.escape(group_title)}, <a href='tg://user?id={t_id}'>{html.escape(t_name)}</a>! 🎉", markup=three_btns_kb)
                 return jsonify({"status": "welcome processed"}), 200
 
-            # 2. SHORT, CLEAN ENGLISH ANTI-LINK & BIO-LINK DETECTOR (LIGHT SPEED)
+            # 2. SIYA-STYLE STRICT MODERATION (LINK, MENTION, FORWARD & BIO-LINK 3-STRIKE MUTE)
             raw_content = f"{text} {msg.get('caption') or ''}".lower()
             ents = (msg.get("entities") or []) + (msg.get("caption_entities") or [])
             has_raw_link = bool(re.search(r"(?:https?://|t\.me/|telegram\.me/|www\.|[a-z0-9-]+\.(?:com|in|org|net|me|io|co|xyz|info|link|click|app|club|store|online|site|top|pro|vip|fun)\b)", raw_content))
             has_entity_link = any(e.get("type") in ("url", "text_link", "mention", "text_mention") for e in ents)
+            is_forwarded = any(k in msg for k in ("forward_origin", "forward_from", "forward_from_chat"))
 
             if not is_user_group_admin(cid, uid):
-                if has_raw_link or has_entity_link:
+                if has_raw_link or has_entity_link or is_forwarded:
                     tg_req("deleteMessage", {"chat_id": cid, "message_id": msg.get("message_id")}, timeout=2)
-                    send_msg(
-                        cid,
-                        f"🚫 <a href='tg://user?id={uid}'>{html.escape(fname)}</a>, <b>Link or mention not allowed!</b> 🚫",
-                        markup=three_btns_kb
-                    )
+                    send_msg(cid, f"🚫 <b>[𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] :</b> <a href='tg://user?id={uid}'>{html.escape(fname)}</a> — Link and mention not allowed 🚫", markup=three_btns_kb)
                     return jsonify({"status": "link_deleted"}), 200
 
                 if has_bio_link_or_channel(uid):
@@ -2370,18 +2360,10 @@ def webhook():
                             "permissions": {"can_send_messages": False}
                         })
                         fb_update_user(uid, {"bio_strikes": 0})
-                        send_msg(
-                            cid,
-                            f"🔇 <a href='tg://user?id={uid}'>{html.escape(fname)}</a> <b>muted for 15 mins (3/3)!</b>\n🚫 Bio link/channel detected. Remove it to chat!",
-                            markup=three_btns_kb
-                        )
+                        send_msg(cid, f"🚫 <b>[𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] :</b> <a href='tg://user?id={uid}'>{html.escape(fname)}</a> — Your bio found link 🚫 (3/3)\n🔇 Blocked for <b>15 minutes</b>!", markup=three_btns_kb)
                     else:
                         fb_update_user(uid, {"bio_strikes": strikes})
-                        send_msg(
-                            cid,
-                            f"⚠️ <a href='tg://user?id={uid}'>{html.escape(fname)}</a> <b>[{strikes}/3]</b>: Your bio/profile contains a link or channel! Remove it to send messages. 🚫",
-                            markup=three_btns_kb
-                        )
+                        send_msg(cid, f"🚫 <b>[𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] :</b> <a href='tg://user?id={uid}'>{html.escape(fname)}</a> — Your bio found link 🚫 ({strikes}/3)", markup=three_btns_kb)
                     return jsonify({"status": "bio_link_deleted"}), 200
 
             # 3. /PROMO COMMAND
@@ -2393,30 +2375,16 @@ def webhook():
                     send_msg(cid, "✅ Group Linked for Management & Promotion!", markup={"inline_keyboard": [[{"text": "🛡️ Open DM Group Management", "url": f"https://t.me/{BOT_USERNAME}?start=promo"}]]})
                 return jsonify({"status": "ok"}), 200
 
-            # 4. EVERY 2 TO 3 MINUTES AUTO-TAG USER IN GROUP OR WHEN TAGGED (NO BUTTONS ON GROUP CHAT!)
-            is_tagged = (bool(BOT_ID) and str(rep_obj.get("from", {}).get("id", "")) == str(BOT_ID)) or (f"@{BOT_USERNAME.lower()}" in text.lower()) or ("bhabhi" in text.lower())
+            # 4. SIYA-STYLE GROUP ENGAGEMENT & AUTO-TAG (EVERY 150s OR WHEN CALLED/REPLIED)
+            rep_bot = bool(BOT_ID) and str(rep_obj.get("from", {}).get("id", "")) == str(BOT_ID)
+            called = ("bhabhi" in text.lower()) or (f"@{BOT_USERNAME.lower()}" in text.lower())
             now_ts = time.time()
-            last_grp_chat = USER_CACHE.get(f"grp_chat_ts:{cid}", 0)
-            time_for_auto_tag = (not is_tagged and len(text) > 1 and not text.startswith("/") and (now_ts - last_grp_chat >= 135))
+            auto_due = (now_ts - USER_CACHE.get(f"grp_engage:{cid}", 0)) >= 150 and len(text) > 2 and not text.startswith("/")
 
-            if is_tagged or time_for_auto_tag:
-                USER_CACHE[f"grp_chat_ts:{cid}"] = now_ts
-            else:
+            if not (rep_bot or called or auto_due):
                 check_and_run_group_promotion(cid, msg.get("message_id"), uid, fname)
                 return jsonify({"status": "ok"}), 200
-            
-            if text.lower().startswith("/promo"):
-                if is_user_group_admin(cid, uid):
-                    ug = fb_get_user(uid, first_name=fname).get("user_groups") or {}
-                    ug[str(cid)] = group_title
-                    fb_update_user(uid, {"user_groups": ug})
-                    send_msg(cid, "✅ Group Linked for Management & Promotion!", markup={"inline_keyboard": [[{"text": "🛡️ Open DM Group Management", "url": f"https://t.me/{BOT_USERNAME}?start=promo"}]]})
-                return jsonify({"status": "ok"}), 200
-
-            is_tagged = (bool(BOT_ID) and str(rep_obj.get("from", {}).get("id", "")) == str(BOT_ID)) or (f"@{BOT_USERNAME.lower()}" in text.lower())
-            if not is_tagged:
-                check_and_run_group_promotion(cid, msg.get("message_id"), uid, fname)
-                return jsonify({"status": "ok"}), 200
+            USER_CACHE[f"grp_engage:{cid}"] = now_ts
 
         u = fb_get_user(uid, first_name=fname)
         credits = int(u.get("credits", 12))
