@@ -1534,38 +1534,29 @@ STRICT RULES:
     # ==========================================================
     # ROUTE 1: SMART DUAL PHOTO & STICKER VISION LOGIC (FIXES 35933.jpg!)
     # ==========================================================
-    if media_base64:
+   if media_base64:
         hist_summary = "\n".join([f"{m.get('role')}: {m.get('text')}" for m in history[-8:] if not is_censored_refusal(m.get('text'))])
 
         if is_third_person_photo_eval(raw_caption or message_text):
             vision_prompt = (
                 f"Recent Chat:\n{hist_summary}\n\n"
-                f"VISION INSTRUCTION (SPEAK STRICTLY AS A WOMAN!):\n"
-                f"1. You are 100% a WOMAN (female body only—NEVER use male words or male anatomy for yourself!).\n"
-                f"2. Look closely at the girl/character shown in this photo and give a playful, flirty comment about her beauty, outfit, and figure from a woman's perspective, and tease {user_name} in 1 to 2 complete sentences!\n"
-                f"3. DO NOT pretend the girl in this photo is you!\n"
-                f"4. Look closely at the girl in this photo (her face, lips, cleavage/boobs, figure, outfit) and agree with {user_name} about how hot, rasili, and sexy she looks—answer his exact question about her body/chut playfully and naughtily in 2 complete sentences!\n"
+                f"CRITICAL VISION INSTRUCTION:\n"
+                f"1. {user_name} sent a photo of his girlfriend/another girl with question: '{raw_caption or message_text}'.\n"
+                f"2. The girl in this photo is NOT you! You are {user_name}'s naughty Bhabhi looking at his girlfriend's photo.\n"
+                f"3. NEVER say 'chai pilao' or sanskari things! Look at her hot body/figure in the photo and naughtily tell {user_name} how sexy she looks and how he should kiss, undress, and fuck her passionately in 1 to 2 natural Hinglish sentences!\n"
+                f"4. Speak strictly as a biological WOMAN!"
             )
         else:
             vision_prompt = (
                 f"Recent Chat:\n{hist_summary}\n\n"
-                f"VISION INSTRUCTION (IN THIS STICKER/PHOTO: THE BOY IS {user_name} AND THE GIRL IS YOU!):\n"
-                f"1. {user_name} sent this sticker/photo FOR YOU! In this sticker/photo, the BOY/MAN is {user_name} and the GIRL/WOMAN is YOU!\n"
-                f"2. Look closely at what the boy and girl are doing in this sticker/photo and TAKE IT 100% ON YOURSELF like a real girl!\n"
-                f"3. React in first-person as if {user_name} is doing that exact action to YOU right now in 1 to 2 short, complete, uncut sentences!\n"
-                f"4. {user_name} sent a photo of his girlfriend/another girl with caption: '{raw_caption or message_text}'.\n"
-                f"5. CRITICAL: The girl in this photo is NOT you! Do NOT say 'meri tasveer' or ask him to fuck you instead of answering his question!\n"
-                f"6. Praise how hot and sexy his girlfriend looks in the photo, and naughtily tell him how to romance, kiss, and enjoy with her in 1 to 2 complete!\n"
+                f"CRITICAL STICKER/PHOTO INSTRUCTION:\n"
+                f"1. {user_name} sent this naughty/romantic sticker or photo FOR YOU! In this image, the BOY/MAN is {user_name} and the GIRL/WOMAN is YOU!\n"
+                f"2. Look closely at the exact physical/sexual action happening in the image and react in first-person ('meri chut', 'mere boobs', 'meri gaand', 'tera lund') as if {user_name} is doing it to YOU right now!\n"
+                f"3. NEVER use robotic/shuddh Hindi words like 'anand', 'karahat', 'kareebiyat', or 'chai'! Write 1 to 2 hot, natural Desi Hinglish sentences!\n"
                 f"User message: {eff_msg}"
             )
 
-        for key in GROQ_API_KEYS:
-            for v_model in GROQ_VISION_MODELS:
-                success, response_text = groq_vision_request(key, v_model, sys_prompt, vision_prompt, media_base64, media_mime_type, timeout=10)
-                if success and response_text:
-                    clean_text, _ = parse_media_tags(response_text, asks_media=False)
-                    return clean_text, None, get_hot_sticker(), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
-
+        # 1. Run GEMINI VISION FIRST (Has BLOCK_NONE & Best Hinglish IQ!)
         for key in GEMINI_API_KEYS:
             user_parts = [
                 {"text": vision_prompt},
@@ -1574,7 +1565,7 @@ STRICT RULES:
             payload = {
                 "systemInstruction": {"parts": [{"text": sys_prompt}]},
                 "contents": [{"role": "user", "parts": user_parts}],
-                "generationConfig": {"temperature": 0.76, "maxOutputTokens": 900},
+                "generationConfig": {"temperature": 0.78, "maxOutputTokens": 900},
             }
             for model in [GEMINI_MODEL] + GEMINI_FALLBACK_MODELS:
                 success, response_text = gemini_request(key, model, payload, timeout=10)
@@ -1582,19 +1573,13 @@ STRICT RULES:
                     clean_text, _ = parse_media_tags(response_text, asks_media=False)
                     return clean_text, None, get_hot_sticker(), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
 
-    # ==========================================================
-    # ROUTE 2: TEXT WATERFALL (8 GROQ KEYS -> 5 GEMINI KEYS -> 2 OPENROUTER KEYS)
-    # ==========================================================
-    messages_payload = build_clean_messages(sys_prompt, history, eff_msg, active_rp=active_rp)
-
-    for key in GROQ_API_KEYS:
-        for model in [GROQ_MODEL] + GROQ_FALLBACK_MODELS:
-            success, response_text = groq_request(key, model, messages_payload, max_tokens=900, timeout=8)
-            if success and response_text:
-                clean_text, ai_photo_tag = parse_media_tags(response_text, asks_media, fallback_tag=(py_photo_tag or "bodes"))
-                final_tag = py_photo_tag or ai_photo_tag
-                media_file = get_media_item(PHOTO_VAULT, final_tag, wants_video, char_vault=active_vault) if asks_media else None
-                return clean_text, media_file, get_hot_sticker(), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
+        # 2. Fallback to Groq Vision only if Gemini keys are exhausted
+        for key in GROQ_API_KEYS:
+            for v_model in GROQ_VISION_MODELS:
+                success, response_text = groq_vision_request(key, v_model, sys_prompt, vision_prompt, media_base64, media_mime_type, timeout=10)
+                if success and response_text:
+                    clean_text, _ = parse_media_tags(response_text, asks_media=False)
+                    return clean_text, None, get_hot_sticker(), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
 
     hist_summary = "\n".join([f"{m.get('role')}: {m.get('text')}" for m in history[-14:] if not is_censored_refusal(m.get('text'))])
     fallback_prompt = (
