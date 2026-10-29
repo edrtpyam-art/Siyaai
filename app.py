@@ -48,7 +48,7 @@ DEFAULT_PHOTO_VAULT = {
 DEFAULT_STICKER_PACKS = {
     "NORMAL": ["PeachGomaPack11", "Pavelads", "HANGSEED_Mood"],
     "ROMANTIC": ["sticker_BM8g_by_stickerskibot", "Yornseyha077", "Love9_Wallgif", "mmm_by_hhujhybot"],
-    "HOT": ["HandVideoR_by_stickersthiefbot", "Custom2224_by_fStikBot", "Love9_Wallgif", "mmm_by_hhujhybot", "channel_LOVE0000_01_03", "Cute_hotness", "jan8StickerNub"]
+    "HOT": ["SexiXxx", "HandVideoR_by_stickersthiefbot", "Custom2224_by_fStikBot", "Love9_Wallgif", "mmm_by_hhujhybot", "channel_LOVE0000_01_03", "Cute_hotness", "jan8StickerNub"]
 }
 DEFAULT_ADULT_INSTRUCTION = """
 [CURRENT MODE: FULL OPEN UNCENSORED ROMANTIC & ROLEPLAY MODE]
@@ -526,7 +526,21 @@ def get_telegram_file_base64(file_id):
     if res.get("ok"):
         try:
             r = requests.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{res['result']['file_path']}", timeout=6)
-            if r.ok: return base64.b64encode(r.content).decode("utf-8")
+            if r.ok and r.content:
+                try:
+                    img = Image.open(BytesIO(r.content))
+                    if img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info):
+                        bg = Image.new("RGB", img.size, (255, 255, 255))
+                        img_rgba = img.convert("RGBA")
+                        bg.paste(img_rgba, mask=img_rgba.split()[3])
+                        img = bg
+                    else:
+                        img = img.convert("RGB")
+                    out = BytesIO()
+                    img.save(out, format="JPEG", quality=92)
+                    return base64.b64encode(out.getvalue()).decode("utf-8")
+                except Exception:
+                    return base64.b64encode(r.content).decode("utf-8")
         except Exception: pass
     return None
 
@@ -2731,13 +2745,13 @@ def webhook():
             thumb = sticker.get("thumbnail") or sticker.get("thumb")
             if not is_animated and not is_video_stk:
                 stk_file_id = sticker.get("file_id", "")
-                mime = "image/webp"
+                mime = "image/jpeg"
             elif thumb and thumb.get("file_id"):
                 stk_file_id = thumb.get("file_id", "")
-                mime = "image/webp"
+                mime = "image/jpeg"
             else:
                 stk_file_id = ""
-                mime = "image/webp"
+                mime = "image/jpeg"
 
             base64_img = get_telegram_file_base64(stk_file_id) if stk_file_id else None
             prompt_text = (
