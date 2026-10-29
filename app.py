@@ -529,6 +529,7 @@ def get_telegram_file_base64(file_id):
             if r.ok and r.content:
                 try:
                     img = Image.open(BytesIO(r.content))
+                    # Convert any WebP/PNG sticker with transparency to standard RGB
                     if img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info):
                         bg = Image.new("RGB", img.size, (255, 255, 255))
                         img_rgba = img.convert("RGBA")
@@ -540,7 +541,8 @@ def get_telegram_file_base64(file_id):
                     img.save(out, format="JPEG", quality=92)
                     return base64.b64encode(out.getvalue()).decode("utf-8")
                 except Exception:
-                    return base64.b64encode(r.content).decode("utf-8")
+                    # STRICT FIX: Agar file image nahi hai (jaise .webm video sticker), toh None return karo!
+                    return None
         except Exception: pass
     return None
 
@@ -1556,7 +1558,6 @@ STRICT RULES:
                 f"User message: {eff_msg}"
             )
 
-        # 1. Run GEMINI VISION FIRST (Has BLOCK_NONE & Best Hinglish IQ!)
         for key in GEMINI_API_KEYS:
             user_parts = [
                 {"text": vision_prompt},
@@ -1573,8 +1574,14 @@ STRICT RULES:
                     clean_text, _ = parse_media_tags(response_text, asks_media=False)
                     return clean_text, None, get_hot_sticker(), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
 
-        # 2. Fallback to Groq Vision only if Gemini keys are exhausted
-         messages_payload = build_clean_messages(sys_prompt, history, eff_msg, active_rp=active_rp)
+        for key in GROQ_API_KEYS:
+            for v_model in GROQ_VISION_MODELS:
+                success, response_text = groq_vision_request(key, v_model, sys_prompt, vision_prompt, media_base64, media_mime_type, timeout=10)
+                if success and response_text:
+                    clean_text, _ = parse_media_tags(response_text, asks_media=False)
+                    return clean_text, None, get_hot_sticker(), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
+
+    messages_payload = build_clean_messages(sys_prompt, history, eff_msg, active_rp=active_rp)
 
     for key in GROQ_API_KEYS:
         for model in [GROQ_MODEL] + GROQ_FALLBACK_MODELS:
@@ -1619,7 +1626,7 @@ STRICT RULES:
     if asks_media:
         return f"Ye lo {user_name} meri jaan, sirf tumhare liye apni garma-garam pic bhej rahi hoon... dekh kar batao kaisi lagi! 🥵💋", media_file, None, show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
     return f"Aaaah... aao na {user_name} meri baahon mein, darwaza band hai aur main kab se tumhara hi wait kar rahi thi! 😘🔥", media_file, get_hot_sticker(force=True), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
-
+    
 # ============================================================
 # 10. WEBHOOK HANDLER (SIYA-STYLE OWNER PANEL + PHOTO/VIDEO PROMO + 0-CREDIT FIX)
 # ============================================================
@@ -2419,8 +2426,18 @@ def webhook():
                     send_msg(cid, "✅ Group Linked for Management & Promotion!", markup={"inline_keyboard": [[{"text": "🛡️ Open DM Group Management", "url": f"https://t.me/{BOT_USERNAME}?start=promo"}]]})
                 return jsonify({"status": "ok"}), 200
 
-            is_tagged = (bool(BOT_ID) and str(rep_obj.get("from", {}).get("id", "")) == str(BOT_ID)) or (f"@{BOT_USERNAME.lower()}" in text.lower())
-            if not is_tagged:
+           # 4. EVERY 2-3 MINUTES AUTO-TAG USER IN GROUP OR WHEN TAGGED
+            is_tagged = (bool(BOT_ID) and str(rep_obj.get("from", {}).get("id", "")) == str(BOT_ID)) or (f"@{BOT_USERNAME.lower()}" in text.lower()) or ("bhabhi" in text.lower())
+            now_ts = time.time()
+            last_grp_chat = USER_CACHE.get(f"grp_chat_ts:{cid}", 0)
+            
+            # Agar bot ko 150 seconds (2.5 mins) se group me nahi bulaya gaya, aur message thoda bada hai, tab khud reply degi!
+            time_for_auto_tag = (not is_tagged and len(text) > 4 and not text.startswith("/") and (now_ts - last_grp_chat >= 150))
+
+            if is_tagged or time_for_auto_tag:
+                USER_CACHE[f"grp_chat_ts:{cid}"] = now_ts
+                # Yeh aage ka code AI_REPLY ko trigger hone dega!
+            else:
                 check_and_run_group_promotion(cid, msg.get("message_id"), uid, fname)
                 return jsonify({"status": "ok"}), 200
 
