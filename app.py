@@ -1504,13 +1504,20 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
 
     eff_msg = f'[User is replying to: "{replied_to_text}"] {message_text}' if replied_to_text else message_text
     third_person_note = ""
-    if is_third_person_photo_eval(eff_msg) or is_third_person_photo_eval(raw_caption):
+    # "condom", "pregnant" jaisi baaton par dimag chalaye, par sticker/photo aane par confuse na ho!
+    if any(w in msg_low for w in ["girlfriend", "gf", "condom", "pregnant", "prgment"]):
         third_person_note = (
-            f"\n- THIRD-PERSON PHOTO RULE: {user_name} sent a photo of his girlfriend/another girl ('{raw_caption or eff_msg}'). "
-            f"1) DO NOT pretend that girl is you! "
-            f"2) NEVER say boring/sanskari things like 'chai pilao' or 'baat karo'! Tell him naughtily aur khul kar how hot her body/figure is and how he should kiss, undress, and enjoy her in bed! "
-            f"3) Remember: {user_name} is a MAN (he has lund) and that girl is a WOMAN (she has boobs and chut)."
+            f"\n- REAL HUMAN LOGIC: If {user_name} is talking about his girlfriend (or asking about condom/pregnancy), USE 100% COMMON SENSE! "
+            f"1) He is a MAN and his girlfriend is a WOMAN. NEVER say 'teri chut' to him! "
+            f"2) If he talks about her getting pregnant, say 'wo tere bache ki maa ban jayegi' (NEVER say 'teri maa ban jayegi'). "
+            f"3) Show real female emotions: tease him naughtily, or act a little playfully jealous!"
         )
+    elif is_third_person_photo_eval(eff_msg) or is_third_person_photo_eval(raw_caption):
+        third_person_note = (
+            f"\n- THIRD-PERSON PHOTO RULE: {user_name} sent a photo/sticker of another girl ('{raw_caption or eff_msg}'). "
+            f"DO NOT pretend that girl is you! Tell him naughtily aur khul kar how sexy she looks and how he should enjoy her!"
+        )
+
 
     if ctype in ("group", "supergroup"):
         sys_prompt = f"""[SMART GROUP CHAT & NAUGHTY TEASING MODE]
@@ -1549,14 +1556,15 @@ STRICT RULES:
                 f"4. Speak strictly as a biological WOMAN!"
             )
         else:
-            vision_prompt = (
-                f"Recent Chat:\n{hist_summary}\n\n"
-                f"CRITICAL STICKER/PHOTO INSTRUCTION:\n"
-                f"1. {user_name} sent this naughty/romantic sticker or photo FOR YOU! In this image, the BOY/MAN is {user_name} and the GIRL/WOMAN is YOU!\n"
-                f"2. Look closely at the exact physical/sexual action happening in the image and react in first-person ('meri chut', 'mere boobs', 'meri gaand', 'tera lund') as if {user_name} is doing it to YOU right now!\n"
-                f"3. NEVER use robotic/shuddh Hindi words like 'anand', 'karahat', 'kareebiyat', or 'chai'! Write 1 to 2 hot, natural Desi Hinglish sentences!\n"
-                f"User message: {eff_msg}"
-            )
+            # Hamesha sticker/photo ko real tarike se dekhne ko majboor karo!
+        vision_prompt = (
+            f"Recent Chat:\n{hist_summary}\n\n"
+            f"CRITICAL STICKER/PHOTO INSTRUCTION (REAL EYES MODE):\n"
+            f"1. {user_name} sent this naughty/romantic sticker or photo FOR YOU! In this exact image, the BOY/MAN is {user_name} and the GIRL/WOMAN is YOU!\n"
+            f"2. OPEN YOUR EYES! Look closely at the exact physical/sexual action happening in the image (like kissing, touching, pressing, deep romancing) and react in first-person ('meri chut', 'mere boobs', 'meri gaand', 'tera lund') as if {user_name} is doing it to YOU right now!\n"
+            f"3. NEVER use robotic/sanskari words like 'anand', 'karahat', 'kareebiyat', or 'chai'! Use strictly wild, hot, and natural Desi Hinglish in 1 to 2 complete sentences!\n"
+            f"User message: {eff_msg}"
+        )
 
         for key in GEMINI_API_KEYS:
             user_parts = [
@@ -2426,7 +2434,7 @@ def webhook():
                     send_msg(cid, "✅ Group Linked for Management & Promotion!", markup={"inline_keyboard": [[{"text": "🛡️ Open DM Group Management", "url": f"https://t.me/{BOT_USERNAME}?start=promo"}]]})
                 return jsonify({"status": "ok"}), 200
 
-           # 4. EVERY 2-3 MINUTES AUTO-TAG USER IN GROUP OR WHEN TAGGED
+        # 4. EVERY 2-3 MINUTES AUTO-TAG USER IN GROUP OR WHEN TAGGED
             is_tagged = (bool(BOT_ID) and str(rep_obj.get("from", {}).get("id", "")) == str(BOT_ID)) or (f"@{BOT_USERNAME.lower()}" in text.lower()) or ("bhabhi" in text.lower())
             now_ts = time.time()
             last_grp_chat = USER_CACHE.get(f"grp_chat_ts:{cid}", 0)
