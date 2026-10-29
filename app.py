@@ -2810,7 +2810,6 @@ def webhook():
                     send_blurred_locked_preview(cid, media_to_send, caption=blur_cap, reply_markup=get_pay_kb())
                 else:
                     send_secret_media(cid, media_to_send, caption=reply_text, reply_to_message_id=(msg.get("message_id") if ctype != "private" else None), markup=kb)
-            
                 else:
                     final_out = f"<a href='tg://user?id={uid}'>{html.escape(fname)}</a> {reply_text}" if ctype in ("group", "supergroup") else reply_text
                     send_msg(cid, final_out, reply_id=(msg.get("message_id") if ctype != "private" else None), markup=(None if ctype in ("group", "supergroup") else kb))
