@@ -2426,25 +2426,7 @@ def webhook():
             else:
                 check_and_run_group_promotion(cid, msg.get("message_id"), uid, fname)
                 return jsonify({"status": "ok"}), 200
-
-            # 2. SUPER-FAST LINK & SPAM DETECTOR (Checks text & caption BEFORE Firebase calls)
-            raw_content = f"{text} {msg.get('caption') or ''}".lower()
-            ents = (msg.get("entities") or []) + (msg.get("caption_entities") or [])
-            has_raw_link = bool(re.search(r"(?:https?://|t\.me/|telegram\.me/|www\.|[a-z0-9-]+\.(?:com|in|org|net|me|io|co|xyz|info|link|click|app|club|store|online|site|top|pro|vip|fun)\b)", raw_content))
-            has_entity_link = any(e.get("type") in ("url", "text_link", "mention", "Bot_command") for e in ents)
-
-            if has_raw_link or has_entity_link:
-                if not is_user_group_admin(cid, uid):
-                    tg_req("deleteMessage", {"chat_id": cid, "message_id": msg.get("message_id")}, timeout=2)
-                    warn_kb = {
-                        "inline_keyboard": [
-                            [{"text": "🚀 Bot Update / Edrol AI", "url": OFFICIAL_CHANNEL_URL}],
-                            [{"text": "🛡️ Protect Your Group", "url": f"https://t.me/{BOT_USERNAME}?startgroup=true"}]
-                        ]
-                    }
-                    send_msg(cid, f"⚠️ [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] <a href='tg://user?id={uid}'>{html.escape(fname)}</a>, Group mein links ya mentions allowed nahi hain! 🚫", markup=warn_kb)
-                    return jsonify({"status": "link_deleted"}), 200
-
+            
             if text.lower().startswith("/promo"):
                 if is_user_group_admin(cid, uid):
                     ug = fb_get_user(uid, first_name=fname).get("user_groups") or {}
