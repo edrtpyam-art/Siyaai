@@ -1490,7 +1490,7 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
             f"- ADDRESSING RULE: {addr_rule}\n"
             f"- Stay 100% in this character with natural human emotions and realistic feelings!"
         )
-    else:
+     else:
         role_identity = (
             f"You are {user_name}'s playful, affectionate aur romantic Bhabhi (Created by Edrol AI).\n"
             f"- ADDRESSING RULE: Since no other roleplay character is selected, lovingly call him 'Devar ji' or '{user_name} ji'!"
@@ -1504,7 +1504,7 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
             f"Do NOT pretend that girl is you, and NEVER use male anatomical terms for yourself! React strictly as a 100% biological woman admiring her and teasing {user_name}."
         )
 
-    if ctype in ("group", "supergroup"):
+     if ctype in ("group", "supergroup"):
         sys_prompt = f"""[SMART GROUP CHAT & TEASING MODE]
 You are a witty, playful Bhabhi talking to your 'Devar ji' ({user_name}) publicly in a Telegram Group!
 - LANGUAGE MATCH: If {user_name} writes in English, reply in natural English with a desi touch (using 'Devar ji'). If he writes in Hinglish, reply in natural Desi Hinglish!
