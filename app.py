@@ -1404,33 +1404,33 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
             None, None, True, (user_data.get("active_rp") or ""), False, True
         )
 
-    asks_media, py_photo_tag, wants_video = detect_python_media_tag(message_text)
+    asks_media, py_photo_tag, wants_video = (False, None, False) if ctype in ("group", "supergroup") else detect_python_media_tag(message_text)
     asks_details = any(w in msg_low for w in DETAIL_QUERY_WORDS)
-    asks_buy = any(w in msg_low for w in BUY_PLAN_WORDS)
+    asks_buy = False if ctype in ("group", "supergroup") else any(w in msg_low for w in BUY_PLAN_WORDS)
     is_sys_q = is_system_or_bot_info_query(message_text) or asks_buy
 
-    active_rp = user_data.get("active_rp") or ""
-    active_vault = user_data.get("active_vault") or ""
+    active_rp = "" if ctype in ("group", "supergroup") else (user_data.get("active_rp") or "")
+    active_vault = "" if ctype in ("group", "supergroup") else (user_data.get("active_vault") or "")
     roleplay_just_ended = False
 
-    if any(w in msg_low for w in STOP_ROLEPLAY_WORDS):
-        if active_rp:
-            roleplay_just_ended = True
-        active_rp = ""
-        active_vault = ""
-        fb_update_user(user_id, {"active_rp": "", "active_vault": ""})
-    else:
-        # Agar user ne Roleplay Hub se character unlock NAHI kiya hai aur chat me bolta hai "teacher/aunty/gf ban jao"
-        asks_new_rp = any(w in msg_low for w in [
-            "roleplay", "rolpay", "rolplay", "role play", "ban jao", "bano", "act like", "be my",
-            "aunty", "aunti", "teacher", "madam", "maid", "naukrani", "doctor", "nurse", "boss", "sali", "saali", "nagin", "sugar mummy"
-        ])
-        if asks_new_rp and not active_rp:
-            return (
-                f"Jaan {user_name}, is normal chat mein main sirf tumhari <b>Desi Hot Bhabhi</b> hoon! 😘🔥\n\n"
-                f"Agar tumhe mere saath <b>Teacher, Rasili Padosan, Secret GF, Office Boss, Aunty</b> ya apni <b>Custom Story</b> wala roleplay karna hai, toh niche button dabakar <b>🎭 Roleplay & Character Hub</b> se apna pasandida character unlock kar lo! 👇",
-                None, None, "ROLEPLAY_HUB_KB", "", False, True
-            )
+    if ctype == "private":
+        if any(w in msg_low for w in STOP_ROLEPLAY_WORDS):
+            if active_rp:
+                roleplay_just_ended = True
+            active_rp = ""
+            active_vault = ""
+            fb_update_user(user_id, {"active_rp": "", "active_vault": ""})
+        else:
+            asks_new_rp = any(w in msg_low for w in [
+                "roleplay", "rolpay", "rolplay", "role play", "ban jao", "bano", "act like", "be my",
+                "aunty", "aunti", "teacher", "madam", "maid", "naukrani", "doctor", "nurse", "boss", "sali", "saali", "nagin", "sugar mummy"
+            ])
+            if asks_new_rp and not active_rp:
+                return (
+                    f"Jaan {user_name}, is normal chat mein main sirf tumhari <b>Desi Hot Bhabhi</b> hoon! 😘🔥\n\n"
+                    f"Agar tumhe mere saath <b>Teacher, Rasili Padosan, Secret GF, Office Boss, Aunty</b> ya apni <b>Custom Story</b> wala roleplay karna hai, toh niche button dabakar <b>🎭 Roleplay & Character Hub</b> se apna pasandida character unlock kar lo! 👇",
+                    None, None, "ROLEPLAY_HUB_KB", "", False, True
+                )
 
     photo_instruction = ""
     if asks_media:
