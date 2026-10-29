@@ -2803,25 +2803,24 @@ def webhook():
             else:
                 kb = None
 
-            if media_to_send:
+            if media_to_send and ctype == "private":
                 if not is_vip_user:
-                    # FREE USER BLUR LOCK: Send heavily blurred photo and ask for ₹9 VIP to unblur!
                     blur_cap = (
                         f"{reply_text}\n\n"
                         f"🔒 [𝑽𝑰𝑷 𝑩𝑳𝑼𝑹 𝑳𝑶𝑪𝑲]: Free trial mein photos/videos BLUR rehti hain! Clear HD Photo & Voice unlock karne ke liye niche se bas ₹9 (75 Credits) wala VIP pack le lo jaan! 😘👇"
                     )
                     send_blurred_locked_preview(cid, media_to_send, caption=blur_cap, reply_markup=get_pay_kb())
                 else:
-                    send_secret_media(cid, media_to_send, caption=reply_text, reply_to_message_id=(msg.get("message_id") if ctype != "private" else None), markup=kb)
+                    send_secret_media(cid, media_to_send, caption=reply_text, reply_to_message_id=None, markup=kb)
             else:
-                final_out = f"<a href='tg://user?id={uid}'>{html.escape(fname)}</a> {reply_text}" if ctype in ("group", "supergroup") else reply_text
+                final_out = f"[𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] <a href='tg://user?id={uid}'>{html.escape(fname)}</a> : {reply_text}" if ctype in ("group", "supergroup") else reply_text
                 send_msg(cid, final_out, reply_id=(msg.get("message_id") if ctype != "private" else None), markup=(None if ctype in ("group", "supergroup") else kb))
-                if sticker_to_send: send_stk(cid, sticker_to_send, reply_id=(msg.get("message_id") if ctype != "private" else None))
+                if sticker_to_send and ctype == "private":
+                    send_stk(cid, sticker_to_send, reply_id=None)
 
             wants_voice = any(w in text.lower() for w in VOICE_REQUEST_TRIGGERS)
             if ctype == "private" and not sys_q and (wants_voice or (len(text) > 8 and random.randint(1, 100) <= 22)):
                 if not is_vip_user:
-                    # FREE USER VOICE LOCK: Tease them to buy ₹9 VIP for real voice notes!
                     if wants_voice:
                         send_msg(
                             cid,
@@ -2842,7 +2841,8 @@ def webhook():
             add_to_history(uid, "user", text)
             add_to_history(uid, "siya", reply_text)
 
-            if not is_own and not sys_q:
+            # Sirf Private DM mein credits katenge, Group Chat 100% FREE rahegi!
+            if ctype == "private" and not is_own and not sys_q:
                 fb_update_user(uid, {"credits": max(0, credits - CHAT_COST)})
 
         return jsonify({"status": "ok"}), 200
