@@ -2749,7 +2749,7 @@ def webhook():
             else:
                 kb = None
 
-           if media_to_send and ctype == "private":
+            if media_to_send and ctype == "private":
                 if not is_vip_user:
                     blur_cap = (
                         f"{reply_text}\n\n"
