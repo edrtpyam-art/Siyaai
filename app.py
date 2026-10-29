@@ -1654,7 +1654,7 @@ def webhook():
                 check_bot_permissions_and_warn(cid, inv_id, inv_name)
             return jsonify({"status": "ok"}), 200
 
-                if "chat_member" in data:
+         if "chat_member" in data:
             cm = data["chat_member"]
             chat = cm.get("chat", {})
             cid = chat.get("id")
