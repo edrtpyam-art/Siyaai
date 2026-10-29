@@ -1700,7 +1700,7 @@ def webhook():
                 is_vip_user = is_own or bool(u_cb.get("is_vip"))
 
                 if char_key == "custom":
-                    if not is_vip_user and c_num < 5:
+                    if not is_vip_user:
                         url = create_cf_order(uid, fname, "129", purpose="custom_rp")
                         tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "🔒 Custom Roleplay (₹129) locked!", "show_alert": True})
                         btn = {"text": "💳 Pay ₹129 to Unlock (50 Chats)", "url": url} if url else {"text": "💳 Pay ₹129", "callback_data": "buy_129"}
@@ -1717,7 +1717,7 @@ def webhook():
 
                 c_price = str(char_info["price"])
                 c_chats = char_info["credits"] // CHAT_COST
-                if not is_vip_user and c_num < 5:
+                if not is_vip_user:
                     url = create_cf_order(uid, fname, c_price, purpose=f"char_{char_key}")
                     tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"🔒 {char_info['name']} (₹{c_price}) locked!", "show_alert": True})
                     btn = {"text": f"💳 Pay ₹{c_price} to Unlock ({c_chats} Chats)", "url": url} if url else {"text": f"💳 Pay ₹{c_price}", "callback_data": f"buy_{c_price}"}
