@@ -2480,20 +2480,16 @@ def webhook():
                     send_msg(cid, "✅ Group Linked for Management & Promotion!", markup={"inline_keyboard": [[{"text": "🛡️ Open DM Group Management", "url": f"https://t.me/{BOT_USERNAME}?start=promo"}]]})
                 return jsonify({"status": "ok"}), 200
 
-        # 4. EVERY 2-3 MINUTES AUTO-TAG USER IN GROUP OR WHEN TAGGED
-            is_tagged = (bool(BOT_ID) and str(rep_obj.get("from", {}).get("id", "")) == str(BOT_ID)) or (f"@{BOT_USERNAME.lower()}" in text.lower()) or ("bhabhi" in text.lower())
+        # 4. SIYA-STYLE GROUP ENGAGEMENT & AUTO-TAG (EVERY 150s OR WHEN CALLED/REPLIED)
+            rep_bot = bool(BOT_ID) and str(rep_obj.get("from", {}).get("id", "")) == str(BOT_ID)
+            called = ("bhabhi" in text.lower()) or (f"@{BOT_USERNAME.lower()}" in text.lower())
             now_ts = time.time()
-            last_grp_chat = USER_CACHE.get(f"grp_chat_ts:{cid}", 0)
-            
-            # Agar bot ko 150 seconds (2.5 mins) se group me nahi bulaya gaya, aur message thoda bada hai, tab khud reply degi!
-            time_for_auto_tag = (not is_tagged and len(text) > 4 and not text.startswith("/") and (now_ts - last_grp_chat >= 150))
+            auto_due = (now_ts - USER_CACHE.get(f"grp_engage:{cid}", 0)) >= 150 and len(text) > 2 and not text.startswith("/")
 
-            if is_tagged or time_for_auto_tag:
-                USER_CACHE[f"grp_chat_ts:{cid}"] = now_ts
-                # Yeh aage ka code AI_REPLY ko trigger hone dega!
-            else:
+            if not (rep_bot or called or auto_due):
                 check_and_run_group_promotion(cid, msg.get("message_id"), uid, fname)
                 return jsonify({"status": "ok"}), 200
+            USER_CACHE[f"grp_engage:{cid}"] = now_ts
 
         u = fb_get_user(uid, first_name=fname)
         credits = int(u.get("credits", 12))
