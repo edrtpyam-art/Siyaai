@@ -1584,7 +1584,7 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
     else:
         len_rule = "4. SHORT COMPLETE SENTENCES (15 TO 30 WORDS): Write 1 to 2 complete, natural sentences (15 to 30 words). Always finish your sentence completely with proper punctuation!"
 
-     if active_rp:
+    if active_rp:
         role_identity = (
             f"CRITICAL ACTIVE ROLEPLAY CHARACTER: '{active_rp}'.\n"
             f"- STRICT CHARACTER LOCK: You MUST stay 100% in this exact character! NEVER call yourself 'Bhabhi' and NEVER call the user 'Devar ji' unless your active character is explicitly a Bhabhi!\n"
@@ -1811,7 +1811,7 @@ def webhook():
                 send_msg(cid, "🛑 Is group ka Tag Promotion turant rok diya gaya hai.")
                 return jsonify({"status": "ok"}), 200
 
-             if cb_data.startswith("menu_roleplay_hub"):
+            if cb_data.startswith("menu_roleplay_hub"):
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
                 parts = cb_data.split("_")
                 page = int(parts[-1]) if parts[-1].isdigit() else 1
