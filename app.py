@@ -1170,8 +1170,9 @@ SYSTEM_KNOWLEDGE_TRIGGERS = [
 ]
 
 THIRD_PERSON_PHOTO_TRIGGERS = [
+    "esko", "eska", "eski", "eske", "isko", "iska", "iski", "iske", "ise", "isse", "usko", "uska", "uski",
     "ey girsl", "ey girls", "ye girl", "ye ladki", "is ladki", "ess girls", "is girl",
-    "isko dekho", "es ko dekho", "es ki", "iski", "kaisi hai", "kasi ha", "kaisi lag rahi",
+    "isko dekho", "es ko dekho", "es ki", "kaisi hai", "kasi ha", "kaisi lag rahi",
     "ye kaun", "kon hai", "comment kar", "comment kro", "rate kar", "batao ye",
     "batoo kaai ha", "kaisi dikh", "iska figure", "iski photo", "ye character",
     "meri girlfriend", "meri gf", "apni gf", "apni girlfriend", "is ko kasa", "ess ki", "is ki", "bhabhi ki photo"
@@ -1437,9 +1438,9 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
     asks_buy = False if ctype in ("group", "supergroup") else any(w in msg_low for w in BUY_PLAN_WORDS)
     is_sys_q = is_system_or_bot_info_query(message_text) or asks_buy
 
-    active_rp = "" if ctype in ("group", "supergroup") else (user_data.get("active_rp") or "")
-    active_vault = "" if ctype in ("group", "supergroup") else (user_data.get("active_vault") or "")
-    roleplay_just_ended = False
+    is_vip_u = is_owner or bool(user_data.get("is_vip"))
+    active_rp = "" if (ctype in ("group", "supergroup") or not is_vip_u) else (user_data.get("active_rp") or "")
+    active_vault = "" if (ctype in ("group", "supergroup") or not is_vip_u) else (user_data.get("active_vault") or "")
 
     if ctype == "private":
         if any(w in msg_low for w in STOP_ROLEPLAY_WORDS):
@@ -1542,7 +1543,7 @@ STRICT RULES:
     if media_base64:
         hist_summary = "\n".join([f"{m.get('role')}: {m.get('text')}" for m in history[-8:] if not is_censored_refusal(m.get('text'))])
 
-        if is_third_person_photo_eval(raw_caption or message_text):
+        if "[User sent a photo" in message_text or is_third_person_photo_eval(raw_caption or message_text) or is_third_person_photo_eval(eff_msg):
             vision_prompt = (
                 f"Recent Chat:\n{hist_summary}\n\n"
                 f"VISION INSTRUCTION:\n"
