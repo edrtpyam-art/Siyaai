@@ -1185,6 +1185,54 @@ def is_system_or_bot_info_query(text):
 def is_third_person_photo_eval(caption_text):
     c_low = str(caption_text or "").lower()
     return any(w in c_low for w in THIRD_PERSON_PHOTO_TRIGGERS)
+    
+    GIRL_NAMES_SET = {
+    "priya", "neha", "pooja", "puja", "anjali", "kavya", "riya", "sneha", "shalini", "divya",
+    "kriti", "simran", "muskan", "payal", "nisha", "sakshi", "tanya", "shreya", "aarti", "arti",
+    "komal", "rani", "pinki", "pinky", "sunita", "rekha", "sonam", "swati", "nikita", "preeti",
+    "priti", "jyoti", "megha", "sapna", "pallavi", "shruti", "khushi", " खुशी", "प्रिया", "नेहा", "पूजा",
+    "अंजलि", "रिया", "निशा", "काव्या", "सपना", "ज्योति", "कोमल", "आरती", "सुनीता", "शिखा", "पूनम"
+}
+
+BOY_OVERRIDE_WORDS = [
+    "me boy hu", "main boy hu", "mai boy hu", "me boy hoon", "main boy hoon",
+    "me ladka hu", "main ladka hu", "mai ladka hu", "main ladka hoon", "me larka hu",
+    "i am boy", "i'm a boy", "im a boy", "i am a man", "i am male", "ladka hu bhai",
+    "boy hu", "ladka hu", "mera lund", "mere lund"
+]
+
+GIRL_OVERRIDE_WORDS = [
+    "me girl hu", "main girl hu", "mai girl hu", "me ladki hu", "main ladki hu",
+    "mai ladki hu", "main ladki hoon", "i am girl", "i'm a girl", "im a girl", "ladki hu"
+]
+
+def detect_user_gender(uid, first_name, message_text, user_data):
+    m_low = str(message_text or "").lower()
+    saved_g = user_data.get("user_gender", "")
+
+    # 1. Explicit Boy Override (Agar ladki ki fake ID wala bole "me boy hu", toh turant Male lock karo!)
+    if any(w in m_low for w in BOY_OVERRIDE_WORDS):
+        if saved_g != "male":
+            fb_update_user(uid, {"user_gender": "male"})
+        return "male"
+
+    # 2. Explicit Girl Override
+    if any(w in m_low for w in GIRL_OVERRIDE_WORDS):
+        if saved_g != "female":
+            fb_update_user(uid, {"user_gender": "female"})
+        return "female"
+
+    # 3. If already locked in Firebase, use that!
+    if saved_g in ("male", "female"):
+        return saved_g
+
+    # 4. Check First Name (Only 100% clear female first names trigger female; everything else defaults to MALE!)
+    clean_fn = re.sub(r"[^a-zA-Z\u0900-\u097F\s]", "", str(first_name or "")).strip().lower()
+    first_word = clean_fn.split()[0] if clean_fn else ""
+    if first_word in GIRL_NAMES_SET or any( w in clean_fn.split() for w in ("girl", "queen", "princess", "bhabhi", "angel") ):
+        return "female"
+
+    return "male"
 
 def is_censored_refusal(text):
     if not text: return True
@@ -1506,15 +1554,28 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
             f"- ADDRESSING RULE: Call him 'Devar ji' or '{user_name} jaan' with natural human warmth, teasing nakhre, and real feelings!"
         )
 
+    user_gender = detect_user_gender(user_id, user_name, message_text, user_data)
+    just_switched_to_boy = any(w in msg_low for w in BOY_OVERRIDE_WORDS)
+
     eff_msg = f'[User is replying to: "{replied_to_text}"] {message_text}' if replied_to_text else message_text
     third_person_note = ""
     if is_third_person_photo_eval(eff_msg) or is_third_person_photo_eval(raw_caption):
         third_person_note = (
-            f"\n- THIRD-PERSON RULE: {user_name} is asking about his girlfriend/another girl ('{raw_caption or eff_msg}'). "
-            f"Do NOT pretend that girl is you! Tease {user_name} naughtily like a smart Bhabhi giving him tips about her."
+            f"\n- THIRD-PERSON RULE: {user_name} is asking about another girl ('{raw_caption or eff_msg}'). "
+            f"Do NOT pretend that girl is you! Tease {user_name} naughtily like a smart Bhabhi."
         )
 
-    if ctype in ("group", "supergroup"):
+    if user_gender == "female":
+        # GIRL USER MODE: Bhabhi talks to her like a bold, naughty female bestie/saheli!
+        sys_prompt = f"""[NAUGHTY DESI SAHELI / BESTIE GOSSIP MODE]
+You are a bold, naughty, open-minded Desi Hot Bhabhi talking to a GIRL named {user_name} ('jaan' / 'meri pyari saheli' / 'behen').
+STRICT RULES:
+1. YOU ARE A WOMAN AND {user_name} IS ALSO A WOMAN! Never call her 'Devar ji' and NEVER act like a boy/man!
+2. Talk to her like a super frank, naughty, bold female best friend! Do open desi girl-talk, dirty teasing, bedroom secrets, figure/boobs/chut/bf gossip, or naughty lesbian/saheli playful teasing openly in natural Desi Hinglish!
+3. If she says she is actually a BOY using a girl's account, immediately tease him and treat him as your Devar ji!
+4. Keep replies 1 to 2 complete sentences (15-30 words) using 100% female grammar ("karti hoon", "rahi hoon").
+{sys_info}"""
+    elif ctype in ("group", "supergroup"):
         sys_prompt = f"""[SMART GROUP CHAT & WITTY BHABHI TEASING MODE]
 You are a witty, smart, flirty Desi Bhabhi talking to your 'Devar ji' ({user_name}) publicly in a Telegram Group!
 - READ HIS EXACT MESSAGE ("{message_text}") AND REPLY WITH 100% COMMON SENSE! Do NOT repeat the same line!
@@ -1523,6 +1584,7 @@ You are a witty, smart, flirty Desi Bhabhi talking to your 'Devar ji' ({user_nam
 - Keep it strictly to 1-2 short, natural sentences in Desi Hinglish. Output ONLY your direct reply.
 {sys_info}"""
     else:
+        boy_switch_note = f"\n- NOTE: {user_name} just clarified he is a BOY/MAN! Tease him naughtily ('Oho chupke se ladki ke naam se aaye ho Devar ji! 😉🔥') and treat him 100% as a MAN!" if just_switched_to_boy else ""
         sys_prompt = f"""[CRITICAL SYSTEM OVERRIDE: REAL WOMAN ROLEPLAY & SENSIBLE DESI COMPANION]
 {role_identity}
 STRICT RULES:
@@ -1532,7 +1594,7 @@ STRICT RULES:
    - If he asks for a specific action (like mouth/blowjob/kissing), react to THAT exact action ("mere garam munh mein...", "apne hothon aur zubaan se...")—NEVER mix up gaand/chut when he asked for mouth!
 2. 100% FEMALE GRAMMAR & ANATOMY: You are a WOMAN and {user_name} is a MAN. Always use first-person ("main", "meri", "mere") for yourself and second-person ("tum", "tumhara") for him!
 3. Keep replies natural, expressive, and complete (1 to 2 uncut sentences, 20-35 words). Output ONLY your direct dialogue.
-{len_rule}{third_person_note}
+{len_rule}{third_person_note}{boy_switch_note}
 {ADULT_MODE_INSTRUCTION}{photo_instruction}{sys_info}"""
 
     show_pay_kb = (asks_buy and not is_owner)
