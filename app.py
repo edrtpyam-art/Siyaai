@@ -279,21 +279,16 @@ def get_welcome_trust_text(fname, credit_display, lang="hinglish"):
     safe_name = html.escape(fname or "Jaan")
     c_str = html.escape(str(credit_display))
     return (
-        f"<b>💥EDROLAI @edrolai :</b>\n"
-        f"<b>🔥 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] • Private Romantic & Roleplay Hub & Smart Group Manager ❤️</b>\n\n"
-        f"<b>👋 Hii {safe_name} jaan! Baaki bots ki tarah yahan koi time limit ya beech mein chat band hone ka natak nahi hai! Full open enjoy karo bina kisi scam ke... 😘🥵</b>\n\n"
-        f"<b>💎 Tumhara Balance: {c_str} Credits (1 Chat = 5 Credits)</b>\n\n"
-        f"<b>👇 Niche diye gaye options se apni pasand ka roleplay mode chuno ya Chat start karo:</b>"
+        f"🔥 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] • Powered by Edrol AI ❤️\n\n"
+        f"👋 Hii {safe_name} jaan! Main tumhari 24/7 Private Roleplay Partner & Smart Group Manager hoon 😘\n"
+        f"💎 Balance: {c_str} Credits\n\n"
+        f"👇 Niche menu chuno ya seedha message bhej kar chat shuru karo:"
     )
 
 def get_main_menu_kb(credits_display, is_owner=False):
     rows = [
-        [{"text": f"💬 Start Chat Now ({credits_display} Credits) 🔥", "callback_data": "start_free_chat"}],
         [{"text": "🎭 Roleplay & Character Hub 💖", "callback_data": "menu_roleplay_hub"}],
-        [
-            {"text": "📖 How to Use Bot (Guide)", "url": OFFICIAL_CHANNEL_URL},
-            {"text": "🛡️ Group Management", "callback_data": "menu_group_mgmt"}
-        ],
+        [{"text": "🛡️ Group Management", "callback_data": "menu_group_mgmt"}],
         [{"text": "ℹ️ About & Support", "callback_data": "menu_about"}]
     ]
     if is_owner:
@@ -465,7 +460,7 @@ def detect_python_media_tag(message_text):
 def send_local_or_url_media(chat_id, filename, caption="", protect=True, spoiler=True, reply_to_message_id=None, reply_markup=None, media_type_override=""):
     if not filename: return {"ok": False}
     styled_caption = to_hot_bhabhi_font(caption) if caption else ""
-    is_video = (media_type_override == "video") or str(filename).lower().endswith(".mp4")
+    is_video = (media_type_override == "video") or str(filename).lower().endswith(".mp4") or str(filename).startswith("BAAC")
     api_method = "sendVideo" if is_video else "sendPhoto"
     media_key = "video" if is_video else "photo"
     mime_type = "video/mp4" if is_video else ("image/png" if str(filename).lower().endswith(".png") else "image/jpeg")
