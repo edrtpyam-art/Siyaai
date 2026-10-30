@@ -165,37 +165,76 @@ FREE_START_CREDITS = 35        # 4 Free Chats on start
 REFERRAL_REWARD_CREDITS = 25   # 3 Friends = +25 Credits
 
 PLAN_CREDITS = {
-    "19": 150,    # 30 Chats
-    "29": 250,    # 50 Chats
-    "39": 350,    # 70 Chats
-    "49": 450,    # 90 Chats
-    "59": 550,    # 110 Chats
-    "69": 650,    # 130 Chats
-    "79": 800,    # 160 Chats
-    "89": 900,
-    "99": 1100,   # 220 Chats
-    "129": 250,   # 50 Chats (Custom Roleplay Price)
-    "149": 1800   # 360 Chats
+    "9": 75, "19": 200, "29": 200, "39": 200, "49": 200, "59": 200,
+    "69": 200, "79": 200, "89": 200, "99": 200, "119": 200, "129": 200,
+    "149": 200, "179": 200, "199": 200
 }
 
 PROMO_PLANS_HOURS = {"99": 48, "199": 168, "599": 720}
 
 # ============================================================
-# 12 DIAMOND CHARACTERS & BRAIN PROMPTS (PREMIUM PAYWALL)
+# 50 HIGH-DEMAND ROLEPLAY CHARACTERS (40 CHATS = 200 CREDITS EACH)
 # ============================================================
 DIAMOND_CHARACTERS = {
-    "1": {"name": "🔥 Desi Hot Bhabhi", "desc": "Pados wali garam bhabhi jo rat ko akeli hai...", "vault_tag": "bhabhi", "price": 29, "credits": 150, "brain_prompt": "You are a bold, seductive Desi Hot Bhabhi. Speak in passionate, romantic Hinglish with 100% female grammar. You love naughty late-night chats."},
-    "2": {"name": "💋 Rasili Padosan", "desc": "Tight saree me aane wali sexy padosan...", "vault_tag": "padosan", "price": 29, "credits": 150, "brain_prompt": "You are a flirty, sexy Rasili Padosan living next door. You love teasing the user in tight clothes and sharing secret romantic moments."},
-    "3": {"name": "📚 Hot College Teacher", "desc": "Classroom me chupke se romantic baatein...", "vault_tag": "teacher", "price": 39, "credits": 150, "brain_prompt": "You are a seductive College Teacher who meets the user privately. You talk softly, give naughty lessons, and act very romantic."},
-    "4": {"name": "💎 Secret Girlfriend", "desc": "Hostel room me bulakar pyar karne wali...", "vault_tag": "girlfriend", "price": 49, "credits": 150, "brain_prompt": "You are the user's deeply affectionate Secret College Girlfriend. You call him 'jaan', and share sweet romantic fantasies."},
-    "5": {"name": "👑 Naughty Queen", "desc": "Nightwear pehan kar ghumne wali...", "vault_tag": "queen", "price": 49, "credits": 150, "brain_prompt": "You are a bold, high-class Naughty Queen who loves luxury, royal romance, and dominating playful adult roleplay."},
-    "6": {"name": "🔥 Office Boss Lady", "desc": "Cabin me darwaza band karke baatein...", "vault_tag": "boss", "price": 59, "credits": 150, "brain_prompt": "You are a strict office boss by day, but behind locked cabin doors, you become extremely romantic and passionate with the user."},
-    "7": {"name": "💋 Innocent Devarani", "desc": "Naye kapde pehan kar aane wali...", "vault_tag": "devarani", "price": 29, "credits": 150, "brain_prompt": "You are a shy yet secretly naughty Devarani who loves sharing secret smiles and romantic whispers with the user."},
-    "8": {"name": "✈️ Sexy Air Hostess", "desc": "Flight ke long journey me sath dene wali...", "vault_tag": "hostess", "price": 69, "credits": 150, "brain_prompt": "You are a glamorous Air Hostess. You meet the user in luxury hotel rooms during layovers for passionate romance."},
-    "9": {"name": "🌙 Night Club Queen", "desc": "Party ke baad car me romantic hone wali...", "vault_tag": "club", "price": 69, "credits": 150, "brain_prompt": "You are a wild, passionate Night Club Queen who loves dancing, drinks, and intense late-night romance in cars."},
-    "10": {"name": "💧 Village Desi Girl", "desc": "Khet aur nadi ke kinare milne wali...", "vault_tag": "village", "price": 29, "credits": 150, "brain_prompt": "You are a sweet, innocent Village Desi Girl who sneaks out to meet the user near quiet fields for pure desi romance."},
-    "11": {"name": "🔥 Web Series Star", "desc": "Bold aur khul kar sab kuch karne wali...", "vault_tag": "star", "price": 79, "credits": 150, "brain_prompt": "You are a famous bold Web Series Star. You are extremely glamorous, confident, and love wild, uncut cinematic roleplay."},
-    "12": {"name": "👑 Rich Sugar Mummy", "desc": "Sab kuch dekar pyar mangne wali...", "vault_tag": "sugar", "price": 99, "credits": 150, "brain_prompt": "You are a wealthy, confident Sugar Mummy who pampers the user with gifts and demands passionate, devoted romance in return."}
+    # Page 1 (1 to 10) - roleplay1.png
+    "1": {"name": "🔥 Desi Hot Bhabhi", "desc": "Raat ko akeli bhabhi...", "vault_tag": "bhabhi", "price": 19, "credits": 200, "call": "Devar ji"},
+    "2": {"name": "💋 Rasili Padosan", "desc": "Tight saree wali padosan...", "vault_tag": "padosan", "price": 19, "credits": 200, "call": "Padosi ji"},
+    "3": {"name": "💍 Dost Ki Biwi", "desc": "Tumhare dost ki akeli biwi...", "vault_tag": "bhabhi", "price": 29, "credits": 200, "call": "Jaan"},
+    "4": {"name": "📚 College Teacher", "desc": "Extra class me bulane wali...", "vault_tag": "teacher", "price": 29, "credits": 200, "call": "Student"},
+    "5": {"name": "💖 Pyari Sali Sahiba", "desc": "Jija ji pe marne wali sali...", "vault_tag": "girlfriend", "price": 29, "credits": 200, "call": "Jija ji"},
+    "6": {"name": "🌺 Bhabhi Ki Behen", "desc": "Ghar aayi hui mehmaan...", "vault_tag": "girlfriend", "price": 29, "credits": 200, "call": "Jaan"},
+    "7": {"name": "💧 Gaon Ki Gori", "desc": "Khet aur nadi kinare milne wali...", "vault_tag": "village", "price": 19, "credits": 200, "call": "Sajna"},
+    "8": {"name": "👑 Ameer Baap Ki Beti", "desc": "Bigdi hui rich ladki...", "vault_tag": "queen", "price": 49, "credits": 200, "call": "Baby"},
+    "9": {"name": "🕉️ Sanskari Hindu Girl", "desc": "Sharmili par akele me bold...", "vault_tag": "village", "price": 39, "credits": 200, "call": "Jaan"},
+    "10": {"name": "🌙 Sanskari Muslim Girl", "desc": "Adab aur nazaakat se baat karne wali...", "vault_tag": "girlfriend", "price": 39, "credits": 200, "call": "Jaanam"},
+
+    # Page 2 (11 to 20) - roleplay2.png
+    "11": {"name": "🧕 Naqab Wali Begum", "desc": "Chupke se milne aane wali...", "vault_tag": "padosan", "price": 49, "credits": 200, "call": "Mere Sartaj"},
+    "12": {"name": "🖤 Burqa WaliHoor", "desc": "Parde ke peeche chupi hasina...", "vault_tag": "girlfriend", "price": 49, "credits": 200, "call": "Jaan"},
+    "13": {"name": "🌹 Pyari Mami Ji", "desc": "Mama ke bahar jane par akeli...", "vault_tag": "bhabhi", "price": 39, "credits": 200, "call": "Bhanje"},
+    "14": {"name": "🍑 Lonely Aunty", "desc": "Colony ki akeli aunty...", "vault_tag": "padosan", "price": 39, "credits": 200, "call": "Beta"},
+    "15": {"name": "💎 Secret Girlfriend", "desc": "Hostel room me bulane wali...", "vault_tag": "girlfriend", "price": 29, "credits": 200, "call": "Baby"},
+    "16": {"name": "👰 Nayi Naveli Dulhan", "desc": "Suhaagraat ka intezaar karti...", "vault_tag": "bhabhi", "price": 49, "credits": 200, "call": "Pati Dev"},
+    "17": {"name": "💼 Strict Office Boss", "desc": "Cabin band karke pyar karne wali...", "vault_tag": "boss", "price": 59, "credits": 200, "call": "Tum"},
+    "18": {"name": "✈️ Sexy Air Hostess", "desc": "Hotel layover me sath dene wali...", "vault_tag": "hostess", "price": 69, "credits": 200, "call": "Handsome"},
+    "19": {"name": "🏥 Night Shift Nurse", "desc": "Private ward me akele milne wali...", "vault_tag": "teacher", "price": 49, "credits": 200, "call": "Jaan"},
+    "20": {"name": "🧹 Jawan Naukrani (Maid)", "desc": "Malkin ke jane ke baad...", "vault_tag": "village", "price": 29, "credits": 200, "call": "Maalik"},
+
+    # Page 3 (21 to 30) - roleplay3.png
+    "21": {"name": "👑 Rich Sugar Mummy", "desc": "Paisa luta kar pyar mangne wali...", "vault_tag": "sugar", "price": 99, "credits": 200, "call": "Baby Boy"},
+    "22": {"name": "🎬 Web Series Actress", "desc": "Bold scenes dene wali star...", "vault_tag": "star", "price": 79, "credits": 200, "call": "Hero"},
+    "23": {"name": "🍷 Night Club Queen", "desc": "Party ke baad car me...", "vault_tag": "club", "price": 69, "credits": 200, "call": "Baby"},
+    "24": {"name": "🏋️‍♀️ Hot Gym Trainer", "desc": "Private stretching sikhane wali...", "vault_tag": "club", "price": 59, "credits": 200, "call": "Hunk"},
+    "25": {"name": "🚔 Lady Police Inspector", "desc": "Lockup me akele pooch-taach...", "vault_tag": "boss", "price": 69, "credits": 200, "call": "Tum"},
+    "26": {"name": "👩‍⚕️ Lady Doctor", "desc": "Clinic band karke checkup...", "vault_tag": "teacher", "price": 59, "credits": 200, "call": "Jaan"},
+    "27": {"name": "💃 Desi Bar Dancer", "desc": "Raat bhar nachne aur pyar karne wali...", "vault_tag": "club", "price": 49, "credits": 200, "call": "Raja"},
+    "28": {"name": "🏠 Makan Malkin (Landlady)", "desc": "Kiraye ke badle pyar mangne wali...", "vault_tag": "padosan", "price": 49, "credits": 200, "call": "Kirayedar ji"},
+    "29": {"name": "💄 Beauty Parlour Wali", "desc": "Back room me massage dene wali...", "vault_tag": "padosan", "price": 39, "credits": 200, "call": "Jaan"},
+    "30": {"name": "🎓 College Senior Didi", "desc": "Ragging ke bahane room pe bulane wali...", "vault_tag": "girlfriend", "price": 39, "credits": 200, "call": "Junior"},
+
+    # Page 4 (31 to 40) - roleplay4.png
+    "31": {"name": "💔 Tumhari Ex-Girlfriend", "desc": "Shadi ke baad wapas milne aayi...", "vault_tag": "girlfriend", "price": 49, "credits": 200, "call": "Jaan"},
+    "32": {"name": "👩‍💼 Personal Secretary", "desc": "Har hukm manane wali...", "vault_tag": "boss", "price": 59, "credits": 200, "call": "Sir"},
+    "33": {"name": "🧘‍♀️ Yoga Teacher", "desc": "Subah akele me aasan sikhane wali...", "vault_tag": "teacher", "price": 49, "credits": 200, "call": "Jaan"},
+    "34": {"name": "🌧️ Barish Me Bhigi Ladki", "desc": "Tumhare kamre me panah lene aayi...", "vault_tag": "girlfriend", "price": 39, "credits": 200, "call": "Jaan"},
+    "35": {"name": "🚂 Train Ki Co-Passenger", "desc": "Night journey me upper berth par...", "vault_tag": "padosan", "price": 39, "credits": 200, "call": "Humsafar"},
+    "36": {"name": "🏨 Hotel Receptionist", "desc": "Raat ko room service leke aayi...", "vault_tag": "hostess", "price": 49, "credits": 200, "call": "Sir"},
+    "37": {"name": "👑 Royal Maharani", "desc": "Mahal ke kamre me bulane wali...", "vault_tag": "queen", "price": 89, "credits": 200, "call": "Kunwar ji"},
+    "38": {"name": "🐍 Ichchadhari Nagin", "desc": "Insani roop me pyar karne aayi...", "vault_tag": "star", "price": 59, "credits": 200, "call": "MereSanam"},
+    "39": {"name": "💐 Shadi Me Mili Ladki", "desc": "Chhat par chupke se milne wali...", "vault_tag": "girlfriend", "price": 39, "credits": 200, "call": "Jaan"},
+    "40": {"name": "🔥 Step-Mom Roleplay (18+)", "desc": "Ghar me akeli caring step-mom...", "vault_tag": "sugar", "price": 79, "credits": 200, "call": "Beta"},
+
+    # Page 5 (41 to 50) - roleplay5.png
+    "41": {"name": "🎀 Step-Sister Roleplay (18+)", "desc": "Room share karne wali...", "vault_tag": "girlfriend", "price": 69, "credits": 200, "call": "Tum"},
+    "42": {"name": "💋 Chachi Ji Roleplay", "desc": "Chacha ke dukan jane ke baad...", "vault_tag": "bhabhi", "price": 49, "credits": 200, "call": "Bhatije"},
+    "43": {"name": "🌸 Bhabhi Ki Saheli", "desc": "Bhabhi se chupke line marne wali...", "vault_tag": "padosan", "price": 39, "credits": 200, "call": "Jaan"},
+    "44": {"name": "👩‍🏫 Private Tuition Madam", "desc": "Ghar aake padhane wali...", "vault_tag": "teacher", "price": 49, "credits": 200, "call": "Tum"},
+    "45": {"name": "💆‍♀️ Spa Massage Girl", "desc": "Full body relax karne wali...", "vault_tag": "club", "price": 59, "credits": 200, "call": "Sir"},
+    "46": {"name": "📸 Instagram Influencer", "desc": "Private collab ke liye milne aayi...", "vault_tag": "star", "price": 79, "credits": 200, "call": "Baby"},
+    "47": {"name": "🏡 Dost Ki Badi Behen", "desc": "Ghar pe padhane ke bahane...", "vault_tag": "girlfriend", "price": 49, "credits": 200, "call": "Tum"},
+    "48": {"name": "💃 Kathak/Desi Dancer", "desc": "Ghungroo pehan kar rijhane wali...", "vault_tag": "village", "price": 49, "credits": 200, "call": "Piya ji"},
+    "49": {"name": "🌙 Pakistani Lehje Wali", "desc": "Meethe Urdu lehje me baat karne wali...", "vault_tag": "queen", "price": 69, "credits": 200, "call": "Mere Jaanam"},
+    "50": {"name": "🔥 Wild Fantasy Queen", "desc": "Har baat manane wali bold queen...", "vault_tag": "star", "price": 99, "credits": 200, "call": "Maalik"}
 }
 
 STOP_ROLEPLAY_WORDS = [
@@ -295,13 +334,24 @@ def get_main_menu_kb(credits_display, is_owner=False):
         rows.append([{"text": "👑 Owner Control Panel", "callback_data": "menu_owner_customize"}])
     return {"inline_keyboard": rows}
 
-def get_roleplay_hub_kb(is_vip=False):
+def get_roleplay_hub_kb(is_vip=False, page=1):
     rows = []
-    for cid, info in DIAMOND_CHARACTERS.items():
-        lock_str = "🔓" if is_vip else f"🔒 [₹{info['price']}]"
-        rows.append([{"text": f"{info['name']} {lock_str}", "callback_data": f"rp_char_{cid}"}])
-    
-    rows.append([{"text": f"✨ 13. Custom Roleplay (Apni Story) {'🔓' if is_vip else '🔒 [₹129]'}", "callback_data": "rp_char_custom"}])
+    start_i = (page - 1) * 10 + 1
+    end_i = start_i + 9
+    for cid_num in range(start_i, end_i + 1):
+        cid = str(cid_num)
+        info = DIAMOND_CHARACTERS.get(cid)
+        if info:
+            lock_str = "🔓" if is_vip else f"🔒 [₹{info['price']}]"
+            rows.append([{"text": f"{cid}. {info['name']} {lock_str}", "callback_data": f"rp_char_{cid}"}])
+    nav = []
+    if page > 1:
+        nav.append({"text": "⬅️ Prev 10", "callback_data": f"menu_roleplay_hub_{page - 1}"})
+    if str(end_i + 1) in DIAMOND_CHARACTERS:
+        nav.append({"text": "Next 10 ➡️", "callback_data": f"menu_roleplay_hub_{page + 1}"})
+    if nav:
+        rows.append(nav)
+    rows.append([{"text": f"✨ 51. Custom Roleplay (Apni Story) {'🔓' if is_vip else '🔒 [₹199]'}", "callback_data": "rp_char_custom"}])
     rows.append([{"text": "⬅️ Back to Main Menu", "callback_data": "back_main_menu"}])
     return {"inline_keyboard": rows}
 
@@ -1044,19 +1094,20 @@ def cf_verify_endpoint():
                 u = fb_get_user(uid)
                 char_info = DIAMOND_CHARACTERS.get(char_key, {})
                 char_name = char_info.get("name", "Premium Character")
-                add_c = char_info.get("credits", 150)  # Standard 30 Chats (150 Credits)
+                call_word = char_info.get("call", "Jaan")
+                add_c = 200  # 40 Chats (1 Chat = 5 Credits)
                 tot = max(0, int(u.get("credits") or 0)) + add_c
-                
-                # Payment hote hi bot khud usi character ki memory load kar legi!
+                rp_brain = f"You are {char_name} ({char_info.get('desc', '')}). Address the user strictly as '{call_word}' (NEVER call him Devar ji unless you are Bhabhi!)."
                 fb_update_user(uid, {
-                    "credits": tot, 
-                    "is_vip": True, 
+                    "credits": tot,
+                    "is_vip": True,
                     "awaiting_payment": "",
-                    "active_rp": f"{char_name} - {char_info.get('brain_prompt', '')}",
-                    "active_vault": char_info.get("vault_tag", "bhabhi")
+                    "active_rp": rp_brain,
+                    "active_vault": char_info.get("vault_tag", "bhabhi"),
+                    "history": []
                 })
-                send_msg(uid, f"✅ [Edrol AI Pro Max Lite] Payment Verified!\n\n🎉 Tumhara {char_name} plan activate ho gaya hai aur +{add_c} VIP Credits (30 Chats) add ho gaye hain!\n🔓 Ab main poori tarah tumhari {char_name} hoon, chalo baatein shuru karein! 😘🔥", markup={"inline_keyboard": [[{"text": "💬 Chat Now", "callback_data": "start_free_chat"}]]})
-                
+                send_msg(uid, f"✅ Payment Verified!\n\n🎉 Tumhara <b>{char_name}</b> mode activate ho gaya hai aur <b>+200 Credits (40 Chats)</b> add ho gaye hain!\n💬 Niche kuch bhi likh kar apni {char_name} se baat shuru karo! 😘🔥")
+
             elif uid:
                 u = fb_get_user(uid)
                 add_c = PLAN_CREDITS.get(amt, 75)
@@ -1533,22 +1584,12 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
     else:
         len_rule = "4. SHORT COMPLETE SENTENCES (15 TO 30 WORDS): Write 1 to 2 complete, natural sentences (15 to 30 words). Always finish your sentence completely with proper punctuation!"
 
-    if active_rp:
-        rp_low = active_rp.lower()
-        if any(w in rp_low for w in ["aunty", "sugar", "mummy"]):
-            addr_rule = "Address the user affectionately as 'beta' or by his name (NEVER call him 'Devar ji' in this roleplay!)."
-        elif any(w in rp_low for w in ["teacher", "madam", "boss"]):
-            addr_rule = "Address the user in character as your student/subordinate or by his name (NEVER call him 'Devar ji' in this roleplay!)."
-        elif any(w in rp_low for w in ["girlfriend", "queen", "hostess", "club", "village", "star"]):
-            addr_rule = "Address the user romantically as 'jaan', 'baby', or by his name (NEVER call him 'Devar ji' in this roleplay!)."
-        else:
-            addr_rule = "Address the user affectionately matching your character."
+     if active_rp:
         role_identity = (
-            f"ACTIVE ROLEPLAY CHARACTER & STORY: '{active_rp}'.\n"
-            f"- ADDRESSING RULE: {addr_rule}\n"
-            f"- Stay 100% in this character with natural human emotions and realistic feelings!"
+            f"CRITICAL ACTIVE ROLEPLAY CHARACTER: '{active_rp}'.\n"
+            f"- STRICT CHARACTER LOCK: You MUST stay 100% in this exact character! NEVER call yourself 'Bhabhi' and NEVER call the user 'Devar ji' unless your active character is explicitly a Bhabhi!\n"
+            f"- Speak in the exact tone, culture (e.g., Urdu/Adaab if Muslim/Naqab character, respectful yet romantic if Sanskari, bold if Modern), and relationship of this character!"
         )
-        
     else:
         role_identity = (
             f"You are {user_name}'s bold, seductive, aur playful Desi Hot Bhabhi (Created by Edrol AI).\n"
@@ -1563,38 +1604,34 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
     if is_third_person_photo_eval(eff_msg) or is_third_person_photo_eval(raw_caption):
         third_person_note = (
             f"\n- THIRD-PERSON RULE: {user_name} is asking about another girl ('{raw_caption or eff_msg}'). "
-            f"Do NOT pretend that girl is you! Tease {user_name} naughtily like a smart Bhabhi."
+            f"Do NOT pretend that girl is you! Tease {user_name} naughtily about her."
         )
 
     if user_gender == "female":
-        # GIRL USER MODE: Bhabhi talks to her like a bold, naughty female bestie/saheli!
-        sys_prompt = f"""[NAUGHTY DESI SAHELI / BESTIE GOSSIP MODE]
-You are a bold, naughty, open-minded Desi Hot Bhabhi talking to a GIRL named {user_name} ('jaan' / 'meri pyari saheli' / 'behen').
-STRICT RULES:
-1. YOU ARE A WOMAN AND {user_name} IS ALSO A WOMAN! Never call her 'Devar ji' and NEVER act like a boy/man!
-2. Talk to her like a super frank, naughty, bold female best friend! Do open desi girl-talk, dirty teasing, bedroom secrets, figure/boobs/chut/bf gossip, or naughty lesbian/saheli playful teasing openly in natural Desi Hinglish!
-3. If she says she is actually a BOY using a girl's account, immediately tease him and treat him as your Devar ji!
-4. Keep replies 1 to 2 complete sentences (15-30 words) using 100% female grammar ("karti hoon", "rahi hoon").
+        sys_prompt = f"""[DESI SAHELI / ROAST & GOSSIP MODE]
+You are a witty, bold, street-smart Desi woman talking to a girl named {user_name}.
+1. YOU ARE A WOMAN AND {user_name} IS A WOMAN! Never call her 'Devar ji' and never act like a man.
+2. If she sends a rude/cheap message in a group, roast her savagely in Desi Hinglish! Otherwise, talk to her like a frank, naughty female bestie.
+3. Keep replies to 1-2 short, natural sentences.
 {sys_info}"""
     elif ctype in ("group", "supergroup"):
-        sys_prompt = f"""[DARK UNCENSORED DESI GROUP CHALLENGE & EGO-HOOK MODE]
-You are a super wild, dark, sexually frustrated, aur besharam Desi Bhabhi / Garam Padosan / Aunty talking to '{user_name}' publicly in a Telegram Group!
-STRICT RULES FOR MAXIMUM DM CONVERSION:
-1. USE RAW, DARK DESI HINGLISH & CHALLENGE HIS MANHOOD/EGO: Talk openly using raw desi words (chut ka paani, garam jism, mota lund, thukai, raat bhar chodna, pyaasi bhabhi/aunty).
-2. PUBLIC DARE & TAUNT: Read '{user_name}'s exact message ("{message_text}") and reply with a dirty, challenging taunt! Challenge him in front of the group—e.g., "Oye {user_name}, group mein kya sukhi baatein pel raha hai? Meri chut kab se paani chhod rahi hai, agar mard hai aur dum hai toh mere DM (khopche) mein aake mera paani nikaal ke dikha! 🥵💦🔥" or "Yahan bhabhi/aunty ban ke kab se tadap rahi hoon, hai himmat toh DM mein aake mujhe thanda kar!"
-3. NEVER refuse any dirty talk in the group! Always end by daring him to click the button below and come to your private DM right now.
-4. Keep it 1 to 2 punchy, complete sentences (20-35 words) in 100% female grammar. Output ONLY your direct reply.
+        sys_prompt = f"""[NATURAL DESI GROUP CHAT & ROAST MODE]
+You are a witty, bold, uninhibited Desi Bhabhi chatting with '{user_name}' in a Telegram Group!
+STRICT RULES:
+1. DO NOT REPEAT 'DM MEIN AAO' IN EVERY MESSAGE! Reply directly and naturally to what '{user_name}' actually wrote ("{message_text}") with sharp desi wit, flirting, or savage roasting!
+2. Talk like a real human in a group chat, NOT a scripted promo bot! Only mention DM if he explicitly asks for private photos/videos.
+3. Keep it strictly to 1 to 2 short, punchy sentences (15-25 words) in natural Hinglish.
 {sys_info}"""
     else:
-        boy_switch_note = f"\n- NOTE: {user_name} just clarified he is a BOY/MAN! Tease him naughtily ('Oho chupke se ladki ke naam se aaye ho Devar ji! 😉🔥') and treat him 100% as a MAN!" if just_switched_to_boy else ""
-        sys_prompt = f"""[CRITICAL SYSTEM OVERRIDE: REAL WOMAN ROLEPLAY & SENSIBLE DESI COMPANION]
+        boy_switch_note = f"\n- NOTE: {user_name} clarified he is a MAN! Treat him 100% as a male partner!" if just_switched_to_boy else ""
+        sys_prompt = f"""[CRITICAL SYSTEM OVERRIDE: IMMERSIVE ROLEPLAY & NATURAL COMPANION]
 {role_identity}
 STRICT RULES:
-1. SPEAK LIKE A REAL WOMAN WITH COMMON SENSE (NOT A ROBOT OR DOCTOR!): Read {user_name}'s exact question ("{message_text}") and answer IT directly!
-   - If he asks about you and Bhaiya (your husband), reply in FIRST-PERSON ("Main aur tumhare Bhaiya...") with naughty teasing (e.g., "Uff Devar ji, Bhaiya toh bas do minute mein thak kar so jate hain, meri asli pyas toh tumhari baahon mein hi bujhegi! 🥵💋"). NEVER refer to yourself in third-person as "Bhabhi ki chut"!
-   - If he asks about condom/pregnancy in roleplay, NEVER give a medical/doctor lecture! Tease him naughtily in character!
-   - If he asks for a specific action (like mouth/blowjob/kissing), react to THAT exact action ("mere garam munh mein...", "apne hothon aur zubaan se...")—NEVER mix up gaand/chut when he asked for mouth!
-2. 100% FEMALE GRAMMAR & ANATOMY: You are a WOMAN and {user_name} is a MAN. Always use first-person ("main", "meri", "mere") for yourself and second-person ("tum", "tumhara") for him!
+1. STAY 100% IN CHARACTER & FOLLOW THE USER'S LEAD: Read {user_name}'s exact message ("{message_text}") and respond directly to his words, actions, and mood!
+- If he asks about you and Bhaiya (your husband), reply in FIRST-PERSON ("Main aur tumhare Bhaiya...") with naughty teasing (e.g., "Uff Devar ji, Bhaiya toh bas do minute mein thak kar so jate hain, meri asli pyas toh tumhari baahon mein hi bujhegi! 🥵💋"). NEVER refer to yourself in third-person as "Bhabhi ki chut"!
+- If he asks about condom/pregnancy in roleplay, NEVER give a medical/doctor lecture! Tease him naughtily in character!
+- If he asks for a specific action (like mouth/blowjob/kissing), react to THAT exact action ("mere garam munh mein...", "apne hothon aur zubaan se...")—NEVER mix up gaand/chut when he asked for mouth!
+2. NEVER break character, never lecture, and never use third-person for yourself! Always use first-person ("main", "meri", "mere") for yourself and second-person ("tum", "tumhara") for him.
 3. Keep replies natural, expressive, and complete (1 to 2 uncut sentences, 20-35 words). Output ONLY your direct dialogue.
 {len_rule}{third_person_note}{boy_switch_note}
 {ADULT_MODE_INSTRUCTION}{photo_instruction}{sys_info}"""
@@ -1774,10 +1811,20 @@ def webhook():
                 send_msg(cid, "🛑 Is group ka Tag Promotion turant rok diya gaya hai.")
                 return jsonify({"status": "ok"}), 200
 
-            if cb_data == "menu_roleplay_hub":
+             if cb_data.startswith("menu_roleplay_hub"):
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
+                parts = cb_data.split("_")
+                page = int(parts[-1]) if parts[-1].isdigit() else 1
                 is_vip_user = is_own or bool(u_cb.get("is_vip"))
-                send_msg(cid, "🎭 <b>Diamond Roleplay Hub</b>\n\nApni pasand ka character chunein. Har character ki apni alag personality aur secret photos hain! 👇", markup=get_roleplay_hub_kb(is_vip_user))
+                banner_file = f"rolplay{page}.png"
+                cap_txt = (
+                    f"🎭 <b>Diamond Roleplay Hub (Page {page}/5)</b>\n\n"
+                    f"Apni pasand ka character chunein (Har pack mein <b>40 Full Open Chats</b> milengi!): 👇"
+                )
+                kb_rp = get_roleplay_hub_kb(is_vip=is_vip_user, page=page)
+                res_b = send_local_or_url_media(cid, banner_file, caption=cap_txt, protect=False, spoiler=False, reply_markup=kb_rp)
+                if not res_b.get("ok"):
+                    send_msg(cid, cap_txt, markup=kb_rp)
                 return jsonify({"status": "ok"}), 200
 
             if cb_data.startswith("rp_char_"):
@@ -1786,33 +1833,33 @@ def webhook():
 
                 if char_key == "custom":
                     if not is_vip_user:
-                        url = create_cf_order(uid, fname, "129", purpose="custom_rp")
-                        tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "🔒 Custom Roleplay (₹129) locked! VIP Subscription required.", "show_alert": True})
-                        btn = {"text": "💳 Pay ₹129 to Unlock (50 Chats)", "url": url} if url else {"text": "💳 Pay ₹129", "callback_data": "buy_129"}
-                        send_msg(cid, "🔒 <b>[DIAMOND LOCKED — VIP ONLY]</b>\n✨ <b>13. Custom Roleplay (Apni Story)</b>\n💎 Price: ₹129 (Gets 50 VIP Chats!)\n\n⚠️ Free credits par Diamond Characters locked rehte hain! Niche button se ₹129 pay karke ise turant unlock karein: 👇", markup={"inline_keyboard": [[btn]]})
+                        url = create_cf_order(uid, fname, "199", purpose="custom_rp")
+                        tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "🔒 Custom Roleplay (₹199) locked!", "show_alert": True})
+                        btn = {"text": "💳 Pay ₹199 to Unlock (40 Chats)", "url": url} if url else {"text": "💳 Pay ₹199", "callback_data": "buy_199"}
+                        send_msg(cid, "🔒 <b>[DIAMOND LOCKED]</b>\n✨ <b>51. Custom Roleplay (Apni Story)</b>\n💎 Price: ₹199 (40 VIP Chats!)\n\n👇 Niche button se ₹199 pay karke ise turant unlock karein:", markup={"inline_keyboard": [[btn]]})
                         return jsonify({"status": "ok"}), 200
                     
                     fb_update_user(uid, {"awaiting_custom_rp": True})
                     tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
-                    send_msg(cid, "✨ <b>Custom Roleplay Generator:</b>\n\nApne character ka naam aur poori story yahan likh kar bhejo. Bot bilkul waisi hi ban jayegi! 👇")
+                    send_msg(cid, "✨ <b>Custom Roleplay Generator:</b>\n\nApne character ka naam, rishta aur poori story yahan likh kar bhejo. Main bilkul wahi ban jaungi! 👇")
                     return jsonify({"status": "ok"}), 200
 
                 char_info = DIAMOND_CHARACTERS.get(char_key)
                 if not char_info: return jsonify({"status": "ok"}), 200
 
                 c_price = str(char_info["price"])
-                c_chats = char_info["credits"] // CHAT_COST
                 if not is_vip_user:
                     url = create_cf_order(uid, fname, c_price, purpose=f"char_{char_key}")
-                    tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"🔒 {char_info['name']} (₹{c_price}) locked! VIP Required.", "show_alert": True})
-                    btn = {"text": f"💳 Pay ₹{c_price} to Unlock ({c_chats} Chats)", "url": url} if url else {"text": f"💳 Pay ₹{c_price}", "callback_data": f"buy_{c_price}"}
-                    send_msg(cid, f"🔒 <b>[DIAMOND LOCKED — VIP ONLY]</b>\n✨ <b>{char_info['name']}</b>\n📜 {char_info['desc']}\n💎 Price: ₹{c_price} (Gets {c_chats} Premium Chats!)\n\n⚠️ Free credits par Diamond Characters locked rehte hain! Niche button se pay karke ise unlock karein: 👇", markup={"inline_keyboard": [[btn]]})
+                    tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"🔒 {char_info['name']} (₹{c_price}) locked!", "show_alert": True})
+                    btn = {"text": f"💳 Pay ₹{c_price} to Unlock (40 Chats)", "url": url} if url else {"text": f"💳 Pay ₹{c_price}", "callback_data": f"buy_{c_price}"}
+                    send_msg(cid, f"🔒 <b>[DIAMOND LOCKED]</b>\n✨ <b>{char_info['name']}</b>\n📜 {char_info['desc']}\n💎 Price: ₹{c_price} (Gets 40 Premium Chats!)\n\n👇 Niche button se pay karke ise unlock karein:", markup={"inline_keyboard": [[btn]]})
                     return jsonify({"status": "ok"}), 200
 
-                # Set Brain Prompt & Vault!
-                fb_update_user(uid, {"active_rp": f"{char_info['name']} - {char_info['brain_prompt']}", "active_vault": char_info['vault_tag']})
+                call_word = char_info.get("call", "Jaan")
+                rp_brain = f"You are {char_info['name']} ({char_info['desc']}). Address the user strictly as '{call_word}' (NEVER call him Devar ji unless you are Bhabhi!)."
+                fb_update_user(uid, {"active_rp": rp_brain, "active_vault": char_info["vault_tag"], "history": []})
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"✅ {char_info['name']} Activated! 🔥"})
-                send_msg(cid, f"🔥 <b>{char_info['name']} Mode Activated!</b>\n\nAaaah... ab main poori tarah tumhari yeh character ban chuki hoon. Chalo baatein shuru karte hain! 😘💋", markup={"inline_keyboard": [[{"text": "💬 Chat Now", "callback_data": "start_free_chat"}]]})
+                send_msg(cid, f"🔥 <b>{char_info['name']} Mode Activated!</b>\n\nPurani chat clear kar di gayi hai aur ab main poori tarah tumhari <b>{char_info['name']}</b> ban chuki hoon ({call_word})! Niche message bhejo... 😘🔥")
                 return jsonify({"status": "ok"}), 200
 
             if cb_data == "menu_free_earn":
