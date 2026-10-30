@@ -2125,7 +2125,7 @@ def webhook():
                     tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "🥺 Tumhare 12 Free Credits khatam ho gaye hain!", "show_alert": True})
                     send_msg(
                         cid,
-                        f"🥺 Aww {html.escape(fname)} jaan, tumhare 1-Time 12 Free Credits khatam ho chuke hain (0 Credits left)!\n\n"
+                        f"🥺 Aww {html.escape(fname)} jaan, tumhare 1-Time 20 Free Credits khatam ho chuke hain (0 Credits left)!\n\n"
                         f"💔 Mujhe tumse abhi aur dher saari baatein aur roleplay karna hai... niche se bas ₹9 (15 Chats) ya ₹19 (35 Chats) wala chota sa recharge kar lo na, main tumhara wait kar rahi hoon! 😘👇",
                         markup=get_pay_kb()
                     )
@@ -2155,18 +2155,31 @@ def webhook():
                     return jsonify({"status": "ok"}), 200
                 amt = cb_data.replace("buy_", "").strip()
                 if amt in PLAN_CREDITS:
+                    old_credits = int(u_cb.get("credits") or 0)
                     fb_update_user(uid, {"awaiting_payment": amt})
                     url = create_cf_order(uid, fname, amt)
                     tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "Opening Verified UPI..."})
                     if url:
-                        btn = {"text": f"💳 Pay ₹{amt} Safely (Instant UPI)", "url": url} if cb_type == "private" else {"text": f"💳 Pay ₹{amt} Safely (Instant UPI)", "url": url}
+                        btn = {"text": f"💳 Pay ₹{amt} Safely (GPay / PhonePe / Paytm)", "url": url}
                         send_msg(
                             cid,
-                            f"🔒 Verified VIP Plan: ₹{amt} (+{PLAN_CREDITS[amt]} Chats)\n\n"
-                            f"✅ 100% Instant Auto-Credit: Payment hote hi 2 second mein credits automatic add ho jayenge!\n"
-                            f"👇 Niche button dabakar UPI (GPay / PhonePe / Paytm) se pay karein:",
+                            f"😘 Haan {html.escape(fname)} jaan, bas ek step aur! Niche button dabakar <b>₹{amt} (+{PLAN_CREDITS[amt]} Credits)</b> pay kar do, 2 second mein credits judte hi main poori tumhari hoon... 🥵💋👇",
                             markup={"inline_keyboard": [[btn]]}
                         )
+                        def check_unpaid_click():
+                            u_now = fb_get_user(uid)
+                            if int(u_now.get("credits") or 0) <= old_credits and u_now.get("awaiting_payment") == amt:
+                                hook_txt = (
+                                    f"🥺 <b>{html.escape(fname)} baby, payment ruk gaya kya?</b>\n\n"
+                                    f"Tumne ₹{amt} wala plan khola par aage nahi aaye... daro mat jaan, yeh 100% safe UPI hai aur 2 second mein automatic chalu ho jata hai! ❤️\n"
+                                    f"Jaldi se karke aao na, main kapde utaar ke kab se tumhara intezaar kar rahi hoon... 😘🔥👇"
+                                )
+                                hook_kb = {"inline_keyboard": [
+                                    [{"text": f"⚡ Complete ₹{amt} Payment Now", "url": url}],
+                                    [{"text": "🆘 Payment Help / QR Code", "callback_data": "menu_support"}]
+                                ]}
+                                send_msg(cid, hook_txt, markup=hook_kb)
+                        Timer(90.0, check_unpaid_click).start()
                 return jsonify({"status": "ok"}), 200
 
             # GROUP TAG PROMOTION WITH PHOTO/VIDEO BANNER OPTION (1792940447099.jpeg)
