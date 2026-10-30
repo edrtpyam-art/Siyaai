@@ -2669,28 +2669,30 @@ def webhook():
         is_sys_question = is_system_or_bot_info_query(text)
         # PAYMENT REMINDER HOOK (If User Gets Paywall but Doesn't Pay within 3 mins)
         if ctype == "private" and not is_own and credits <= 0 and not is_sys_question:
-            send_msg(
-                cid,
-                "💎 <b>[Hot Bhabhi] Plan Over Notice:</b>\n\n"
-                "Aapka Free/VIP Chat Plan over ho gaya hai! Aage baatein jari rakhne ke liye kripya niche diye gaye plans se recharge karein, warna main aapke messages ka reply nahi de paungi. 👇",
-                markup=get_pay_kb()
+            was_vip = bool(u.get("is_vip"))
+            plan_type_str = "VIP Plan ke saare credits" if was_vip else "20 Free Trial credits"
+            out_msg = (
+                f"🥺 Aww {html.escape(fname)} jaan, humari baatein kitni garam aur mazedar chal rahi thi... "
+                f"par tumhare <b>{plan_type_str}</b> abhi khatam ho gaye (Balance: 0 Credits)! 💔\n\n"
+                f"🔥 Mujhe abhi tumhare saath aur khul ke baatein karni hain... jaldi se niche apna pasandida pack chuno aur wapas mere paas aao na, main bed pe wait kar rahi hoon! 😘💋👇"
             )
-            # Add delayed reminder to hook them back if they don't recharge
+            send_msg(cid, out_msg, markup=get_pay_kb())
+
             def send_reminder():
                 u_check = fb_get_user(uid)
                 if int(u_check.get("credits", 0)) <= 0:
                     rem_msg = (
-                        "🥺 <b>Baby, kya hua?</b>\n\n"
-                        "Tumne abhi tak recharge nahi kiya? Koi problem aa rahi hai payment me ya trust issue ho raha hai?\n\n"
-                        "Agar koi dikkat hai toh '🆘 Help & Support' me click karke Owner se baat kar lo, par aise beech me mujhe chhod kar mat jao na... Main tumhara wait kar rahi hoon! 😘👇"
+                        f"😒 <b>Oye {html.escape(fname)}, kahan gayab ho gaye jaan?</b>\n\n"
+                        f"Main kab se akeli tadap rahi hoon tumhare reply ke liye... aise beech mein garam karke chhodoge kya? 🥺🔥\n"
+                        f"Agar payment mein koi dikkat aa rahi hai toh niche <b>Help & Support</b> daba do, warna jaldi se <b>₹9 ya ₹29</b> wala pack unlock karke aao na mere paas! 🥵💋👇"
                     )
                     rem_kb = {"inline_keyboard": [
-                        [{"text": "💳 Pay ₹9 (Instant Trial)", "callback_data": "buy_9"}, {"text": "💳 Pay ₹29 (Best Seller)", "callback_data": "buy_29"}],
-                        [{"text": "🆘 Help & Support (Contact Owner)", "callback_data": "menu_support"}]
+                        [{"text": "🔥 Unlock Now — ₹9 (75 Credits)", "callback_data": "buy_9"}, {"text": "💎 Best Seller — ₹29 (300 Credits)", "callback_data": "buy_29"}],
+                        [{"text": "🆘 Payment Issue? Contact Owner", "callback_data": "menu_support"}]
                     ]}
                     send_msg(cid, rem_msg, markup=rem_kb)
-            
-            Timer(180.0, send_reminder).start() # 3 minutes delay
+
+            Timer(150.0, send_reminder).start()
             return jsonify({"status": "ok"}), 200
 
         tg_req("sendChatAction", {"chat_id": cid, "action": "typing"}, timeout=2)
