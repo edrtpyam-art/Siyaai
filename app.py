@@ -1489,6 +1489,7 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
     is_vip_u = is_owner or bool(user_data.get("is_vip"))
     active_rp = "" if (ctype in ("group", "supergroup") or not is_vip_u) else (user_data.get("active_rp") or "")
     active_vault = "" if (ctype in ("group", "supergroup") or not is_vip_u) else (user_data.get("active_vault") or "")
+    roleplay_just_ended = False
 
     if ctype == "private":
         if any(w in msg_low for w in STOP_ROLEPLAY_WORDS):
