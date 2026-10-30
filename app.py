@@ -2489,10 +2489,11 @@ def webhook():
                     send_msg(cid, "✅ Group Linked for Management & Promotion!", markup={"inline_keyboard": [[{"text": "🛡️ Open DM Group Management", "url": f"https://t.me/{BOT_USERNAME}?start=promo"}]]})
                 return jsonify({"status": "ok"}), 200
 
-        # 4. ACTIVE GROUP CHAT (REPLIES WHEN CALLED/REPLIED OR EVERY 45s!)
+          # 4. DARK DESI GROUP ENGAGEMENT & AUTO-CHALLENGE (EVERY 45s OR ON HOT WORDS)
             rep_bot = bool(BOT_ID) and str(rep_obj.get("from", {}).get("id", "")) == str(BOT_ID)
             t_low = text.lower()
-            called = any(w in t_low for w in ["bhabhi", "bhabi", "siya", "jaan", "baby", "hot"]) or (f"@{BOT_USERNAME.lower()}" in t_low)
+            hot_grp_triggers = ["bhabhi", "bhabi", "aunty", "aunti", "padosan", "chut", "lund", "gand", "sex", "chod", "pani", "paani", "garam", "jaan", "baby", "koi hai", "hello", "hii"]
+            called = any(w in t_low for w in hot_grp_triggers) or (f"@{BOT_USERNAME.lower()}" in t_low)
             now_ts = time.time()
             auto_due = (now_ts - USER_CACHE.get(f"grp_engage:{cid}", 0)) >= 45 and len(text) > 1 and not text.startswith("/")
 
@@ -2500,6 +2501,7 @@ def webhook():
                 check_and_run_group_promotion(cid, msg.get("message_id"), uid, fname)
                 return jsonify({"status": "ok"}), 200
             USER_CACHE[f"grp_engage:{cid}"] = now_ts
+
 
         u = fb_get_user(uid, first_name=fname)
         credits = int(u.get("credits", 12))
