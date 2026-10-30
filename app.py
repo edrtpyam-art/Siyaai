@@ -20,9 +20,9 @@ DEFAULT_ROLEPLAY_TRIGGERS = [
     "teacher", "madam", "maid", "naukrani", "doctor", "nurse", "boss", "secretary", "sali", "saali", "nagin"
 ]
 DEFAULT_VOICE_TRIGGERS = [
-    "voice", "voic", "vioce", "aawaz", "awaz", "awaaz", "waz", "waza",
-    "bol ke", "bolke", "audio", "sunao", "suna", "suno", "sunoo", "to suno",
-    "voice bejo", "voice bhejo", "voice doo", "voice do", "moan", "siskari", "aaah"
+    "voice", "voic", "vioce", "aawaz", "awaz", "awaaz",
+    "bol ke", "bolke", "audio", "sunao",
+    "voice bejo", "voice bhejo", "voice doo", "voice do", "moan", "siskari"
 ]
 DEFAULT_PHOTO_VAULT = {
     "simplepic": ["simplepic.jpg", "simplepic2.jpg"],
@@ -161,7 +161,7 @@ API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}" if BOT_TOKEN else ""
 
 # 1 Chat = 5 Credits!
 CHAT_COST = 5
-FREE_START_CREDITS = 20        # 4 Free Chats on start
+FREE_START_CREDITS = 35        # 4 Free Chats on start
 REFERRAL_REWARD_CREDITS = 25   # 3 Friends = +25 Credits
 
 PLAN_CREDITS = {
@@ -1186,7 +1186,7 @@ def is_third_person_photo_eval(caption_text):
     c_low = str(caption_text or "").lower()
     return any(w in c_low for w in THIRD_PERSON_PHOTO_TRIGGERS)
     
-    GIRL_NAMES_SET = {
+GIRL_NAMES_SET = {
     "priya", "neha", "pooja", "puja", "anjali", "kavya", "riya", "sneha", "shalini", "divya",
     "kriti", "simran", "muskan", "payal", "nisha", "sakshi", "tanya", "shreya", "aarti", "arti",
     "komal", "rani", "pinki", "pinky", "sunita", "rekha", "sonam", "swati", "nikita", "preeti",
@@ -2488,20 +2488,13 @@ def webhook():
                     fb_update_user(uid, {"user_groups": ug})
                     send_msg(cid, "✅ Group Linked for Management & Promotion!", markup={"inline_keyboard": [[{"text": "🛡️ Open DM Group Management", "url": f"https://t.me/{BOT_USERNAME}?start=promo"}]]})
                 return jsonify({"status": "ok"}), 200
-            
-            if text.lower().startswith("/promo"):
-                if is_user_group_admin(cid, uid):
-                    ug = fb_get_user(uid, first_name=fname).get("user_groups") or {}
-                    ug[str(cid)] = group_title
-                    fb_update_user(uid, {"user_groups": ug})
-                    send_msg(cid, "✅ Group Linked for Management & Promotion!", markup={"inline_keyboard": [[{"text": "🛡️ Open DM Group Management", "url": f"https://t.me/{BOT_USERNAME}?start=promo"}]]})
-                return jsonify({"status": "ok"}), 200
 
-        # 4. SIYA-STYLE GROUP ENGAGEMENT & AUTO-TAG (EVERY 150s OR WHEN CALLED/REPLIED)
+        # 4. ACTIVE GROUP CHAT (REPLIES WHEN CALLED/REPLIED OR EVERY 45s!)
             rep_bot = bool(BOT_ID) and str(rep_obj.get("from", {}).get("id", "")) == str(BOT_ID)
-            called = ("bhabhi" in text.lower()) or (f"@{BOT_USERNAME.lower()}" in text.lower())
+            t_low = text.lower()
+            called = any(w in t_low for w in ["bhabhi", "bhabi", "siya", "jaan", "baby", "hot"]) or (f"@{BOT_USERNAME.lower()}" in t_low)
             now_ts = time.time()
-            auto_due = (now_ts - USER_CACHE.get(f"grp_engage:{cid}", 0)) >= 150 and len(text) > 2 and not text.startswith("/")
+            auto_due = (now_ts - USER_CACHE.get(f"grp_engage:{cid}", 0)) >= 45 and len(text) > 1 and not text.startswith("/")
 
             if not (rep_bot or called or auto_due):
                 check_and_run_group_promotion(cid, msg.get("message_id"), uid, fname)
