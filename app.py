@@ -87,7 +87,7 @@ CASHFREE_APP_ID = os.environ.get("CASHFREE_APP_ID", "").strip().strip('"').strip
 CASHFREE_SECRET_KEY = os.environ.get("CASHFREE_SECRET_KEY", "").strip().strip('"').strip("'")
 
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/edrtpyam-art/Siyaai/main/"
-START_BANNER_IMAGE = "video.mp4"
+START_BANNER_IMAGE = "bot.png"
 DEFAULT_PROMO_BANNER = "bot2.png"
 OFFICIAL_CHANNEL_URL = "https://t.me/edrolai"
 MORE_GROUPS_URL = "https://t.me/friendschatinggroup"
