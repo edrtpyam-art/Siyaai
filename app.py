@@ -238,8 +238,8 @@ DIAMOND_CHARACTERS = {
 }
 
 STOP_ROLEPLAY_WORDS = [
-    "normal baat", "stop roleplay", "roleplay band", "rolpay band", "mode off",
-    "mood off", "bas karo", "band karo", "roleplay over", "rp over", "thank you bhabhi", "bye bhabhi"
+    "stop roleplay", "roleplay band karo", "rolpay band",
+    "roleplay over", "rp over", "exit roleplay"
 ]
 CREATOR_QUERY_WORDS = [
     "kisne banaya", "kis na bnay", "kisne bnaya", "who made you", "who created you",
