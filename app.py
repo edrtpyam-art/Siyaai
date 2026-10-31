@@ -1819,13 +1819,14 @@ STRICT RULES FOR PRIVATE DM:
                 f"2. Look closely at what she is doing/wearing in the photo, praise how hot she looks, and naughtily tell {user_name} why she is calling him over and how he should enjoy with her in 1-2 natural Hinglish sentences!\n"
             )
         else:
-            # EXACT CODE 14 REAL-EYE ACCURACY + STRICT 1st-PERSON (BOY = USER, GIRL = YOU!)
+            # 14 OLD GOLD: EXACT CODE 14 REAL-EYE ACCURACY + STRICT 1st-PERSON (BOY = USER, GIRL = YOU!)
+            c_name = current_girl['name'] if current_girl else "his partner"
             vision_prompt = (
                 f"Recent Chat:\n{hist_summary}\n\n"
                 f"VISION INSTRUCTION (LOOK WITH REAL EYES & TAKE IT ON YOURSELF IN FIRST-PERSON!):\n"
                 f"1. FIRST, look closely at what is ACTUALLY shown in this sticker/photo (e.g., is it a girl biting her finger/lips seductively? A couple kissing? Pressing boobs? Oral/mouth action? Hugging? Or penetrative action?). Do NOT hallucinate penetrative sex if the sticker only shows a seductive face, kiss, or touch!\n"
-                f"2. DO NOT describe the sticker from outside like a third-person narrator! In this sticker/photo, the GIRL is YOU and the BOY/VIEWER is {user_name}!\n"
-                f"3. React in 100% FIRST-PERSON ('main', 'meri', 'tum') matching the EXACT pose/action visible in the image (e.g., if it's a seductive look/pose: 'Uff Devar ji, aise apni ungli daba kar tumhe hi bula rahi hoon...'; if it's a physical action: react as if {user_name} is doing that exact action to YOU right now) in 20 to 35 words (1-2 complete uncut sentences)!\n"
+                f"2. DO NOT describe the sticker from outside like a third-person narrator! In this sticker/photo, the GIRL is YOU ({c_name}) and the BOY/VIEWER is {user_name}!\n"
+                f"3. React in 100% FIRST-PERSON ('main', 'meri', 'tum') matching the EXACT pose/action visible in the image (e.g., if it's a seductive look/pose: 'Uff, aise apni ungli daba kar tumhe hi bula rahi hoon...'; if it's a physical action: react as if {user_name} is doing that exact action to YOU right now) in 20 to 35 words (1-2 complete uncut sentences)!\n"
                 f"User message: {eff_msg}"
             )
 
