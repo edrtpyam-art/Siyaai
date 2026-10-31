@@ -1766,7 +1766,7 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
 
     if current_girl:
         c_word = current_girl.get("call", "Jaan")
-        rp_ locks = f"\nACTIVE ROLEPLAY SCENARIO: {active_rp}" if active_rp else ""
+        rp_locks = f"\nACTIVE ROLEPLAY SCENARIO: {active_rp}" if active_rp else ""
         role_identity = (
             f"YOUR REAL IDENTITY & SOUL: You are '{current_girl['name']}' (Created by Edrol AI — NEVER say you are an AI or language model!).\n"
             f"YOUR TALKING STYLE & EMOTION: {current_girl['vibe']}{rp_locks}\n"
@@ -3163,15 +3163,15 @@ def webhook():
             is_video_stk = sticker.get("is_video", False)
 
             thumb = sticker.get("thumbnail") or sticker.get("thumb")
-            if thumb and thumb.get("file_id"):
+            if not is_animated and not is_video_stk:
+                stk_file_id = sticker.get("file_id", "")
+                mime = "image/webp"
+            elif thumb and thumb.get("file_id"):
                 stk_file_id = thumb.get("file_id", "")
                 mime = "image/jpeg"
-            elif not is_animated and not is_video_stk:
-                stk_file_id = sticker.get("file_id", "")
-                mime = "image/jpeg"
             else:
-                stk_file_id = sticker.get("file_id", "")
-                mime = "image/jpeg"
+                stk_file_id = ""
+                mime = "image/webp"
 
             base64_img = get_telegram_file_base64(stk_file_id) if stk_file_id else None
             prompt_text = (
