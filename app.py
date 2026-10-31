@@ -2186,7 +2186,7 @@ def webhook():
                     "• Features: 24/7 Uncensored Roleplay Chat, Real Voice Notes & Smart Group Management.\n"
                     "• Niche se Help & Support, Feedback, ya apni purani Chat History Clear karein: 👇"
                 )
-                send_msg(cid, about_txt, markup=get_about_menu_kb())
+                edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption=about_txt, reply_markup=get_about_menu_kb())
                 return jsonify({"status": "ok"}), 200
 
             if cb_data == "user_clear_history":
@@ -2205,7 +2205,7 @@ def webhook():
                     "4️⃣ Group Tag Promotion: ₹99 (2d), ₹199 (1w), ₹599 (1m) with Photo/Video Banner!\n\n"
                     "👇 Niche se apna option chunein:"
                 )
-                send_msg(cid, gm_txt, markup=get_group_mgmt_kb())
+                edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption=gm_txt, reply_markup=get_group_mgmt_kb())
                 return jsonify({"status": "ok"}), 200
 
             if cb_data == "menu_set_welcome":
@@ -2255,7 +2255,7 @@ def webhook():
                     f"🏢 Total Groups: {len(all_g)}\n"
                     f"👥 Total Users: {len(all_u)}"
                 )
-                send_msg(cid, panel_txt, markup=get_owner_customize_kb())
+                edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption=panel_txt, reply_markup=get_owner_customize_kb())
                 return jsonify({"status": "ok"}), 200
 
             # ALL GROUPS (2-COLUMN BUTTONS: [🏢 GROUP LINK] [🆔 -100...] - 35976.jpg)
