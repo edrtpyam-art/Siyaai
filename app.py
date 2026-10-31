@@ -2105,6 +2105,17 @@ def webhook():
                     f"CALL USER STRICTLY AS: '{call_word}'. "
                     f"CRITICAL: NEVER call yourself 'Bhabhi' or user 'Devar ji' unless the role is Bhabhi!"
                 )
+                rp_map = u_cb.get("bot_rp_map") or {}
+                rp_map[g_key] = rp_brain
+                fb_update_user(uid, {
+                    "active_rp": rp_brain,
+                    "active_girl": g_key,
+                    "active_vault": g_key,
+                    "bot_rp_map": rp_map,
+                    "history": []
+                })
+                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"✅ {g_info['name']} Updated in 1 Sec! 🔥"})
+
                 fb_update_user(uid, {"active_rp": rp_brain, "active_girl": g_key, "active_vault": g_key, "history": []})
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"✅ {g_info['name']} Ready! 🔥"})
                 go_kb = {"inline_keyboard": [
