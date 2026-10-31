@@ -3223,20 +3223,29 @@ def webhook():
 # ============================================================
 # 11. EDROL AI LANDING PAGE
 # ============================================================
+MAIN_BOT_TOKEN = BOT_TOKEN
+MAIN_BOT_USERNAME = BOT_USERNAME
+MAIN_BOT_ID = BOT_ID
+MAIN_API_URL = API_URL
+
 @app.route("/api/bot/<bot_uname>", methods=["POST"])
 def webhook_char_bot(bot_uname):
-    global BOT_TOKEN, API_URL, BOT_USERNAME
+    global BOT_TOKEN, API_URL, BOT_USERNAME, BOT_ID
     b_clean = str(bot_uname or "").lower().lstrip("@")
     tok = CHAR_BOT_TOKENS.get(b_clean)
-    old_tok, old_url, old_uname = BOT_TOKEN, API_URL, BOT_USERNAME
-    if tok:
-        BOT_TOKEN = tok
-        API_URL = f"https://api.telegram.org/bot{tok}"
-        BOT_USERNAME = b_clean
+    if not tok:
+        return jsonify({"status": "missing_token_for_" + b_clean}), 200
+    BOT_TOKEN = tok
+    BOT_ID = tok.split(":")[0] if ":" in tok else ""
+    API_URL = f"https://api.telegram.org/bot{tok}"
+    BOT_USERNAME = b_clean
     try:
         return webhook()
     finally:
-        BOT_TOKEN, API_URL, BOT_USERNAME = old_tok, old_url, old_uname
+        BOT_TOKEN = MAIN_BOT_TOKEN
+        BOT_ID = MAIN_BOT_ID
+        API_URL = MAIN_API_URL
+        BOT_USERNAME = MAIN_BOT_USERNAME
 
 @app.route("/", methods=["GET"])
 def health_check():
