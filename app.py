@@ -158,6 +158,53 @@ GEMINI_SAFETY_SETTINGS = [
 
 BOT_ID = BOT_TOKEN.split(":")[0] if BOT_TOKEN else ""
 API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}" if BOT_TOKEN else ""
+# 5 Additional Character Bot Tokens from Environment
+CHAR_BOT_TOKENS = {
+    "hot_tanya_bot": os.environ.get("TANYA_BOT_TOKEN", "").strip().strip('"').strip("'"),
+    "hot_sakshi_bot": os.environ.get("SAKSHI_BOT_TOKEN", "").strip().strip('"').strip("'"),
+    "hot_aashi_bot": os.environ.get("AASHI_BOT_TOKEN", "").strip().strip('"').strip("'"),
+    "hot_aditi_bot": os.environ.get("ADITI_BOT_TOKEN", "").strip().strip('"').strip("'"),
+    "hot_aarohi_bot": os.environ.get("AAROHI_BOT_TOKEN", "").strip().strip('"').strip("'")
+}
+
+LIVE_BOT_DP_CACHE = {}
+
+def get_live_bot_dp_url(bot_username, fallback_banner="bot.png"):
+    """Fetches the live profile photo of the target bot directly via Telegram API without uploading to GitHub."""
+    b_key = str(bot_username or "").lower().lstrip("@")
+    if b_key in LIVE_BOT_DP_CACHE:
+        return LIVE_BOT_DP_CACHE[b_key]
+
+    token = CHAR_BOT_TOKENS.get(b_key) or BOT_TOKEN
+    if token and ":" in token:
+        bot_uid = token.split(":")[0]
+        try:
+            r = requests.post(
+                f"https://api.telegram.org/bot{token}/getUserProfilePhotos",
+                json={"user_id": int(bot_uid), "limit": 1},
+                timeout=4
+            ).json()
+            photos = r.get("result", {}).get("photos", [])
+            if photos and photos[0]:
+                f_id = photos[0][-1]["file_id"]
+                f_res = requests.post(
+                    f"https://api.telegram.org/bot{token}/getFile",
+                    json={"file_id": f_id},
+                    timeout=4
+                ).json()
+                f_path = f_res.get("result", {}).get("file_path")
+                if f_path:
+                    # Download bytes once or use file URL for re-upload/editing
+                    img_bytes = requests.get(f"https://api.telegram.org/file/bot{token}/{f_path}", timeout=5).content
+                    if img_bytes:
+                        tmp_path = f"/tmp/dp_{b_key}.jpg"
+                        with open(tmp_path, "wb") as f:
+                            f.write(img_bytes)
+                        LIVE_BOT_DP_CACHE[b_key] = tmp_path
+                        return tmp_path
+        except Exception:
+            pass
+    return GITHUB_BASE_URL + fallback_banner
 
 # 1 Chat = 5 Credits!
 CHAT_COST = 5
@@ -608,6 +655,47 @@ def send_local_or_url_media(chat_id, filename, caption="", protect=True, spoiler
     if reply_to_message_id: payload["reply_to_message_id"] = reply_to_message_id
     if reply_markup: payload["reply_markup"] = reply_markup
     return tg_req(api_method, payload, timeout=18)
+
+def edit_or_send_box_media(chat_id, message_id, media_source, caption="", reply_markup=None):
+    """Updates photo & caption IN THE SAME BOX (BotFather style) without sending a new chat message!"""
+    styled_caption = to_hot_bhabhi_font(caption) if caption else ""
+    local_path = find_local_file(media_source) or (media_source if str(media_source).startswith("/tmp/") and os.path.exists(media_source) else None)
+
+    if message_id:
+        if local_path:
+            try:
+                media_json = json.dumps({"type": "photo", "media": "attach://photo", "caption": styled_caption, "parse_mode": "HTML"})
+                data = {"chat_id": str(chat_id), "message_id": str(message_id), "media": media_json}
+                if reply_markup:
+                    data["reply_markup"] = json.dumps(reply_markup)
+                with open(local_path, "rb") as f:
+                    res = requests.post(f"{API_URL}/editMessageMedia", data=data, files={"photo": ("dp.jpg", f, "image/jpeg")}, timeout=12).json()
+                if res.get("ok"):
+                    return res
+            except Exception:
+                pass
+        else:
+            media_url = media_source if str(media_source).startswith("http") else GITHUB_BASE_URL + str(media_source)
+            payload = {
+                "chat_id": chat_id,
+                "message_id": message_id,
+                "media": {"type": "photo", "media": media_url, "caption": styled_caption, "parse_mode": "HTML"}
+            }
+            if reply_markup:
+                payload["reply_markup"] = reply_markup
+            res = tg_req("editMessageMedia", payload, timeout=10)
+            if res.get("ok"):
+                return res
+
+        # Fallback: Edit caption/text in the same box if image couldn't be swapped
+        res_cap = tg_req("editMessageCaption", {"chat_id": chat_id, "message_id": message_id, "caption": styled_caption, "parse_mode": "HTML", "reply_markup": reply_markup})
+        if res_cap.get("ok"):
+            return res_cap
+        res_txt = tg_req("editMessageText", {"chat_id": chat_id, "message_id": message_id, "text": styled_caption, "parse_mode": "HTML", "reply_markup": reply_markup})
+        if res_txt.get("ok"):
+            return res_txt
+
+    return send_local_or_url_media(chat_id, media_source, caption=caption, protect=False, spoiler=False, reply_markup=reply_markup)
 
 def send_start_banner_or_msg(chat_id, caption_html, reply_markup):
     res = send_local_or_url_media(chat_id, START_BANNER_IMAGE, caption=caption_html, protect=False, spoiler=False, reply_markup=reply_markup)
@@ -1878,15 +1966,14 @@ def webhook():
                 parts = cb_data.split("_")
                 page = int(parts[-1]) if parts[-1].isdigit() else 1
                 is_vip_user = is_own or bool(u_cb.get("is_vip"))
-                banner_file = f"rolplay{page}.png"
+                banner_num = ((page - 1) % 5) + 1
+                banner_file = f"rolplay{banner_num}.png"
                 cap_txt = (
-                    f"🎭 <b>Diamond Roleplay Hub (Page {page}/5)</b>\n\n"
-                    f"Apni pasand ka character chunein (Har pack mein <b>40 Full Open Chats</b> milengi!): 👇"
+                    f"🎭 <b>200+ Diamond Roleplay Hub (Page {page}/20)</b>\n\n"
+                    f"Apni pasand ka Roleplay Scenario chunein (Har pack mein <b>40 Chats</b> milengi!): 👇"
                 )
                 kb_rp = get_roleplay_hub_kb(is_vip=is_vip_user, page=page)
-                res_b = send_local_or_url_media(cid, banner_file, caption=cap_txt, protect=False, spoiler=False, reply_markup=kb_rp)
-                if not res_b.get("ok"):
-                    send_msg(cid, cap_txt, markup=kb_rp)
+                edit_or_send_box_media(cid, mid, banner_file, caption=cap_txt, reply_markup=kb_rp)
                 return jsonify({"status": "ok"}), 200
 
             if cb_data.startswith("rp_char_"):
@@ -1898,14 +1985,13 @@ def webhook():
                         url = create_cf_order(uid, fname, "199", purpose="custom_rp")
                         tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "🔒 Custom Roleplay (₹199) locked!", "show_alert": True})
                         btn = {"text": "💳 Pay ₹199 to Unlock (40 Chats)", "url": url} if url else {"text": "💳 Pay ₹199", "callback_data": "buy_199"}
-                        send_msg(cid, "🔒 <b>[DIAMOND LOCKED]</b>\n✨ <b>201. Custom Roleplay (Apni Story)</b>\n💎 Price: ₹199 (40 VIP Chats!)\n\n👇 Niche button se ₹199 pay karke ise turant unlock karein:", markup={"inline_keyboard": [[btn]]})
+                        edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption="🔒 <b>[DIAMOND LOCKED]</b>\n✨ <b>201. Custom Roleplay (Apni Story)</b>\n💎 Price: ₹199 (40 VIP Chats!)\n\n👇 Niche button se ₹199 pay karke ise turant unlock karein:", reply_markup={"inline_keyboard": [[btn], [{"text": "🔙 Back", "callback_data": "menu_roleplay_hub_1"}]]})
                         return jsonify({"status": "ok"}), 200
                     fb_update_user(uid, {"awaiting_custom_rp": True})
                     tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
-                    send_msg(cid, "✨ <b>Custom Roleplay Generator:</b>\n\nApne character ka naam, rishta aur poori story yahan likh kar bhejo. Main bilkul wahi ban jaungi! 👇")
+                    send_msg(cid, "✨ <b>Custom Roleplay Generator:</b>\n\nApne character ka naam, rishta aur poori story yahan likh kar bhejo. 👇")
                     return jsonify({"status": "ok"}), 200
 
-                # Redirect to Girl Profile Card Box (Starts at Girl Index 0)
                 cb_data = f"girlcard_{char_key}_0"
 
             if cb_data.startswith("girlcard_"):
@@ -1929,9 +2015,9 @@ def webhook():
                     f"📜 <i>{char_info['desc']}</i>\n\n"
                     f"🙋‍♀️ <b>Partner Name:</b> {g_info['name']}\n"
                     f"💬 <b>Talking Style:</b> <i>{g_info['vibe']}</i>\n"
-                    f"💎 <b>Pack:</b> ₹{char_info['price']} (40 Full Open Chats)\n"
+                    f"💎 <b>Pack:</b> ₹{char_info['price']} (40 Chats)\n"
                     f"━━━━━━━━━━━━━━━━━━\n"
-                    f"👇 <b>Is ladki ko chunne ke liye niche click karein ya Next Girl dekhein:</b>"
+                    f"👇 <b>Is partner ko chunne ke liye niche click karein ya Next Girl dekhein:</b>"
                 )
                 card_kb = {"inline_keyboard": [
                     [{"text": f"✅ Start with {g_info['name']} 💖", "callback_data": f"selgirl_{char_key}_{g_key}"}],
@@ -1942,53 +2028,8 @@ def webhook():
                     [{"text": "🔙 Back to 200 Roleplays", "callback_data": "menu_roleplay_hub_1"}]
                 ]}
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
-                # Delete old card message so chat stays clean like a real app box!
-                tg_req("deleteMessage", {"chat_id": cid, "message_id": mid}, timeout=2)
-                dp_file = g_info.get("dp", START_BANNER_IMAGE)
-                res_dp = send_local_or_url_media(cid, dp_file, caption=card_cap, protect=False, spoiler=False, reply_markup=card_kb)
-                if not res_dp.get("ok"):
-                    send_local_or_url_media(cid, START_BANNER_IMAGE, caption=card_cap, protect=False, spoiler=False, reply_markup=card_kb)
-                return jsonify({"status": "ok"}), 200
-
-            if cb_data.startswith("selgirl_"):
-                _, char_key, g_key = cb_data.split("_", 2)
-                char_info = DIAMOND_CHARACTERS.get(char_key)
-                g_info = REAL_GIRLS.get(g_key, REAL_GIRLS["g1"])
-                if not char_info: return jsonify({"status": "ok"}), 200
-                is_vip_user = is_own or bool(u_cb.get("is_vip"))
-                c_price = str(char_info["price"])
-
-                if not is_vip_user:
-                    url = create_cf_order(uid, fname, c_price, purpose=f"char_{char_key}_{g_key}")
-                    tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"🔒 Unlock {g_info['name']} for ₹{c_price}!", "show_alert": True})
-                    btn = {"text": f"💳 Pay ₹{c_price} to Unlock (40 Chats)", "url": url} if url else {"text": f"💳 Pay ₹{c_price}", "callback_data": f"buy_{c_price}"}
-                    send_msg(
-                        cid,
-                        f"🔒 <b>[DIAMOND LOCKED]</b>\n"
-                        f"🎬 <b>Roleplay:</b> {char_info['name']}\n"
-                        f"🙋‍♀️ <b>Selected Girl:</b> {g_info['name']}\n"
-                        f"💎 <b>Price:</b> ₹{c_price} (Gets 40 Full Open Chats!)\n\n"
-                        f"👇 Niche button se pay karke 1 second mein {g_info['name']} ke bedroom mein jao:",
-                        markup={"inline_keyboard": [[btn]]}
-                    )
-                    return jsonify({"status": "ok"}), 200
-
-                call_word = char_info.get("call") or g_info.get("call", "Jaan")
-                target_bot = g_info.get("bot", BOT_USERNAME)
-                rp_brain = (
-                    f"CHARACTER ROLE: {char_info['name']} ({char_info['desc']}). "
-                    f"CALL USER STRICTLY AS: '{call_word}'. "
-                    f"CRITICAL: NEVER call yourself 'Bhabhi' or user 'Devar ji' unless the role is Bhabhi!"
-                )
-                fb_update_user(uid, {"active_rp": rp_brain, "active_girl": g_key, "active_vault": g_key, "history": []})
-                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"✅ {g_info['name']} Ready! 🔥"})
-                go_kb = {"inline_keyboard": [[{"text": f"🛏️ Enter {g_info['name']}'s Bedroom 💬", "url": f"https://t.me/{target_bot}?start=rp_{char_key}_{g_key}"}]]}
-                send_msg(
-                    cid,
-                    f"🔥 <b>Devar ji, aapki {g_info['name']} ({char_info['name']}) bilkul taiyaar hai!</b>\n\n"
-                    f"1 second mein uska dimaag, bolne ka style aur memory is roleplay par lock ho chuki hai! Niche button dabakar seedha uske bedroom (Bot) mein jao: 😘🥵👇",
-                    markup=go_kb
-                )
+                live_dp = get_live_bot_dp_url(g_info.get("bot"), fallback_banner=g_info.get("dp", START_BANNER_IMAGE))
+                edit_or_send_box_media(cid, mid, live_dp, caption=card_cap, reply_markup=card_kb)
                 return jsonify({"status": "ok"}), 200
 
             if cb_data == "menu_free_earn":
