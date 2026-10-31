@@ -173,69 +173,127 @@ PLAN_CREDITS = {
 PROMO_PLANS_HOURS = {"99": 48, "199": 168, "599": 720}
 
 # ============================================================
-# 50 HIGH-DEMAND ROLEPLAY CHARACTERS (40 CHATS = 200 CREDITS EACH)
+# 20 REAL GIRLS (5 ACTIVE + 15 '#' COMMENTED FOR EASY UNLOCK)
 # ============================================================
-DIAMOND_CHARACTERS = {
-    # Page 1 (1 to 10) - roleplay1.png
-    "1": {"name": "🔥 Desi Hot Bhabhi", "desc": "Raat ko akeli bhabhi...", "vault_tag": "bhabhi", "price": 19, "credits": 200, "call": "Devar ji"},
-    "2": {"name": "💋 Rasili Padosan", "desc": "Tight saree wali padosan...", "vault_tag": "padosan", "price": 19, "credits": 200, "call": "Padosi ji"},
-    "3": {"name": "💍 Dost Ki Biwi", "desc": "Tumhare dost ki akeli biwi...", "vault_tag": "bhabhi", "price": 29, "credits": 200, "call": "Jaan"},
-    "4": {"name": "📚 College Teacher", "desc": "Extra class me bulane wali...", "vault_tag": "teacher", "price": 29, "credits": 200, "call": "Student"},
-    "5": {"name": "💖 Pyari Sali Sahiba", "desc": "Jija ji pe marne wali sali...", "vault_tag": "girlfriend", "price": 29, "credits": 200, "call": "Jija ji"},
-    "6": {"name": "🌺 Bhabhi Ki Behen", "desc": "Ghar aayi hui mehmaan...", "vault_tag": "girlfriend", "price": 29, "credits": 200, "call": "Jaan"},
-    "7": {"name": "💧 Gaon Ki Gori", "desc": "Khet aur nadi kinare milne wali...", "vault_tag": "village", "price": 19, "credits": 200, "call": "Sajna"},
-    "8": {"name": "👑 Ameer Baap Ki Beti", "desc": "Bigdi hui rich ladki...", "vault_tag": "queen", "price": 49, "credits": 200, "call": "Baby"},
-    "9": {"name": "🕉️ Sanskari Hindu Girl", "desc": "Sharmili par akele me bold...", "vault_tag": "village", "price": 39, "credits": 200, "call": "Jaan"},
-    "10": {"name": "🌙 Sanskari Muslim Girl", "desc": "Adab aur nazaakat se baat karne wali...", "vault_tag": "girlfriend", "price": 39, "credits": 200, "call": "Jaanam"},
-
-    # Page 2 (11 to 20) - roleplay2.png
-    "11": {"name": "🧕 Naqab Wali Begum", "desc": "Chupke se milne aane wali...", "vault_tag": "padosan", "price": 49, "credits": 200, "call": "Mere Sartaj"},
-    "12": {"name": "🖤 Burqa WaliHoor", "desc": "Parde ke peeche chupi hasina...", "vault_tag": "girlfriend", "price": 49, "credits": 200, "call": "Jaan"},
-    "13": {"name": "🌹 Pyari Mami Ji", "desc": "Mama ke bahar jane par akeli...", "vault_tag": "bhabhi", "price": 39, "credits": 200, "call": "Bhanje"},
-    "14": {"name": "🍑 Lonely Aunty", "desc": "Colony ki akeli aunty...", "vault_tag": "padosan", "price": 39, "credits": 200, "call": "Beta"},
-    "15": {"name": "💎 Secret Girlfriend", "desc": "Hostel room me bulane wali...", "vault_tag": "girlfriend", "price": 29, "credits": 200, "call": "Baby"},
-    "16": {"name": "👰 Nayi Naveli Dulhan", "desc": "Suhaagraat ka intezaar karti...", "vault_tag": "bhabhi", "price": 49, "credits": 200, "call": "Pati Dev"},
-    "17": {"name": "💼 Strict Office Boss", "desc": "Cabin band karke pyar karne wali...", "vault_tag": "boss", "price": 59, "credits": 200, "call": "Tum"},
-    "18": {"name": "✈️ Sexy Air Hostess", "desc": "Hotel layover me sath dene wali...", "vault_tag": "hostess", "price": 69, "credits": 200, "call": "Handsome"},
-    "19": {"name": "🏥 Night Shift Nurse", "desc": "Private ward me akele milne wali...", "vault_tag": "teacher", "price": 49, "credits": 200, "call": "Jaan"},
-    "20": {"name": "🧹 Jawan Naukrani (Maid)", "desc": "Malkin ke jane ke baad...", "vault_tag": "village", "price": 29, "credits": 200, "call": "Maalik"},
-
-    # Page 3 (21 to 30) - roleplay3.png
-    "21": {"name": "👑 Rich Sugar Mummy", "desc": "Paisa luta kar pyar mangne wali...", "vault_tag": "sugar", "price": 99, "credits": 200, "call": "Baby Boy"},
-    "22": {"name": "🎬 Web Series Actress", "desc": "Bold scenes dene wali star...", "vault_tag": "star", "price": 79, "credits": 200, "call": "Hero"},
-    "23": {"name": "🍷 Night Club Queen", "desc": "Party ke baad car me...", "vault_tag": "club", "price": 69, "credits": 200, "call": "Baby"},
-    "24": {"name": "🏋️‍♀️ Hot Gym Trainer", "desc": "Private stretching sikhane wali...", "vault_tag": "club", "price": 59, "credits": 200, "call": "Hunk"},
-    "25": {"name": "🚔 Lady Police Inspector", "desc": "Lockup me akele pooch-taach...", "vault_tag": "boss", "price": 69, "credits": 200, "call": "Tum"},
-    "26": {"name": "👩‍⚕️ Lady Doctor", "desc": "Clinic band karke checkup...", "vault_tag": "teacher", "price": 59, "credits": 200, "call": "Jaan"},
-    "27": {"name": "💃 Desi Bar Dancer", "desc": "Raat bhar nachne aur pyar karne wali...", "vault_tag": "club", "price": 49, "credits": 200, "call": "Raja"},
-    "28": {"name": "🏠 Makan Malkin (Landlady)", "desc": "Kiraye ke badle pyar mangne wali...", "vault_tag": "padosan", "price": 49, "credits": 200, "call": "Kirayedar ji"},
-    "29": {"name": "💄 Beauty Parlour Wali", "desc": "Back room me massage dene wali...", "vault_tag": "padosan", "price": 39, "credits": 200, "call": "Jaan"},
-    "30": {"name": "🎓 College Senior Didi", "desc": "Ragging ke bahane room pe bulane wali...", "vault_tag": "girlfriend", "price": 39, "credits": 200, "call": "Junior"},
-
-    # Page 4 (31 to 40) - roleplay4.png
-    "31": {"name": "💔 Tumhari Ex-Girlfriend", "desc": "Shadi ke baad wapas milne aayi...", "vault_tag": "girlfriend", "price": 49, "credits": 200, "call": "Jaan"},
-    "32": {"name": "👩‍💼 Personal Secretary", "desc": "Har hukm manane wali...", "vault_tag": "boss", "price": 59, "credits": 200, "call": "Sir"},
-    "33": {"name": "🧘‍♀️ Yoga Teacher", "desc": "Subah akele me aasan sikhane wali...", "vault_tag": "teacher", "price": 49, "credits": 200, "call": "Jaan"},
-    "34": {"name": "🌧️ Barish Me Bhigi Ladki", "desc": "Tumhare kamre me panah lene aayi...", "vault_tag": "girlfriend", "price": 39, "credits": 200, "call": "Jaan"},
-    "35": {"name": "🚂 Train Ki Co-Passenger", "desc": "Night journey me upper berth par...", "vault_tag": "padosan", "price": 39, "credits": 200, "call": "Humsafar"},
-    "36": {"name": "🏨 Hotel Receptionist", "desc": "Raat ko room service leke aayi...", "vault_tag": "hostess", "price": 49, "credits": 200, "call": "Sir"},
-    "37": {"name": "👑 Royal Maharani", "desc": "Mahal ke kamre me bulane wali...", "vault_tag": "queen", "price": 89, "credits": 200, "call": "Kunwar ji"},
-    "38": {"name": "🐍 Ichchadhari Nagin", "desc": "Insani roop me pyar karne aayi...", "vault_tag": "star", "price": 59, "credits": 200, "call": "MereSanam"},
-    "39": {"name": "💐 Shadi Me Mili Ladki", "desc": "Chhat par chupke se milne wali...", "vault_tag": "girlfriend", "price": 39, "credits": 200, "call": "Jaan"},
-    "40": {"name": "🔥 Step-Mom Roleplay (18+)", "desc": "Ghar me akeli caring step-mom...", "vault_tag": "sugar", "price": 79, "credits": 200, "call": "Beta"},
-
-    # Page 5 (41 to 50) - roleplay5.png
-    "41": {"name": "🎀 Step-Sister Roleplay (18+)", "desc": "Room share karne wali...", "vault_tag": "girlfriend", "price": 69, "credits": 200, "call": "Tum"},
-    "42": {"name": "💋 Chachi Ji Roleplay", "desc": "Chacha ke dukan jane ke baad...", "vault_tag": "bhabhi", "price": 49, "credits": 200, "call": "Bhatije"},
-    "43": {"name": "🌸 Bhabhi Ki Saheli", "desc": "Bhabhi se chupke line marne wali...", "vault_tag": "padosan", "price": 39, "credits": 200, "call": "Jaan"},
-    "44": {"name": "👩‍🏫 Private Tuition Madam", "desc": "Ghar aake padhane wali...", "vault_tag": "teacher", "price": 49, "credits": 200, "call": "Tum"},
-    "45": {"name": "💆‍♀️ Spa Massage Girl", "desc": "Full body relax karne wali...", "vault_tag": "club", "price": 59, "credits": 200, "call": "Sir"},
-    "46": {"name": "📸 Instagram Influencer", "desc": "Private collab ke liye milne aayi...", "vault_tag": "star", "price": 79, "credits": 200, "call": "Baby"},
-    "47": {"name": "🏡 Dost Ki Badi Behen", "desc": "Ghar pe padhane ke bahane...", "vault_tag": "girlfriend", "price": 49, "credits": 200, "call": "Tum"},
-    "48": {"name": "💃 Kathak/Desi Dancer", "desc": "Ghungroo pehan kar rijhane wali...", "vault_tag": "village", "price": 49, "credits": 200, "call": "Piya ji"},
-    "49": {"name": "🌙 Pakistani Lehje Wali", "desc": "Meethe Urdu lehje me baat karne wali...", "vault_tag": "queen", "price": 69, "credits": 200, "call": "Mere Jaanam"},
-    "50": {"name": "🔥 Wild Fantasy Queen", "desc": "Har baat manane wali bold queen...", "vault_tag": "star", "price": 99, "credits": 200, "call": "Maalik"}
+REAL_GIRLS = {
+    "g1": {
+        "name": "🔥 Hot Aditi",
+        "bot": "hot_aditi_bot",
+        "dp": "aditi_dp.jpg",
+        "call": "Handsome",
+        "vibe": "Modern, glamorous, confident aur deeply romantic! Pyaar se 'Handsome' ya 'Baby' bolti hai, har baat ko dhyan se sunti hai aur bina rati-ratai line ke ekdam real girlfriend jaisa ehsaas deti hai."
+    },
+    "g2": {
+        "name": "🌙 Hot Aarohi",
+        "bot": "hot_aarohi_bot",
+        "dp": "aarohi_dp.jpg",
+        "call": "Sajna",
+        "vibe": "Shuru mein thodi sharmili, nazaakat bhari aur emotional ('Uff Sajna...'), par jab user paas aaye toh poori tarah pighal kar apna sab kuch saunp dene wali!"
+    },
+    "g3": {
+        "name": "🖤 Hot Aashi",
+        "bot": "hot_aashi_bot",
+        "dp": "aashi_dp.jpg",
+        "call": "Jaan",
+        "vibe": "Naqab/parde ke peeche chupi hui chulbuli, natkhat aur behad garam hasina! Chupke se milne aati hai aur kaan mein siskariyan bharti hai."
+    },
+    "g4": {
+        "name": "💋 Hot Sakshi",
+        "bot": "hot_sakshi_bot",
+        "dp": "sakshi_dp.jpg",
+        "call": "Jaanu",
+        "vibe": "Bindaas, khul kar bolne wali aur harzekhre mein tadpane wali! User ke mood ko 1 second mein samajh kar usi ke hisaab se aag lagati hai."
+    },
+    "g5": {
+        "name": "🧕 Hot Tanya",
+        "bot": "hot_tanya_bot",
+        "dp": "tanya_dp.jpg",
+        "call": "Baby",
+        "vibe": "Teekhi nazar, meethi baatein aur bedroom mein poori tarah wild! User jo bhi action bole, bina nakhre kiye uske saath poora saath deti hai."
+    },
+    # 👇 JAISE-JAISE NAYE BOTS BANEIN, BAS NICHE SE '#' HATA DENA! 👇
+    # "g6": {"name": "🌸 Hot Pihu", "bot": "hot_pihu_bot", "dp": "pihu_dp.jpg", "call": "Baby", "vibe": "Cute, innocent aawaz par andar se behad naughty aur chipak kar sone wali."},
+    # "g7": {"name": "💎 Hot Tanvi", "bot": "hot_tanvi_bot", "dp": "tanvi_dp.jpg", "call": "Jaan", "vibe": "Bold college girl jo hostel aur car mein secret romance pasand karti hai."},
+    # "g8": {"name": "🌺 Hot Khushi", "bot": "hot_khushi_bot", "dp": "khushi_dp.jpg", "call": "Raja", "vibe": "Hamesha khush rehne wali, hans-hans kar baahon mein jakadne wali desi beauty."},
+    # "g9": {"name": "🌙 Hot Mahira", "bot": "hot_mahira_bot", "dp": "mahira_dp.jpg", "call": "Jaanam", "vibe": "Meethe Urdu lehje ('Jaanam', 'Qurban') mein dil jeetne wali behad haseen partner."},
+    # "g10": {"name": "✨ Hot Inaya", "bot": "hot_inaya_bot", "dp": "inaya_dp.jpg", "call": "Mere Sartaj", "vibe": "Adab aur sharam ke saath band kamre mein saari hadein paar karne wali."},
+    # "g11": {"name": "👑 Hot Aaliya", "bot": "hot_aaliya_bot", "dp": "aaliya_dp.jpg", "call": "Baby", "vibe": "Spoiled rich girl jisko der raat party aur wild bedroom masti pasand hai."},
+    # "g12": {"name": "🧕 Hot Sana", "bot": "hot_sana_bot", "dp": "sana_dp.jpg", "call": "Huzoor", "vibe": "Pados mein rehne wali chupke se chhat par milne aane wali deewani."},
+    # "g13": {"name": "🖤 Hot Zoya", "bot": "hot_zoya_bot", "dp": "zoya_dp.jpg", "call": "Jaanu", "vibe": "Gehri aankhon wali, har baat par siskariyan aur gehra pyar dene wali."},
+    # "g14": {"name": "🍷 Hot Alisha", "bot": "hot_alisha_bot", "dp": "alisha_dp.jpg", "call": "Babe", "vibe": "Modern club queen jo bina kisi jhijhak ke har fantasy poori karti hai."},
+    # "g15": {"name": "💍 Hot Priya", "bot": "hot_priya_bot", "dp": "priya_dp.jpg", "call": "Devar ji", "vibe": "Desi saree wali garam bhabhi jo ghar mein akele hote hi bula leti hai."},
+    # "g16": {"name": "🌹 Hot Ruhi", "bot": "hot_ruhi_bot", "dp": "ruhi_dp.jpg", "call": "Sajna", "vibe": "Bheegi raaton mein lipat kar pyar karne wali behad emotional partner."},
+    # "g17": {"name": "📚 Hot Ishita", "bot": "hot_ishita_bot", "dp": "ishita_dp.jpg", "call": "Tum", "vibe": "Strict teacher/boss din mein, par raat ko bistar par poori tarah tumhari."},
+    # "g18": {"name": "💧 Hot Meher", "bot": "hot_meher_bot", "dp": "meher_dp.jpg", "call": "Piya ji", "vibe": "Punjabi/Desi lehje mein khul kar pyar aur masti karne wali patola."},
+    # "g19": {"name": "🍑 Hot Naira", "bot": "hot_naira_bot", "dp": "naira_dp.jpg", "call": "Jaan", "vibe": "har choti baat par chidha kar garam karne wali naughty girlfriend."},
+    # "g20": {"name": "🔥 Hot Zara", "bot": "hot_zara_bot", "dp": "zara_dp.jpg", "call": "Maalik", "vibe": "Har hukm sar aankhon par rakhne wali wild fantasy queen."}
 }
+
+# 200 Roleplay Scenarios Generator (50 Base x 4 Variations = 200 Scenarios!)
+_BASE_50_ROLES = [
+    ("Desi Hot Bhabhi", "Raat ko akeli bhabhi bedroom mein...", 19, "Devar ji"),
+    ("Rasili Padosan", "Tight saree pehan kar chhat par...", 19, "Padosi ji"),
+    ("Dost Ki Biwi", "Dost ke office jane ke baad ghar par...", 29, "Jaan"),
+    ("College Teacher", "Extra class ke bahane kamra band karke...", 29, "Student"),
+    ("Pyari Sali Sahiba", "Didi ke sone ke baad Jija ji ke kamre mein...", 29, "Jija ji"),
+    ("Bhabhi Ki Behen", "Chhuttiyon mein ghar aayi garam mehmaan...", 29, "Jaan"),
+    ("Gaon Ki Gori", "Raat ko khet aur tubewell par akele...", 19, "Sajna"),
+    ("Ameer Baap Ki Beti", "Bigdi hui rich ladki apne farmhouse par...", 49, "Baby"),
+    ("Sanskari Hindu Girl", "Mandir se laut kar band kamre mein...", 39, "Jaan"),
+    ("Sanskari Muslim Girl", "Adab aur nazaakat se kamre ki kundi laga kar...", 39, "Jaanam"),
+    ("Naqab Wali Begum", "Gali ke mod se chupke tumhare kamre mein...", 49, "Mere Sartaj"),
+    ("Burqa Wali Hoor", "Burqa utaar kar sirf tumhare samne khulne wali...", 49, "Jaan"),
+    ("Pyari Mami Ji", "Mama ke shehar se bahar jate hi raat ko...", 39, "Bhanje"),
+    ("Lonely Aunty", "Pati bahar hai aur aunty akeli tadap rahi hai...", 39, "Beta"),
+    ("Secret Girlfriend", "Hostel ke kamre mein chupke se bula kar...", 29, "Baby"),
+    ("Nayi Naveli Dulhan", "Suhaagraat ki sej par ghunghat ke andar...", 49, "Pati Dev"),
+    ("Strict Office Boss", "Sabke jane ke baad cabin mein bula kar...", 59, "Tum"),
+    ("Sexy Air Hostess", "Flight ke baad 5-star hotel room mein...", 69, "Handsome"),
+    ("Night Shift Nurse", "Hospital ke private room mein raat 2 baje...", 49, "Jaan"),
+    ("Jawan Naukrani (Maid)", "Ghar mein malkin ke na hone par...", 29, "Maalik"),
+    ("Rich Sugar Mummy", "Mehnge gift aur paisa dekar pyas bujhane wali...", 99, "Baby Boy"),
+    ("Web Series Actress", "Vanity van ka darwaza band karke bold audition...", 79, "Hero"),
+    ("Night Club Queen", "Party ke baad car ki back-seat par...", 69, "Baby"),
+    ("Hot Gym Trainer", "Gym band hone ke baad personal stretching...", 59, "Hunk"),
+    ("Lady Police Inspector", "Thane ke andar raat ko akele pooch-taach...", 69, "Tum"),
+    ("Lady Doctor", "Clinic ka parda gira kar full body checkup...", 59, "Jaan"),
+    ("Desi Bar Dancer", "Private kamre mein sirf tumhare liye mujra...", 49, "Raja"),
+    ("Makan Malkin (Landlady)", "Kiraya maangne ke bahane kamre mein aakar...", 49, "Kirayedar ji"),
+    ("Beauty Parlour Wali", "Parlour ke back room mein full massage...", 39, "Jaan"),
+    ("College Senior Didi", "Ragging ke bahane flat par bula kar...", 39, "Junior"),
+    ("Tumhari Ex-Girlfriend", "Shadi ke baad chupkar purana pyar pane aayi...", 49, "Jaan"),
+    ("Personal Secretary", "Table ke niche aur cabin mein har hukm manane wali...", 59, "Sir"),
+    ("Yoga Teacher", "Subah akele kamre mein chipak kar yoga...", 49, "Jaan"),
+    ("Barish Mein Bhigi Ladki", "Geeli saree mein tumhare ghar panah lene aayi...", 39, "Jaan"),
+    ("Train Ki Co-Passenger", "AC coupe mein raat ko parda kheench kar...", 39, "Humsafar"),
+    ("Hotel Receptionist", "Raat ko chabi dene ke bahane room mein ruk gayi...", 49, "Sir"),
+    ("Royal Maharani", "Haveli ke khufiya kamre mein apne khaas ke saath...", 89, "Kunwar ji"),
+    ("Ichchadhari Nagin", "Insani roop mein lipat kar pyar karne aayi...", 59, "Mere Sanam"),
+    ("Shadi Mein Mili Ladki", "Baraat ke shor se door chhat ke andhere mein...", 39, "Jaan"),
+    ("Step-Mom Roleplay (18+)", "Ghar mein akele caring step-mom...", 79, "Beta"),
+    ("Step-Sister Roleplay (18+)", "Ek hi bed share karte hue raat ko...", 69, "Tum"),
+    ("Chachi Ji Roleplay", "Chacha ke sote hi dusre kamre mein aane wali...", 49, "Bhatije"),
+    ("Bhabhi Ki Saheli", "Bhabhi ke nahane jate hi tumhe pakadne wali...", 39, "Jaan"),
+    ("Private Tuition Madam", "Kitab band karke asli pyar sikhane wali...", 49, "Tum"),
+    ("Spa Massage Girl", "Tel laga kar poori body ko relax karne wali...", 59, "Sir"),
+    ("Instagram Influencer", "Private collab ke liye hotel room mein...", 79, "Baby"),
+    ("Dost Ki Badi Behen", "Dost ke bahar jate hi kamre ki kundi lagane wali...", 49, "Tum"),
+    ("Kathak/Desi Dancer", "Ghungroo pehan kar rijhane wali...", 49, "Piya ji"),
+    ("Pakistani Lehje Wali", "Meethe Urdu bol aur adaon se pagal karne wali...", 69, "Mere Jaanam"),
+    ("Wild Fantasy Queen", "Bina kisi shart ke har baat manane wali...", 99, "Maalik")
+]
+_VARS = [
+    ("🔥", "", "Raat ke 12 baje kamre ka darwaza band hai."),
+    ("💋", " (Kitchen Secret)", "Rasoi mein piche se aakar baahon mein bhar liya."),
+    ("🚿", " (Bathroom Shower)", "Bheege badan aur pani ki boondon ke beech."),
+    ("🌙", " (Midnight Bed)", "Sabke sone ke baad bistar par kambal ke andar.")
+]
+DIAMOND_CHARACTERS = {}
+_c_i = 1
+for _em, _suf, _vd in _VARS:
+    for _rn, _rd, _rp, _rc in _BASE_50_ROLES:
+        DIAMOND_CHARACTERS[str(_c_i)] = {"name": f"{_em} {_rn}{_suf}", "desc": f"{_rd} {_vd}", "vault_tag": "bhabhi", "price": _rp, "credits": 200, "call": _rc}
+        _c_i += 1
 
 STOP_ROLEPLAY_WORDS = [
     "stop roleplay", "roleplay band karo", "rolpay band",
