@@ -3228,24 +3228,36 @@ MAIN_BOT_USERNAME = BOT_USERNAME
 MAIN_BOT_ID = BOT_ID
 MAIN_API_URL = API_URL
 
+@app.route("/api/bot", methods=["POST"])
+def webhook_main():
+    """Main Webhook for Hot Bhabhi Bot"""
+    global BOT_TOKEN, API_URL, BOT_USERNAME, BOT_ID
+    BOT_TOKEN = MAIN_BOT_TOKEN
+    BOT_ID = MAIN_BOT_ID
+    API_URL = MAIN_API_URL
+    BOT_USERNAME = MAIN_BOT_USERNAME
+    return webhook()
+
 @app.route("/api/bot/<bot_uname>", methods=["POST"])
 def webhook_char_bot(bot_uname):
+    """Webhook for Spoke Bots (Aditi, Tanya, etc.)"""
     global BOT_TOKEN, API_URL, BOT_USERNAME, BOT_ID
     b_clean = str(bot_uname or "").lower().lstrip("@")
     tok = CHAR_BOT_TOKENS.get(b_clean)
+    
     if not tok:
-        return jsonify({"status": "missing_token_for_" + b_clean}), 200
-    BOT_TOKEN = tok
-    BOT_ID = tok.split(":")[0] if ":" in tok else ""
-    API_URL = f"https://api.telegram.org/bot{tok}"
-    BOT_USERNAME = b_clean
+        return jsonify({"status": "error", "message": f"Token not found for {b_clean}"}), 200
+        
+    old_tok, old_url, old_uname, old_id = BOT_TOKEN, API_URL, BOT_USERNAME, BOT_ID
+    
     try:
+        BOT_TOKEN = tok
+        API_URL = f"https://api.telegram.org/bot{tok}"
+        BOT_USERNAME = b_clean
+        BOT_ID = tok.split(":")[0] if ":" in tok else ""
         return webhook()
     finally:
-        BOT_TOKEN = MAIN_BOT_TOKEN
-        BOT_ID = MAIN_BOT_ID
-        API_URL = MAIN_API_URL
-        BOT_USERNAME = MAIN_BOT_USERNAME
+        BOT_TOKEN, API_URL, BOT_USERNAME, BOT_ID = old_tok, old_url, old_uname, old_id
 
 @app.route("/", methods=["GET"])
 def health_check():
@@ -3409,21 +3421,25 @@ def health_check():
 def setup_webhook():
     host = request.host_url.rstrip("/")
     results = {}
-    results["main_bot"] = tg_req("setWebhook", {
-        "url": f"{host}/api/bot",
-        "allowed_updates": ["message", "edited_message", "callback_query", "my_chat_member", "chat_member", "chat_join_request"]
-    })
+    
+    # Setup Main Bot
+    results["main_bot"] = requests.post(
+        f"https://api.telegram.org/bot{MAIN_BOT_TOKEN}/setWebhook",
+        json={"url": f"{host}/api/bot", "allowed_updates": ["message", "callback_query"]}
+    ).json()
+    
+    # Setup Character Bots
     for b_uname, b_tok in CHAR_BOT_TOKENS.items():
         if b_tok:
             try:
-                r = requests.post(
+                results[b_uname] = requests.post(
                     f"https://api.telegram.org/bot{b_tok}/setWebhook",
                     json={"url": f"{host}/api/bot/{b_uname}", "allowed_updates": ["message", "callback_query"]},
                     timeout=6
                 ).json()
-                results[b_uname] = r
             except Exception as e:
                 results[b_uname] = {"ok": False, "error": str(e)}
+                
     return jsonify(results)
 
 if __name__ == "__main__":
