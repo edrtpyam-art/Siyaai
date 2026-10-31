@@ -2936,24 +2936,20 @@ def webhook():
             thumb = sticker.get("thumbnail") or sticker.get("thumb")
             if not is_animated and not is_video_stk:
                 stk_file_id = sticker.get("file_id", "")
-                mime = "image/webp"
+                mime = "image/jpeg"
             elif thumb and thumb.get("file_id"):
                 stk_file_id = thumb.get("file_id", "")
                 mime = "image/jpeg"
             else:
                 stk_file_id = ""
-                mime = "image/webp"
+                mime = "image/jpeg"
 
-            if base64_img:
-                prompt_text = (
-                    f"[{fname} sent a sticker (emoji: {emoji}). Look closely with REAL EYES at the image: "
-                    f"describe ONLY the exact facial expression or couple action actually visible in this sticker in first-person ('main', 'tum')! "
-                    f"Do NOT invent fingers/masturbation if the sticker only shows a wink, smile, kiss, or hug!]"
-                )
-            else:
-                prompt_text = (
-                    f"[{fname} sent an animated '{emoji}' reaction sticker. React playfully, naughtily, and seductively to his '{emoji}' mood in your current character in 1-2 short uncut sentences!]"
-                )
+            base64_img = get_telegram_file_base64(stk_file_id) if stk_file_id else None
+            prompt_text = (
+                f"[{fname} sent this sticker (emoji: {emoji}) FOR YOU! In this sticker, the BOY is {fname} and the GIRL is YOU! "
+                f"Look closely at what the boy is doing to the girl inside the sticker image (or the girl's expression) and take it 100% on yourself like a real girl in your current roleplay character! "
+                f"Say how good it feels as if {fname} is doing that exact action to YOU right now in 1-2 short, complete, uncut sentences!]"
+            )
 
             reply_text, _, sticker_to_send, show_kb, cur_rp, rp_ended, sys_q = chat_with_siya(
                 prompt_text, fname, uid, credits_left=credits, is_owner=is_own,
