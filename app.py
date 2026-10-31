@@ -2886,12 +2886,16 @@ def webhook():
                 stk_file_id = ""
                 mime = "image/webp"
 
-            base64_img = get_telegram_file_base64(stk_file_id) if stk_file_id else None
-            prompt_text = (
-                f"[{fname} sent a sticker (emoji: {emoji}). Look closely with REAL EYES at the exact pose, expression, or action inside this sticker image and TAKE IT ON YOURSELF in first-person! "
-                f"If it shows a solo girl expression/pose (like biting lips/finger, winking, or teasing), say how YOU are doing that exact expression for {fname} right now! "
-                f"If it shows a couple action (kissing, hugging, touching, oral, or sex), react in first-person as if {fname} is doing that exact action with YOU right now in 1-2 complete uncut sentences!]"
-            )
+            if base64_img:
+                prompt_text = (
+                    f"[{fname} sent a sticker (emoji: {emoji}). Look closely with REAL EYES at the image: "
+                    f"describe ONLY the exact facial expression or couple action actually visible in this sticker in first-person ('main', 'tum')! "
+                    f"Do NOT invent fingers/masturbation if the sticker only shows a wink, smile, kiss, or hug!]"
+                )
+            else:
+                prompt_text = (
+                    f"[{fname} sent an animated '{emoji}' reaction sticker. React playfully, naughtily, and seductively to his '{emoji}' mood in your current character in 1-2 short uncut sentences!]"
+                )
 
             reply_text, _, sticker_to_send, show_kb, cur_rp, rp_ended, sys_q = chat_with_siya(
                 prompt_text, fname, uid, credits_left=credits, is_owner=is_own,
