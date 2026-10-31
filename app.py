@@ -1973,7 +1973,11 @@ def webhook():
 
             if cb_data == "back_main_menu":
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
-                send_start_banner_or_msg(cid, get_welcome_trust_text(fname, c_disp, lang="hinglish"), get_main_menu_kb(c_disp, is_owner=is_own))
+                edit_or_send_box_media(
+                    cid, mid, START_BANNER_IMAGE,
+                    caption=get_welcome_trust_text(fname, c_disp, lang="hinglish"),
+                    reply_markup=get_main_menu_kb(c_disp, is_owner=is_own)
+                )
                 return jsonify({"status": "ok"}), 200
 
             if cb_data.startswith("promo_off_"):
@@ -3148,27 +3152,22 @@ def webhook():
             is_video_stk = sticker.get("is_video", False)
 
             thumb = sticker.get("thumbnail") or sticker.get("thumb")
-            if not is_animated and not is_video_stk:
-                stk_file_id = sticker.get("file_id", "")
-                mime = "image/webp"
-            elif thumb and thumb.get("file_id"):
+            if thumb and thumb.get("file_id"):
                 stk_file_id = thumb.get("file_id", "")
                 mime = "image/jpeg"
+            elif not is_animated and not is_video_stk:
+                stk_file_id = sticker.get("file_id", "")
+                mime = "image/jpeg"
             else:
-                stk_file_id = ""
-                mime = "image/webp"
+                stk_file_id = sticker.get("file_id", "")
+                mime = "image/jpeg"
 
             base64_img = get_telegram_file_base64(stk_file_id) if stk_file_id else None
-            if base64_img:
-                prompt_text = (
-                    f"[{fname} sent a sticker (emoji: {emoji}). Look closely with REAL EYES at the image: "
-                    f"describe ONLY the exact facial expression or intimate couple action actually visible in this sticker! "
-                    f"In this sticker, the BOY is {fname} and the GIRL is YOU! Say how good it feels in 1-2 complete sentences.]"
-                )
-            else:
-                prompt_text = (
-                    f"[{fname} sent an animated '{emoji}' reaction sticker. React playfully and seductively to his '{emoji}' mood in your current character in 1-2 short uncut sentences!]"
-                )
+            prompt_text = (
+                f"[User sent a sticker (emoji: {emoji}). Look closely at what is happening inside the sticker image! "
+                f"In this sticker, the BOY is {clean_display_name(fname, 'Jaan')} and the GIRL is YOU! "
+                f"Describe the exact pose/action you see inside it and connect it directly to yourself and {clean_display_name(fname, 'Jaan')} in 1-2 complete sentences!]"
+            )
 
             reply_text, _, sticker_to_send, show_kb, cur_rp, rp_ended, sys_q = chat_with_siya(
                 prompt_text, fname, uid, credits_left=credits, is_owner=is_own,
