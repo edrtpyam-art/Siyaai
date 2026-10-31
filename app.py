@@ -570,7 +570,7 @@ CHARACTER_MEDIA_VAULTS = {
         "gand": [f"{c_key}_gand1.jpg", f"{c_key}_gand2.jpg", f"{c_key}_gand_vid1.mp4"],
         "gand_video": [f"{c_key}_gand_vid1.mp4"]
     }
-    for c_key in ["bhabhi", "padosan", "teacher", "girlfriend", "queen", "boss", "devarani", "hostess", "club", "village", "star", "sugar"]
+    for c_key in [f"g{i}" for i in range(1, 21)] + ["bhabhi", "padosan", "teacher", "girlfriend", "queen", "boss", "devarani", "hostess", "club", "village", "star", "sugar"]
 }
 
 def get_media_item(vault, tag, prefer_video=False, char_vault=""):
@@ -1906,7 +1906,6 @@ STRICT RULES FOR PRIVATE DM:
 # ============================================================
 # 10. WEBHOOK HANDLER (SIYA-STYLE OWNER PANEL + PHOTO/VIDEO PROMO + 0-CREDIT FIX)
 # ============================================================
-@app.route("/api/bot", methods=["POST"])
 def webhook():
     try:
         data = request.get_json(silent=True)
@@ -3134,9 +3133,8 @@ def webhook():
                 fb_update_user(uid, {"credits": max(0, credits - 1)})
             return jsonify({"status": "media read processed"}), 200
 
-         if ctype == "private" and "sticker" in msg:
-            # Crash fix: removed undefined variables.
-            telegram_request("sendChatAction", {"chat_id": chat_id, "action": "typing"}, timeout=2)
+        if ctype == "private" and "sticker" in msg:
+            tg_req("sendChatAction", {"chat_id": cid, "action": "typing"}, timeout=2)
             sticker = msg["sticker"]
             emoji = sticker.get("emoji", "😊")
             is_animated = sticker.get("is_animated", False)
@@ -3154,8 +3152,6 @@ def webhook():
                 mime = "image/webp"
 
             base64_img = get_telegram_file_base64(stk_file_id) if stk_file_id else None
-            
-            # Agar image mili toh purana gold wala prompt use karo
             if base64_img:
                 prompt_text = (
                     f"[{fname} sent a sticker (emoji: {emoji}). Look closely with REAL EYES at the image: "
@@ -3171,8 +3167,7 @@ def webhook():
                 prompt_text, fname, uid, credits_left=credits, is_owner=is_own,
                 media_base64=base64_img, media_mime_type=mime, replied_to_text=replied_to_text, ctype=ctype
             )
-            
-            kb = get_pay_kb() if show_kb else None
+            kb = get_pay_kb() if show_kb is True else None
             send_msg(cid, reply_text, reply_id=msg.get("message_id"), markup=kb)
             if sticker_to_send: send_stk(cid, sticker_to_send, reply_id=msg.get("message_id"))
             add_to_history(uid, "user", f"[Sticker: {emoji}]")
