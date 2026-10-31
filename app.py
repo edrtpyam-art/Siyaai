@@ -3116,30 +3116,27 @@ def webhook():
                 fb_update_user(uid, {"credits": max(0, credits - 1)})
             return jsonify({"status": "media read processed"}), 200
 
-        if "sticker" in msg:
-            if is_private or should_process_group:
-                send_typing(chat_id)
-                sticker = msg["sticker"]
-                emoji = sticker.get("emoji", "😊")
-                is_animated = sticker.get("is_animated", False)
-                is_video_stk = sticker.get("is_video", False)
+       if ctype == "private" and "sticker" in msg:
+            sticker = msg["sticker"]
+            emoji = sticker.get("emoji", "😊")
+            is_animated = sticker.get("is_animated", False)
+            is_video_stk = sticker.get("is_video", False)
 
-                thumb = sticker.get("thumbnail") or sticker.get("thumb")
-                if not is_animated and not is_video_stk:
-                    stk_file_id = sticker.get("file_id", "")
-                    mime = "image/webp"
-                elif thumb and thumb.get("file_id"):
-                    stk_file_id = thumb.get("file_id", "")
-                    mime = "image/jpeg"
-                else:
-                    stk_file_id = ""
-                    mime = "image/webp"
+            thumb = sticker.get("thumbnail") or sticker.get("thumb")
+            if not is_animated and not is_video_stk:
+                stk_file_id = sticker.get("file_id", "")
+                mime = "image/webp"
+            elif thumb and thumb.get("file_id"):
+                stk_file_id = thumb.get("file_id", "")
+                mime = "image/jpeg"
+            else:
+                stk_file_id = ""
+                mime = "image/webp"
 
             base64_img = get_telegram_file_base64(stk_file_id) if stk_file_id else None
             prompt_text = (
-                f"[{fname} sent this sticker (emoji: {emoji}) FOR YOU! In this sticker, the BOY is {fname} and the GIRL is YOU! "
-                f"Look closely at what the boy is doing to the girl inside the sticker image (or the girl's expression) and take it 100% on yourself like a real girl in your current roleplay character! "
-                f"Say how good it feels as if {fname} is doing that exact action to YOU right now in 1-2 short, complete, uncut sentences!]"
+                f"[User sent a sticker (emoji: {emoji}). Look closely at what is happening inside the sticker image! "
+                f"In this sticker, the boy is {fname} and the girl is YOU! Describe the pose/expression in it and connect it to yourself and {fname} in 1-2 complete sentences!]"
             )
 
             reply_text, _, sticker_to_send, show_kb, cur_rp, rp_ended, sys_q = chat_with_siya(
