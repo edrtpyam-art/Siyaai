@@ -3137,8 +3137,20 @@ def webhook():
 # ============================================================
 # 11. EDROL AI LANDING PAGE
 # ============================================================
-@app.route("/", methods=["GET"])
-def health_check():
+@app.route("/api/bot/<bot_uname>", methods=["POST"])
+def webhook_char_bot(bot_uname):
+    global BOT_TOKEN, API_URL, BOT_USERNAME
+    b_clean = str(bot_uname or "").lower().lstrip("@")
+    tok = CHAR_BOT_TOKENS.get(b_clean)
+    old_tok, old_url, old_uname = BOT_TOKEN, API_URL, BOT_USERNAME
+    if tok:
+        BOT_TOKEN = tok
+        API_URL = f"https://api.telegram.org/bot{tok}"
+        BOT_USERNAME = b_clean
+    try:
+        return webhook()
+    finally:
+        BOT_TOKEN, API_URL, BOT_USERNAME = old_tok, old_url, old_uname
     html_page = """
     <!DOCTYPE html>
     <html lang="en">
@@ -3298,10 +3310,23 @@ def health_check():
 @app.route("/setup")
 def setup_webhook():
     host = request.host_url.rstrip("/")
-    return jsonify(tg_req("setWebhook", {
+    results = {}
+    results["main_bot"] = tg_req("setWebhook", {
         "url": f"{host}/api/bot",
         "allowed_updates": ["message", "edited_message", "callback_query", "my_chat_member", "chat_member", "chat_join_request"]
-    }))
+    })
+    for b_uname, b_tok in CHAR_BOT_TOKENS.items():
+        if b_tok:
+            try:
+                r = requests.post(
+                    f"https://api.telegram.org/bot{b_tok}/setWebhook",
+                    json={"url": f"{host}/api/bot/{b_uname}", "allowed_updates": ["message", "callback_query"]},
+                    timeout=6
+                ).json()
+                results[b_uname] = r
+            except Exception as e:
+                results[b_uname] = {"ok": False, "error": str(e)}
+    return jsonify(results)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "80")), debug=False)
