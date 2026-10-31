@@ -2032,6 +2032,57 @@ def webhook():
                 edit_or_send_box_media(cid, mid, live_dp, caption=card_cap, reply_markup=card_kb)
                 return jsonify({"status": "ok"}), 200
 
+            if cb_data.startswith("selgirl_"):
+                _, char_key, g_key = cb_data.split("_", 2)
+                char_info = DIAMOND_CHARACTERS.get(char_key)
+                g_info = REAL_GIRLS.get(g_key, REAL_GIRLS["g1"])
+                if not char_info: return jsonify({"status": "ok"}), 200
+                is_vip_user = is_own or bool(u_cb.get("is_vip"))
+                c_price = str(char_info["price"])
+
+                if not is_vip_user:
+                    url = create_cf_order(uid, fname, c_price, purpose=f"char_{char_key}_{g_key}")
+                    tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"🔒 Unlock {g_info['name']} for ₹{c_price}!", "show_alert": True})
+                    btn = {"text": f"💳 Pay ₹{c_price} to Unlock (40 Chats)", "url": url} if url else {"text": f"💳 Pay ₹{c_price}", "callback_data": f"buy_{c_price}"}
+                    edit_or_send_box_media(
+                        cid, mid,
+                        get_live_bot_dp_url(g_info.get("bot"), fallback_banner=g_info.get("dp", START_BANNER_IMAGE)),
+                        caption=(
+                            f"🔒 <b>[DIAMOND LOCKED]</b>\n"
+                            f"🎬 <b>Roleplay:</b> {char_info['name']}\n"
+                            f"🙋‍♀️ <b>Selected Girl:</b> {g_info['name']}\n"
+                            f"💎 <b>Price:</b> ₹{c_price} (Gets 40 Full Open Chats!)\n\n"
+                            f"👇 Niche button se pay karke 1 second mein {g_info['name']} ke bedroom mein jao:"
+                        ),
+                        reply_markup={"inline_keyboard": [[btn], [{"text": "🔙 Back to Girls", "callback_data": f"girlcard_{char_key}_0"}]]}
+                    )
+                    return jsonify({"status": "ok"}), 200
+
+                call_word = char_info.get("call") or g_info.get("call", "Jaan")
+                target_bot = g_info.get("bot", BOT_USERNAME)
+                rp_brain = (
+                    f"GIRL NAME: {g_info['name']}. TALKING STYLE & VIBE: {g_info['vibe']} "
+                    f"CHARACTER ROLE: {char_info['name']} ({char_info['desc']}). "
+                    f"CALL USER STRICTLY AS: '{call_word}'. "
+                    f"CRITICAL: NEVER call yourself 'Bhabhi' or user 'Devar ji' unless the role is Bhabhi!"
+                )
+                fb_update_user(uid, {"active_rp": rp_brain, "active_girl": g_key, "active_vault": g_key, "history": []})
+                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"✅ {g_info['name']} Ready! 🔥"})
+                go_kb = {"inline_keyboard": [
+                    [{"text": f"🛏️ Enter {g_info['name']}'s Bedroom 💬", "url": f"https://t.me/{target_bot}?start=rp_{char_key}_{g_key}"}],
+                    [{"text": "🔙 Back to Girls", "callback_data": f"girlcard_{char_key}_0"}]
+                ]}
+                edit_or_send_box_media(
+                    cid, mid,
+                    get_live_bot_dp_url(g_info.get("bot"), fallback_banner=g_info.get("dp", START_BANNER_IMAGE)),
+                    caption=(
+                        f"🔥 <b>Devar ji, aapki {g_info['name']} ({char_info['name']}) bilkul taiyaar hai!</b>\n\n"
+                        f"1 second mein uska dimaag, bolne ka style aur memory is roleplay par lock ho chuki hai! Niche button dabakar seedha uske bedroom (Bot) mein jao: 😘🥵👇"
+                    ),
+                    reply_markup=go_kb
+                )
+                return jsonify({"status": "ok"}), 200
+
             if cb_data == "menu_free_earn":
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
                 ref_cnt = int(u_cb.get("ref_count") or 0)
@@ -2925,15 +2976,50 @@ def webhook():
                     pass
 
             parts = text.split()
-            if len(parts) > 1 and parts[1].startswith("ref_"):
-                ref_id = parts[1].replace("ref_", "").strip()
-                # ANTI-CHEAT: Must not be self-referral, and must be a brand-new user who never had a referrer!
+            start_arg = parts[1].strip() if len(parts) > 1 else ""
+
+            if start_arg.startswith("ref_"):
+                ref_id = start_arg.replace("ref_", "").strip()
                 if ref_id and ref_id != uid and (is_brand_new or not u.get("referred_by")):
                     fb_update_user(uid, {"referred_by": ref_id})
                     ref_user = fb_get_user(ref_id)
                     new_ref_cnt = int(ref_user.get("ref_count") or 0) + 1
                     fb_update_user(ref_id, {"ref_count": new_ref_cnt})
                     send_msg(ref_id, f"🎉 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] Referral Alert!\nEk naye dost ({html.escape(fname)}) ne tumhare link se bot join kiya hai! (Total Joined: {new_ref_cnt}) 🎁")
+
+            # Agar user kisi Character Bot (Aditi, Tanya, Sakshi, Aashi, Aarohi) par aaya hai ya rp_ link se start kiya hai:
+            is_sub_bot = BOT_USERNAME.lower() in CHAR_BOT_TOKENS
+            if start_arg.startswith("rp_") or is_sub_bot:
+                if start_arg.startswith("rp_"):
+                    rp_parts = start_arg.split("_")
+                    if len(rp_parts) >= 3:
+                        c_k, g_k = rp_parts[1], rp_parts[2]
+                        c_inf = DIAMOND_CHARACTERS.get(c_k, {})
+                        g_inf = REAL_GIRLS.get(g_k, REAL_GIRLS["g1"])
+                        if c_inf:
+                            c_w = c_inf.get("call") or g_inf.get("call", "Jaan")
+                            rp_b = (
+                                f"GIRL NAME: {g_inf['name']}. TALKING STYLE & VIBE: {g_inf['vibe']} "
+                                f"CHARACTER ROLE: {c_inf['name']} ({c_inf['desc']}). "
+                                f"CALL USER STRICTLY AS: '{c_w}'. "
+                                f"CRITICAL: NEVER call yourself 'Bhabhi' or user 'Devar ji' unless the role is Bhabhi!"
+                            )
+                            fb_update_user(uid, {"active_rp": rp_b, "active_girl": g_k, "active_vault": g_k, "history": []})
+                            u = fb_get_user(uid)
+
+                # Sub-bot par Start dabate hi seedha Character ke andar se first seductive welcome message bhejo!
+                g_k_now = u.get("active_girl") or "g1"
+                for k_id, k_val in REAL_GIRLS.items():
+                    if k_val.get("bot", "").lower() == BOT_USERNAME.lower():
+                        g_k_now = k_id
+                        break
+                g_now_info = REAL_GIRLS.get(g_k_now, REAL_GIRLS["g1"])
+                c_word_now = g_now_info.get("call", "Jaan")
+                send_msg(
+                    cid,
+                    f"Aaaah {html.escape(fname)} ({c_word_now})... aao na andar, maine darwaza lock kar liya hai! Main <b>{g_now_info['name']}</b> kab se bistar par tumhara hi intezaar kar rahi thi... batao aaj kahan se shuru karein? 😘🥵💋"
+                )
+                return jsonify({"status": "ok"}), 200
 
             cleaned_h = [h for h in (u.get("history") or []) if not is_censored_refusal(h.get("text")) and len(str(h.get("text") or "")) >= 20]
             if text.lower().startswith("/reset"):
@@ -3151,6 +3237,9 @@ def webhook_char_bot(bot_uname):
         return webhook()
     finally:
         BOT_TOKEN, API_URL, BOT_USERNAME = old_tok, old_url, old_uname
+
+@app.route("/", methods=["GET"])
+def health_check():
     html_page = """
     <!DOCTYPE html>
     <html lang="en">
