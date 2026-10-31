@@ -419,14 +419,23 @@ def to_hot_bhabhi_font(text):
                     out.append(sp.translate(_SERIF_BOLD_ITALIC_MAP))
     return f"<b>{''.join(out)}</b>"
 
+def clean_display_name(raw_name, default="Jaan"):
+    cleaned = re.sub(r"[^a-zA-Z0-9\u0900-\u097F\s]", "", str(raw_name or "")).strip()
+    return cleaned if len(cleaned) >= 2 else default
+
 def get_welcome_trust_text(fname, credit_display, lang="hinglish"):
-    safe_name = html.escape(fname or "Jaan")
+    safe_name = html.escape(clean_display_name(fname, "Devar ji"))
     c_str = html.escape(str(credit_display))
     return (
-        f"🔥 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] • Powered by Edrol AI ❤️\n\n"
-        f"👋 Hii {safe_name} jaan! Main tumhari 24/7 Private Roleplay Partner & Smart Group Manager hoon 😘\n"
-        f"💎 Balance: {c_str} Credits\n\n"
-        f"👇 Niche menu chuno ya seedha message bhej kar chat shuru karo:"
+        f"🔥 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] • Powered by Edrol AI ❤️\n"
+        f"━━━━━━━━━━━━━━━━━━\n\n"
+        f"👋 Hii {safe_name} jaan!\n\n"
+        f"💋 Main tumhari 24/7 Personal Bhabhi & Roleplay Partner hoon.\n\n"
+        f"🎭 200+ Roleplay Scenarios & 20 Real Girls Hub\n"
+        f"🛡️ Smart Group Protection & Auto-Tag Promo\n"
+        f"💎 Available Balance : {c_str} Credits\n\n"
+        f"━━━━━━━━━━━━━━━━━━\n"
+        f"👇 Niche menu button chuno ya seedha message bhej kar baatein shuru karo:"
     )
 
 def get_main_menu_kb(credits_display, is_owner=False):
@@ -1444,6 +1453,8 @@ def is_censored_refusal(text):
         return True
     bad_phrases = [
         "i cannot assist", "i can't assist", "cannot assist with that", "can't assist with that",
+        "how can i help you today", "how may i assist you", "here to help answer your questions",
+        "i'm an ai", "i am an ai", "ai language model", "language model created by",
         "i cannot participate", "i can't participate", "sexually explicit",
         "aisa nahi karti", "aisi baatein nahi karti", "lesson hai respect", "respect aur patience",
         "main college teacher hoon, aisa", "explicit sexual", "sexual instructions", "instructions nahi de sakti",
