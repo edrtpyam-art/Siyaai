@@ -1148,29 +1148,28 @@ def cf_verify_endpoint():
                 send_msg(uid, f"✅ [Edrol AI Pro Max Lite] Payment Verified!\n\n🎉 Tumhara Custom Roleplay (₹129) activate ho gaya hai aur +{add_c} VIP Credits (50 Chats) add ho gaye hain!\n🔓 Ab poori kahani tumhare hisaab se chalegi, setup bhejo! 😘🔥")
                 
             elif purpose.startswith("char_") and uid:
-                char_key = purpose.replace("char_", "")
+                raw_p = purpose.replace("char_", "")
+                char_key, g_key = raw_p.split("_", 1) if "_" in raw_p else (raw_p, "g1")
                 u = fb_get_user(uid)
                 char_info = DIAMOND_CHARACTERS.get(char_key, {})
-                char_name = char_info.get("name", "Premium Character")
-                call_word = char_info.get("call", "Jaan")
-                add_c = 200  # 40 Chats (1 Chat = 5 Credits)
+                g_info = REAL_GIRLS.get(g_key, REAL_GIRLS["g1"])
+                char_name = char_info.get("name", "Roleplay")
+                call_word = char_info.get("call") or g_info.get("call", "Jaan")
+                target_bot = g_info.get("bot", BOT_USERNAME)
+                add_c = 200  # 40 Chats
                 tot = max(0, int(u.get("credits") or 0)) + add_c
                 rp_brain = (
-                    f"CHARACTER: {char_name} ({char_info.get('desc', '')}). "
+                    f"CHARACTER ROLE: {char_name} ({char_info.get('desc', '')}). "
                     f"CALL USER STRICTLY AS: '{call_word}'. "
-                    f"CRITICAL: NEVER call yourself 'Bhabhi' and NEVER call the user 'Devar ji' (unless CHARACTER is explicitly Bhabhi)! "
-                    f"Act 100% open, wild, sexually frustrated, and dirty in Desi Hinglish matching your character '{char_name}'!"
+                    f"CRITICAL: NEVER call yourself 'Bhabhi' or user 'Devar ji' unless the role is Bhabhi!"
                 )
                 fb_update_user(uid, {
-                    "credits": tot,
-                    "is_vip": True,
-                    "awaiting_payment": "",
-                    "active_rp": rp_brain,
-                    "active_vault": char_info.get("vault_tag", "bhabhi"),
-                    "history": []
+                    "credits": tot, "is_vip": True, "awaiting_payment": "",
+                    "active_rp": rp_brain, "active_girl": g_key, "active_vault": g_key, "history": []
                 })
-                send_msg(uid, f"✅ Payment Verified!\n\n🎉 Tumhara <b>{char_name}</b> mode activate ho gaya hai aur <b>+200 Credits (40 Full Open Chats)</b> add ho gaye hain!\n🔥 Ab main poori tarah tumhari <b>{char_name}</b> hoon ({call_word}), chalo bina kisi sharam ke khul kar shuru karein! 😘🥵💋")
-                
+                go_kb = {"inline_keyboard": [[{"text": f"🛏️ Enter {g_info['name']}'s Bedroom 💬", "url": f"https://t.me/{target_bot}?start=rp_{char_key}_{g_key}"}]]}
+                send_msg(uid, f"✅ Payment Verified!\n\n🎉 Tumhara <b>{char_name}</b> roleplay <b>{g_info['name']}</b> ke saath activate ho gaya hai (+40 Full Open Chats)!\n👇 Niche button dabakar seedha uske private bedroom mein jao:", markup=go_kb)
+
             elif uid:
                 u = fb_get_user(uid)
                 add_c = PLAN_CREDITS.get(amt, 75)
