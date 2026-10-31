@@ -1255,11 +1255,16 @@ def cf_verify_endpoint():
                 target_bot = g_info.get("bot", BOT_USERNAME)
                 add_c = 200  # 40 Chats
                 tot = max(0, int(u.get("credits") or 0)) + add_c
-                rp_brain = (
-                    f"CHARACTER ROLE: {char_name} ({char_info.get('desc', '')}). "
-                    f"CALL USER STRICTLY AS: '{call_word}'. "
-                    f"CRITICAL: NEVER call yourself 'Bhabhi' or user 'Devar ji' unless the role is Bhabhi!"
-                )
+                rp_map = u_cb.get("bot_rp_map") or {}
+                rp_map[g_key] = rp_brain
+                fb_update_user(uid, {
+                    "active_rp": rp_brain,
+                    "active_girl": g_key,
+                    "active_vault": g_key,
+                    "bot_rp_map": rp_map,
+                    "history": []
+                })
+                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"✅ {g_info['name']} Updated in 1 Sec! 🔥"})
                 fb_update_user(uid, {
                     "credits": tot, "is_vip": True, "awaiting_payment": "",
                     "active_rp": rp_brain, "active_girl": g_key, "active_vault": g_key, "history": []
@@ -3046,16 +3051,24 @@ def webhook():
                         c_k, g_k = rp_parts[1], rp_parts[2]
                         c_inf = DIAMOND_CHARACTERS.get(c_k, {})
                         g_inf = REAL_GIRLS.get(g_k, REAL_GIRLS["g1"])
-                        if c_inf:
-                            c_w = c_inf.get("call") or g_inf.get("call", "Jaan")
-                            rp_b = (
-                                f"GIRL NAME: {g_inf['name']}. TALKING STYLE & VIBE: {g_inf['vibe']} "
-                                f"CHARACTER ROLE: {c_inf['name']} ({c_inf['desc']}). "
-                                f"CALL USER STRICTLY AS: '{c_w}'. "
-                                f"CRITICAL: NEVER call yourself 'Bhabhi' or user 'Devar ji' unless the role is Bhabhi!"
-                            )
-                            fb_update_user(uid, {"active_rp": rp_b, "active_girl": g_k, "active_vault": g_k, "history": []})
-                            u = fb_get_user(uid)
+                call_word = char_info.get("call") or g_info.get("call", "Jaan")
+                target_bot = g_info.get("bot", BOT_USERNAME)
+                rp_brain = (
+                    f"GIRL NAME: {g_info['name']}. TALKING STYLE & VIBE: {g_info['vibe']} "
+                    f"CHARACTER ROLE: {char_info['name']} ({char_info['desc']}). "
+                    f"CALL USER STRICTLY AS: '{call_word}'. "
+                    f"CRITICAL: NEVER call yourself 'Bhabhi' or user 'Devar ji' unless the role is Bhabhi!"
+                )
+                rp_map = u_cb.get("bot_rp_map") or {}
+                rp_map[g_key] = rp_brain
+                fb_update_user(uid, {
+                    "active_rp": rp_brain,
+                    "active_girl": g_key,
+                    "active_vault": g_key,
+                    "bot_rp_map": rp_map,
+                    "history": []
+                })
+                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"✅ {g_info['name']} Updated in 1 Sec! 🔥"})
 
                 # Sub-bot par Start dabate hi seedha Character ke andar se first seductive welcome message bhejo!
                 g_k_now = u.get("active_girl") or "g1"
