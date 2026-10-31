@@ -3030,22 +3030,24 @@ def webhook():
                 fb_update_user(uid, {"credits": max(0, credits - 1)})
             return jsonify({"status": "media read processed"}), 200
 
-        if ctype == "private" and "sticker" in msg:
-            sticker = msg["sticker"]
-            emoji = sticker.get("emoji", "😊")
-            is_animated = sticker.get("is_animated", False)
-            is_video_stk = sticker.get("is_video", False)
+        if "sticker" in msg:
+            if is_private or should_process_group:
+                send_typing(chat_id)
+                sticker = msg["sticker"]
+                emoji = sticker.get("emoji", "😊")
+                is_animated = sticker.get("is_animated", False)
+                is_video_stk = sticker.get("is_video", False)
 
-            thumb = sticker.get("thumbnail") or sticker.get("thumb")
-            if not is_animated and not is_video_stk:
-                stk_file_id = sticker.get("file_id", "")
-                mime = "image/jpeg"
-            elif thumb and thumb.get("file_id"):
-                stk_file_id = thumb.get("file_id", "")
-                mime = "image/jpeg"
-            else:
-                stk_file_id = ""
-                mime = "image/jpeg"
+                thumb = sticker.get("thumbnail") or sticker.get("thumb")
+                if not is_animated and not is_video_stk:
+                    stk_file_id = sticker.get("file_id", "")
+                    mime = "image/webp"
+                elif thumb and thumb.get("file_id"):
+                    stk_file_id = thumb.get("file_id", "")
+                    mime = "image/jpeg"
+                else:
+                    stk_file_id = ""
+                    mime = "image/webp"
 
             base64_img = get_telegram_file_base64(stk_file_id) if stk_file_id else None
             prompt_text = (
