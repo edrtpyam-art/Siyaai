@@ -1899,35 +1899,98 @@ def webhook():
                         url = create_cf_order(uid, fname, "199", purpose="custom_rp")
                         tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "🔒 Custom Roleplay (₹199) locked!", "show_alert": True})
                         btn = {"text": "💳 Pay ₹199 to Unlock (40 Chats)", "url": url} if url else {"text": "💳 Pay ₹199", "callback_data": "buy_199"}
-                        send_msg(cid, "🔒 <b>[DIAMOND LOCKED]</b>\n✨ <b>51. Custom Roleplay (Apni Story)</b>\n💎 Price: ₹199 (40 VIP Chats!)\n\n👇 Niche button se ₹199 pay karke ise turant unlock karein:", markup={"inline_keyboard": [[btn]]})
+                        send_msg(cid, "🔒 <b>[DIAMOND LOCKED]</b>\n✨ <b>201. Custom Roleplay (Apni Story)</b>\n💎 Price: ₹199 (40 VIP Chats!)\n\n👇 Niche button se ₹199 pay karke ise turant unlock karein:", markup={"inline_keyboard": [[btn]]})
                         return jsonify({"status": "ok"}), 200
-                    
                     fb_update_user(uid, {"awaiting_custom_rp": True})
                     tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
                     send_msg(cid, "✨ <b>Custom Roleplay Generator:</b>\n\nApne character ka naam, rishta aur poori story yahan likh kar bhejo. Main bilkul wahi ban jaungi! 👇")
                     return jsonify({"status": "ok"}), 200
 
+                # Redirect to Girl Profile Card Box (Starts at Girl Index 0)
+                cb_data = f"girlcard_{char_key}_0"
+
+            if cb_data.startswith("girlcard_"):
+                _, char_key, g_idx_str = cb_data.split("_", 2)
+                g_idx = int(g_idx_str) if g_idx_str.isdigit() else 0
                 char_info = DIAMOND_CHARACTERS.get(char_key)
                 if not char_info: return jsonify({"status": "ok"}), 200
 
+                g_keys = list(REAL_GIRLS.keys())
+                g_idx = g_idx % len(g_keys)
+                g_key = g_keys[g_idx]
+                g_info = REAL_GIRLS[g_key]
+
+                prev_idx = (g_idx - 1) % len(g_keys)
+                next_idx = (g_idx + 1) % len(g_keys)
+
+                card_cap = (
+                    f"👯‍♀️ <b>20 Girls Available ({g_idx + 1}/{len(g_keys)} Ready)</b>\n"
+                    f"━━━━━━━━━━━━━━━━━━\n"
+                    f"🎬 <b>Roleplay:</b> {char_info['name']}\n"
+                    f"📜 <i>{char_info['desc']}</i>\n\n"
+                    f"🙋‍♀️ <b>Partner Name:</b> {g_info['name']}\n"
+                    f"💬 <b>Talking Style:</b> <i>{g_info['vibe']}</i>\n"
+                    f"💎 <b>Pack:</b> ₹{char_info['price']} (40 Full Open Chats)\n"
+                    f"━━━━━━━━━━━━━━━━━━\n"
+                    f"👇 <b>Is ladki ko chunne ke liye niche click karein ya Next Girl dekhein:</b>"
+                )
+                card_kb = {"inline_keyboard": [
+                    [{"text": f"✅ Start with {g_info['name']} 💖", "callback_data": f"selgirl_{char_key}_{g_key}"}],
+                    [
+                        {"text": "⬅️ Prev Girl", "callback_data": f"girlcard_{char_key}_{prev_idx}"},
+                        {"text": "Next Girl ➡️", "callback_data": f"girlcard_{char_key}_{next_idx}"}
+                    ],
+                    [{"text": "🔙 Back to 200 Roleplays", "callback_data": "menu_roleplay_hub_1"}]
+                ]}
+                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
+                # Delete old card message so chat stays clean like a real app box!
+                tg_req("deleteMessage", {"chat_id": cid, "message_id": mid}, timeout=2)
+                dp_file = g_info.get("dp", START_BANNER_IMAGE)
+                res_dp = send_local_or_url_media(cid, dp_file, caption=card_cap, protect=False, spoiler=False, reply_markup=card_kb)
+                if not res_dp.get("ok"):
+                    send_local_or_url_media(cid, START_BANNER_IMAGE, caption=card_cap, protect=False, spoiler=False, reply_markup=card_kb)
+                return jsonify({"status": "ok"}), 200
+
+            if cb_data.startswith("selgirl_"):
+                _, char_key, g_key = cb_data.split("_", 2)
+                char_info = DIAMOND_CHARACTERS.get(char_key)
+                g_info = REAL_GIRLS.get(g_key, REAL_GIRLS["g1"])
+                if not char_info: return jsonify({"status": "ok"}), 200
+                is_vip_user = is_own or bool(u_cb.get("is_vip"))
                 c_price = str(char_info["price"])
+
                 if not is_vip_user:
-                    url = create_cf_order(uid, fname, c_price, purpose=f"char_{char_key}")
-                    tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"🔒 {char_info['name']} (₹{c_price}) locked!", "show_alert": True})
+                    url = create_cf_order(uid, fname, c_price, purpose=f"char_{char_key}_{g_key}")
+                    tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"🔒 Unlock {g_info['name']} for ₹{c_price}!", "show_alert": True})
                     btn = {"text": f"💳 Pay ₹{c_price} to Unlock (40 Chats)", "url": url} if url else {"text": f"💳 Pay ₹{c_price}", "callback_data": f"buy_{c_price}"}
-                    send_msg(cid, f"🔒 <b>[DIAMOND LOCKED]</b>\n✨ <b>{char_info['name']}</b>\n📜 {char_info['desc']}\n💎 Price: ₹{c_price} (Gets 40 Premium Chats!)\n\n👇 Niche button se pay karke ise unlock karein:", markup={"inline_keyboard": [[btn]]})
+                    send_msg(
+                        cid,
+                        f"🔒 <b>[DIAMOND LOCKED]</b>\n"
+                        f"🎬 <b>Roleplay:</b> {char_info['name']}\n"
+                        f"🙋‍♀️ <b>Selected Girl:</b> {g_info['name']}\n"
+                        f"💎 <b>Price:</b> ₹{c_price} (Gets 40 Full Open Chats!)\n\n"
+                        f"👇 Niche button se pay karke 1 second mein {g_info['name']} ke bedroom mein jao:",
+                        markup={"inline_keyboard": [[btn]]}
+                    )
                     return jsonify({"status": "ok"}), 200
 
-                call_word = char_info.get("call", "Jaan")
+                call_word = char_info.get("call") or g_info.get("call", "Jaan")
+                target_bot = g_info.get("bot", BOT_USERNAME)
                 rp_brain = (
-                    f"CHARACTER: {char_info['name']} ({char_info['desc']}). "
+                    f"CHARACTER ROLE: {char_info['name']} ({char_info['desc']}). "
                     f"CALL USER STRICTLY AS: '{call_word}'. "
-                    f"CRITICAL: NEVER call yourself 'Bhabhi' and NEVER call the user 'Devar ji' (unless CHARACTER is explicitly Bhabhi)! "
-                    f"Act 100% open, wild, sexually frustrated, and dirty in Desi Hinglish matching your character '{char_info['name']}'!"
+                    f"CRITICAL: NEVER call yourself 'Bhabhi' or user 'Devar ji' unless the role is Bhabhi!"
                 )
-                fb_update_user(uid, {"active_rp": rp_brain, "active_vault": char_info["vault_tag"], "history": []})
-                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"✅ {char_info['name']} Activated! 🔥"})
-                send_msg(cid, f"🔥 <b>{char_info['name']} Mode Activated!</b>\n\nPurani chat clear kar di gayi hai aur ab main poori tarah tumhari <b>{char_info['name']}</b> ban chuki hoon ({call_word})! Niche message bhejo... 😘🥵🔥")
+                fb_update_user(uid, {"active_rp": rp_brain, "active_girl": g_key, "active_vault": g_key, "history": []})
+                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"✅ {g_info['name']} Ready! 🔥"})
+                go_kb = {"inline_keyboard": [[{"text": f"🛏️ Enter {g_info['name']}'s Bedroom 💬", "url": f"https://t.me/{target_bot}?start=rp_{char_key}_{g_key}"}]]}
+                send_msg(
+                    cid,
+                    f"🔥 <b>Devar ji, aapki {g_info['name']} ({char_info['name']}) bilkul taiyaar hai!</b>\n\n"
+                    f"1 second mein uska dimaag, bolne ka style aur memory is roleplay par lock ho chuki hai! Niche button dabakar seedha uske bedroom (Bot) mein jao: 😘🥵👇",
+                    markup=go_kb
+                )
+                return jsonify({"status": "ok"}), 200
 
             if cb_data == "menu_free_earn":
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
