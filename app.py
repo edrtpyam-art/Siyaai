@@ -3116,7 +3116,9 @@ def webhook():
                 fb_update_user(uid, {"credits": max(0, credits - 1)})
             return jsonify({"status": "media read processed"}), 200
 
-        if ctype == "private" and "sticker" in msg:
+         if ctype == "private" and "sticker" in msg:
+            # Crash fix: removed undefined variables.
+            telegram_request("sendChatAction", {"chat_id": chat_id, "action": "typing"}, timeout=2)
             sticker = msg["sticker"]
             emoji = sticker.get("emoji", "😊")
             is_animated = sticker.get("is_animated", False)
@@ -3134,16 +3136,26 @@ def webhook():
                 mime = "image/webp"
 
             base64_img = get_telegram_file_base64(stk_file_id) if stk_file_id else None
-            prompt_text = (
-                f"[User sent a sticker (emoji: {emoji}). Look closely at what is happening inside the sticker image! "
-                f"In this sticker, the boy is {fname} and the girl is YOU! Describe the pose/expression in it and connect it to yourself and {fname} in 1-2 complete sentences!]"
-            )
+            
+            # Agar image mili toh purana gold wala prompt use karo
+            if base64_img:
+                prompt_text = (
+                    f"[{fname} sent a sticker (emoji: {emoji}). Look closely with REAL EYES at the image: "
+                    f"describe ONLY the exact facial expression or intimate couple action actually visible in this sticker! "
+                    f"In this sticker, the BOY is {fname} and the GIRL is YOU! Say how good it feels in 1-2 complete sentences.]"
+                )
+            else:
+                prompt_text = (
+                    f"[{fname} sent an animated '{emoji}' reaction sticker. React playfully and seductively to his '{emoji}' mood in your current character in 1-2 short uncut sentences!]"
+                )
 
             reply_text, _, sticker_to_send, show_kb, cur_rp, rp_ended, sys_q = chat_with_siya(
                 prompt_text, fname, uid, credits_left=credits, is_owner=is_own,
                 media_base64=base64_img, media_mime_type=mime, replied_to_text=replied_to_text, ctype=ctype
             )
-            send_msg(cid, reply_text, reply_id=msg.get("message_id"), markup=(get_pay_kb() if show_kb is True else None))
+            
+            kb = get_pay_kb() if show_kb else None
+            send_msg(cid, reply_text, reply_id=msg.get("message_id"), markup=kb)
             if sticker_to_send: send_stk(cid, sticker_to_send, reply_id=msg.get("message_id"))
             add_to_history(uid, "user", f"[Sticker: {emoji}]")
             add_to_history(uid, "siya", reply_text)
