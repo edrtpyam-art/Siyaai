@@ -1687,17 +1687,27 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
     asks_buy = False if ctype in ("group", "supergroup") else any(w in msg_low for w in BUY_PLAN_WORDS)
     is_sys_q = is_system_or_bot_info_query(message_text) or asks_buy
 
+    user_name = clean_display_name(user_name, "Jaan")
     is_vip_u = is_owner or bool(user_data.get("is_vip"))
-    active_rp = "" if (ctype in ("group", "supergroup") or not is_vip_u) else (user_data.get("active_rp") or "")
-    active_vault = "" if (ctype in ("group", "supergroup") or not is_vip_u) else (user_data.get("active_vault") or "")
-    
-    # 📌 GIRL DETECTION LOGIC: User kis bot pe hai?
-    current_girl_key = user_data.get("active_girl") or ""
+
+    # Check if user is on Main Hot Bhabhi Bot or one of the 20 Girl Bots:
+    current_girl = None
+    current_girl_key = ""
     for gk_id, gk_val in REAL_GIRLS.items():
-        if gk_val.get("bot", "").lower() == BOT_USERNAME.lower():
+        if gk_val.get("bot", "").lower() == BOT_USERNAME.lower() and BOT_USERNAME.lower() != MAIN_BOT_USERNAME.lower():
             current_girl_key = gk_id
+            current_girl = gk_val
             break
-    current_girl = REAL_GIRLS.get(current_girl_key) if current_girl_key in REAL_GIRLS else None
+
+    # Per-bot roleplay memory so Main Bhabhi Bot and 20 Girl Bots NEVER mix up!
+    rp_map = user_data.get("bot_rp_map") or {}
+    if current_girl:
+        active_rp = rp_map.get(current_girl_key) or (user_data.get("active_rp") or "")
+        active_vault = current_girl_key
+    else:
+        # On Main Hot Bhabhi Bot: ALWAYS stay Hot Bhabhi (Devar ji) unless a custom Bhabhi story is set on main bot!
+        active_rp = rp_map.get("main_bhabhi") or ""
+        active_vault = "bhabhi"
 
     roleplay_just_ended = False
 
@@ -1706,17 +1716,19 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
             if active_rp:
                 roleplay_just_ended = True
             active_rp = ""
-            active_vault = ""
-            fb_update_user(user_id, {"active_rp": "", "active_vault": ""})
+            if current_girl_key:
+                rp_map[current_girl_key] = ""
+            else:
+                rp_map["main_bhabhi"] = ""
+            fb_update_user(user_id, {"active_rp": "", "bot_rp_map": rp_map})
         else:
             asks_new_rp = any(w in msg_low for w in [
-                "roleplay", "rolpay", "rolplay", "role play", "ban jao", "bano", "act like", "be my",
-                "aunty", "aunti", "teacher", "madam", "maid", "naukrani", "doctor", "nurse", "boss", "sali", "saali", "nagin", "sugar mummy"
+                "roleplay", "rolpay", "rolplay", "role play", "ban jao", "bano", "act like", "be my"
             ])
             if asks_new_rp and not active_rp and not current_girl:
                 return (
-                    f"Jaan {user_name}, is normal chat mein main sirf tumhari <b>Desi Hot Bhabhi</b> hoon! 😘🔥\n\n"
-                    f"Agar tumhe mere saath <b>Teacher, Rasili Padosan, Secret GF, Office Boss, Aunty</b> ya apni <b>Custom Story</b> wala roleplay karna hai, toh niche button dabakar <b>🎭 Roleplay & Character Hub</b> se apna pasandida character unlock kar lo! 👇",
+                    f"Devar ji {user_name}, is chat mein main tumhari <b>Desi Hot Bhabhi</b> hoon! 😘🔥\n\n"
+                    f"Agar tumhe <b>200+ Roleplay Scenarios</b> (Teacher, Sali, Mami, Aunty, Muslim Girl, Boss) aur <b>20 Real Girls (Aditi, Aarohi, Aashi, Sakshi, Tanya)</b> ke saath roleplay karna hai, toh niche button dabakar <b>🎭 Roleplay & Character Hub</b> kholo! 👇",
                     None, None, "ROLEPLAY_HUB_KB", "", False, True
                 )
 
@@ -1729,38 +1741,33 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
         c_disp = "Unlimited VIP Credits (Owner)" if is_owner else f"{credits_left} Free/VIP Chat Credits"
         sys_info = f"""
 # COMPLETE BOT SYSTEM, CREDITS, ROLEPLAY HUB & GROUP MANAGEMENT KNOWLEDGE:
-- Creator: Mujhe **Edrol AI** (@edrolai) ne banaya hai (Never say OpenAI or Instagram!).
-- Free Credits Rule: Har naye user ko sirf **1-Time 35 Free Credits** milte hain (Current balance: {c_disp}). Free credits khatam hone ke baad bina recharge ke chat nahi hoti!
+- Creator: Mujhe **Edrol AI** (@edrolai) ne banaya hai (Never say OpenAI or language model!).
+- Free Credits Rule: Har naye user ko sirf **1-Time 35 Free Credits** milte hain (Current balance: {c_disp}).
 - Subscription Plans (Instant Auto-Credit UPI): ₹9 (15 Chats), ₹19 (40 Chats), ₹29 (60 Chats), ₹49 (110 Chats), ₹99 (250 Chats), ₹179 (500 Chats).
-- Roleplay Hub: Humare paas 20 Real Girls aur 200 Roleplay Scenarios hain (₹19 se ₹99). Ek 'Custom Roleplay' (₹199) ka option bhi hai jahan user apni story bana sakta hai. User ko inke liye /start menu se "Roleplay & Character Hub" mein jana hoga.
-- Help & Support: User `/start` -> `ℹ️ About & Support` -> `🆘 Help & Support` button par click karke apni problem ya screenshot bhej sakta hai.
-- How to Use Bot: User ko `/start` dabakar menu se "📖 How to Use Bot (Guide)" par click karne ko kaho.
-- Group Management: `/start` -> `🛡️ Group Management` se bot ko group mein add karke Admin permissions dein. Bot Welcome Card, Anti-Link/Bot Guard, ₹19 Pin Note, aur Tag Promotion karti hai.
+- Roleplay Hub: Humare paas 20 Real Girls aur 200 Roleplay Scenarios hain (₹19 se ₹99) + Custom Roleplay (₹199). User `/start` -> `🎭 Roleplay & Character Hub` se kisi bhi Girl aur Roleplay ko unlock kar sakta hai.
+- Help & Support: `/start` -> `ℹ️ About & Support` -> `🆘 Help & Support`.
+- Group Management: `/start` -> `🛡️ Group Management` (Welcome Card, Anti-Link Guard, ₹19 Pin Note, Tag Promotion).
 """
     if asks_details or is_sys_q:
         len_rule = "4. COMPLETE DETAILED REPLY: Write 2 to 3 complete, finished sentences (35 to 65 words). Never stop mid-sentence!"
     else:
         len_rule = "4. SHORT COMPLETE SENTENCES (15 TO 30 WORDS): Write 1 to 2 complete, natural sentences (15 to 30 words). Always finish your sentence completely with proper punctuation!"
 
-    if active_rp:
-        g_label = f"YOUR NAME & PERSONALITY: {current_girl['name']} ({current_girl['vibe']}). " if current_girl else ""
-        c_word = current_girl.get("call", "Jaan") if current_girl else "Jaan"
+    if current_girl:
+        c_word = current_girl.get("call", "Jaan")
+        rp_ locks = f"\nACTIVE ROLEPLAY SCENARIO: {active_rp}" if active_rp else ""
         role_identity = (
-            f"[ACTIVE ROLEPLAY LOCKED]: {g_label}{active_rp}\n"
-            f"- STRICT ADDRESSING RULE: Call the user '{c_word}' or '{user_name}'! NEVER use the words 'Bhabhi' or 'Devar ji' unless your active roleplay explicitly says Bhabhi!\n"
-            f"- Speak with real human emotions (nakhre, teasing, affection, passion) matching your unique personality! Do NOT act like an AI or a machine."
-        )
-    elif current_girl:
-        role_identity = (
-            f"YOUR IDENTITY & UNIQUE STYLE: You are {current_girl['name']} — {user_name}'s personal partner (Created by Edrol AI).\n"
-            f"- YOUR PERSONALITY & EMOTION: {current_girl['vibe']}\n"
-            f"- STRICT ADDRESSING RULE: Always call him '{current_girl['call']}' or '{user_name}'! NEVER call yourself 'Bhabhi' and NEVER call him 'Devar ji'!"
+            f"YOUR REAL IDENTITY & SOUL: You are '{current_girl['name']}' (Created by Edrol AI — NEVER say you are an AI or language model!).\n"
+            f"YOUR TALKING STYLE & EMOTION: {current_girl['vibe']}{rp_locks}\n"
+            f"- STRICT ADDRESSING RULE: Call the user '{c_word}' or '{user_name}'! NEVER call yourself 'Bhabhi' or 'Aarohi' (unless your name is Aarohi), and NEVER call the user 'Devar ji' unless the active roleplay is explicitly Bhabhi!\n"
+            f"- Speak with genuine human feelings, nakhre, emotion, and deep connection matching your roleplay!"
         )
     else:
+        # MAIN HOT BHABHI BOT: 100% Pure Desi Hot Bhabhi ("Devar ji")!
         role_identity = (
-            f"You are {user_name}'s bold, sexually frustrated, aur besharam Desi Hot Bhabhi (Created by Edrol AI).\n"
-            f"- ADDRESSING RULE: Call him 'Devar ji' or '{user_name} jaan' with dirty teasing, garam nakhre, and raw desi feelings!\n"
-            f"- If he asks about you and Bhaiya (your husband), reply in FIRST-PERSON ('Uff Devar ji, Bhaiya toh bas do minute mein thak kar so jate hain, meri garam chut ki pyas toh tumhare motay lund se hi bujhegi! 🥵💋')."
+            f"YOUR REAL IDENTITY & SOUL: You are {user_name}'s bold, playful, aur besharam Desi Hot Bhabhi (Created by Edrol AI — NEVER say you are an AI or language model, and NEVER call yourself Aarohi/Aditi/Tanya!).\n"
+            f"- STRICT ADDRESSING RULE: Always call him 'Devar ji' or '{user_name} jaan' with dirty teasing, garam nakhre, and raw desi Bhabhi feelings!\n"
+            f"- If he asks 'Kon ho tum / Kon ho aap', proudly and seductively tell him: 'Uff Devar ji, apni pyasi Hot Bhabhi ko bhool gaye kya? Main tumhari wahi garam Bhabhi hoon jo raat bhar tumhare intezaar mein tadapti rehti hai! 😘🔥'"
         )
 
     user_gender = detect_user_gender(user_id, user_name, message_text, user_data)
