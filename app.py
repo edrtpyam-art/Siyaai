@@ -99,28 +99,6 @@ FEEDBACK_CHANNEL_ID = "-1004290177402"
 FIREBASE_URL = os.environ.get("FIREBASE_URL", "").strip().rstrip("/")
 FIREBASE_SECRET = "8lTxEXOwEe5fjkh9zTHnBkzum6W0vrKcisbfqRf3"
 
-# ============================================================
-# 1. 8 GROQ KEYS + 5 GEMINI KEYS + 2 OPENROUTER KEYS (35954.jpg EXACT!)
-# ============================================================
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip().strip('"').strip("'")
-BOT_USERNAME = os.environ.get("BOT_USERNAME", "hot_bhabhi_bot").strip().lstrip("@")
-OWNER_ID = str(os.environ.get("OWNER_ID", "")).strip().strip('"').strip("'")
-
-CASHFREE_APP_ID = os.environ.get("CASHFREE_APP_ID", "").strip().strip('"').strip("'")
-CASHFREE_SECRET_KEY = os.environ.get("CASHFREE_SECRET_KEY", "").strip().strip('"').strip("'")
-
-GITHUB_BASE_URL = "https://raw.githubusercontent.com/edrtpyam-art/Siyaai/main/"
-START_BANNER_IMAGE = "bot.png"
-DEFAULT_PROMO_BANNER = "bot2.png"
-OFFICIAL_CHANNEL_URL = "https://t.me/edrolai"
-MORE_GROUPS_URL = "https://t.me/friendschatinggroup"
-OFFICIAL_CHANNEL_USERNAME = "@edrolai"
-CHAT_COST = 5  # 1 Chat = 5 Credits (User ko bada number dikhane ke liye!)
-FEEDBACK_CHANNEL_ID = "-1004290177402"
-
-FIREBASE_URL = os.environ.get("FIREBASE_URL", "").strip().rstrip("/")
-FIREBASE_SECRET = "8lTxEXOwEe5fjkh9zTHnBkzum6W0vrKcisbfqRf3"
-
 # --- 1. ALL 8 GROQ API KEYS (GROQ_API_KEY to GROQ_API_KEY8) ---
 GROQ_API_KEYS = [k for k in [
     os.environ.get("GROQ_API_KEY", "").strip().strip('"'),
@@ -450,22 +428,16 @@ def get_welcome_trust_text(fname, credit_display, lang="hinglish"):
     safe_name = html.escape(clean_display_name(fname, "Devar ji"))
     c_str = html.escape(str(credit_display))
     return (
-        f"🔥 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] • Powered by Edrol AI ❤️\n"
-        f"━━━━━━━━━━━━━━━━━━\n\n"
-        f"👋 Hii {safe_name} jaan!\n\n"
-        f"💋 Main tumhari 24/7 Personal Bhabhi & Roleplay Partner hoon.\n\n"
-        f"🎭 200+ Roleplay Scenarios & 20 Real Girls Hub\n"
-        f"🛡️ Smart Group Protection & Auto-Tag Promo\n"
-        f"💎 Available Balance : {c_str} Credits\n\n"
-        f"━━━━━━━━━━━━━━━━━━\n"
-        f"👇 Niche menu button chuno ya seedha message bhej kar baatein shuru karo:"
+        f"🔥 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] • Powered by Edrol AI ❤️\n\n"
+        f"👋 Hii {safe_name} jaan! Main tumhari 24/7 Personal Bhabhi & Roleplay Partner hoon 😘\n"
+        f"💎 Balance: {c_str} Credits\n\n"
+        f"👇 20 Girls & 200+ Roleplay ke liye niche [🔥 200+ ROLEPLAY HUB] dabao ya seedha message bhejo:"
     )
 
 def get_main_menu_kb(credits_display, is_owner=False):
     rows = [
-        [{"text": "🎭 Roleplay & Character Hub 💖", "callback_data": "menu_roleplay_hub"}],
-        [{"text": "🛡️ Group Management", "callback_data": "menu_group_mgmt"}],
-        [{"text": "ℹ️ About & Support", "callback_data": "menu_about"}]
+        [{"text": "🔥✨ [OPEN 200+ ROLEPLAY & 20 GIRLS HUB] ✨💖", "callback_data": "menu_roleplay_hub"}],
+        [{"text": "🛡️ Group Management", "callback_data": "menu_group_mgmt"}, {"text": "ℹ️ About & Support", "callback_data": "menu_about"}]
     ]
     if is_owner:
         rows.append([{"text": "👑 Owner Control Panel", "callback_data": "menu_owner_customize"}])
@@ -679,7 +651,7 @@ def send_local_or_url_media(chat_id, filename, caption="", protect=True, spoiler
             if reply_markup: data["reply_markup"] = json.dumps(reply_markup)
             with open(local_file_path, "rb") as f:
                 files = {media_key: (os.path.basename(local_file_path), f, mime_type)}
-                res = requests.post(f"{API_URL}/{api_method}", data=data, files=files, timeout=18)
+                res = requests.post(f"{get_active_api_url()}/{api_method}", data=data, files=files, timeout=18)
                 if res.ok and res.json().get("ok"):
                     return res.json()
         except Exception as e:
@@ -711,7 +683,7 @@ def edit_or_send_box_media(chat_id, message_id, media_source, caption="", reply_
                 if reply_markup:
                     data["reply_markup"] = json.dumps(reply_markup)
                 with open(local_path, "rb") as f:
-                    res = requests.post(f"{API_URL}/editMessageMedia", data=data, files={"photo": ("dp.jpg", f, "image/jpeg")}, timeout=12).json()
+                    res = requests.post(f"{get_active_api_url()}/editMessageMedia", data=data, files={"photo": ("dp.jpg", f, "image/jpeg")}, timeout=12).json()
                 if res.get("ok"):
                     return res
             except Exception:
@@ -3320,7 +3292,7 @@ def webhook():
                     aud_b, aud_mime, aud_ext = generate_gemini_native_voice(reply_text, active_rp=cur_rp)
                     if aud_b:
                         requests.post(
-                            f"{API_URL}/sendVoice",
+                            f"{get_active_api_url()}/sendVoice",
                             data={"chat_id": cid, "caption": to_hot_bhabhi_font("🎙️ Hot Bhabhi Voice 🔥"), "parse_mode": "HTML", "protect_content": "true"},
                             files={"voice": (aud_ext, BytesIO(aud_b), aud_mime)},
                             timeout=14
