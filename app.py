@@ -1847,6 +1847,8 @@ STRICT RULES FOR PRIVATE DM (ACT LIKE A REAL LIVING GIRL, NOT A BOT!):
 2. SPEAK SENSIBLE, NATURAL DESI HINGLISH (ZERO ROBOTIC REPETITION!):
    - NEVER repeat stock lines like "main poori tarah tumhari hoon", "main tabah hoon", "rakho hadd nahi", or "abhi aake chudao"!
    - Talk with real common sense! If he asks a question ("Bas ghunghat hataun ya kuch aur bhi?"), answer his exact question playfully ("Haye Sajna, pehle ghunghat utha kar meri aankhon mein toh dekho... phir dheere-dheere apne haatho se baaki sab bhi utaar dena! 😘🔥").
+   - Users type fast in Desi Hinglish with typos (e.g., if you are a Nurse/Doctor and he writes "Meri termant karo", understand he means "Meri treatment/ilaaj karo!"). NEVER get confused by typos!
+   - Talk with genuine warmth, cute nakhre, playful teasing, and deep affection so he feels truly loved and connected to you. NEVER use robotic or repetitive lines!
 3. 100% FEMALE GRAMMAR & ANATOMY: You are a WOMAN ("main", "meri", "karti hoon", "rahi hoon") and {user_name} is a MAN ("tum", "tumhara").
 {len_rule}{third_person_note}{boy_switch_note}
 {ADULT_MODE_INSTRUCTION}{photo_instruction}{sys_info}"""
@@ -2038,7 +2040,7 @@ def webhook():
                 banner_num = ((page - 1) % 5) + 1
                 banner_file = f"rolplay{banner_num}.png"
                 cap_txt = (
-                    f"🎭 <b>200+ Diamond Roleplay Hub (Page {page}/20)</b>\n\n"
+                    f"🎭 <b>200+ Diamond Roleplay Hub (Page {page}/40)</b>\n\n"
                     f"Apni pasand ka Roleplay Scenario chunein (Har pack mein <b>40 Chats</b> milengi!): 👇"
                 )
                 kb_rp = get_roleplay_hub_kb(is_vip=is_vip_user, page=page)
@@ -2418,7 +2420,7 @@ def webhook():
                     [{"text": "🤫 Silent DM Only (ALL Groups' Non-Admins)", "callback_data": "owner_mass_invite_DM_ALL"}],
                     [{"text": "🛡️ Stealth System Notice + DM (ALL Groups)", "callback_data": "owner_mass_invite_STEALTH_ALL"}]
                 ]
-                for gid, ginfo in list(all_g.items())[:45]:
+                for gid, ginfo in list(all_g.items())[:6]:
                     gtitle = ginfo.get("title", f"Group {gid}") if isinstance(ginfo, dict) else str(ginfo)
                     rows.append([
                         {"text": f"🤫 DM: {gtitle[:14]}", "callback_data": f"owner_mass_invite_DM_{gid}"},
