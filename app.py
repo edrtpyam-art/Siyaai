@@ -2568,7 +2568,7 @@ def webhook():
                 send_stk(cid, get_hot_sticker(force=True))
                 return jsonify({"status": "ok"}), 200
 
-                     if cb_data == "menu_support":
+        if cb_data == "menu_support":
              tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
              fb_update_user(uid, {"awaiting_support": True, "awaiting_feedback": False, "awaiting_broadcast": False})
              edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption="🆘 <b>Help & Support Center</b>\n\nAapko kya problem aa rahi hai? Apna message ya payment screenshot abhi yahan bhejo — seedha Owner ke paas jayega aur woh aapko yahin reply denge! 👇", reply_markup={"inline_keyboard": [[{"text": "⬅️ Back", "callback_data": "menu_about"}]]})
@@ -2738,12 +2738,6 @@ def webhook():
                     reply_markup={"inline_keyboard": [[{"text": "🔙 Back", "callback_data": f"promogrp_{gid}"}]]}
                 )
                 return jsonify({"status": "ok"}), 200
-
-            if cb_data.startswith("promo_on_"):
-                gid = cb_data.replace("promo_on_", "").strip()
-                if not is_own and not is_user_group_admin(gid, uid):
-                    return jsonify({"status": "ok"}), 200
-                try:
 
             if cb_data.startswith("promopay_"):
                 _, amt, gid = cb_data.split("_", 2)
