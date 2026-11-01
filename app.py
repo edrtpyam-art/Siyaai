@@ -428,10 +428,10 @@ def get_welcome_trust_text(fname, credit_display, lang="hinglish"):
     safe_name = html.escape(clean_display_name(fname, "Devar ji"))
     c_str = html.escape(str(credit_display))
     return (
-        f"🔥 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] • Powered by Edrol AI ❤️\n\n"
-        f"👋 Hii {safe_name} jaan! Main tumhari 24/7 Personal Bhabhi & Roleplay Partner hoon 😘\n"
-        f"💎 Balance: {c_str} Credits\n\n"
-        f"👇 20 Girls & 200+ Roleplay ke liye niche [🔥 200+ ROLEPLAY HUB] dabao ya seedha message bhejo:"
+        f"👋 <b>Hy {safe_name} (Devar ji)! Main aapki Personal Hot Bhabhi & Smart Group Manager hoon 😘🔥</b>\n\n"
+        f"🎭 <b>Humare paas 200+ Roleplay Scenarios aur 20 Real Girls hain!</b>\n"
+        f"💎 <b>Balance:</b> {c_str} Credits\n\n"
+        f"👇 Niche <b>Roleplay Hub</b> chuno ya seedha message bhejo:"
     )
 
 def get_main_menu_kb(credits_display, is_owner=False):
@@ -2068,23 +2068,18 @@ def webhook():
 
                 prev_idx = (g_idx - 1) % len(g_keys)
                 next_idx = (g_idx + 1) % len(g_keys)
+                next_girl_name = REAL_GIRLS[g_keys[next_idx]]["name"]
 
                 card_cap = (
-                    f"👯‍♀️ <b>20 Girls Available ({g_idx + 1}/{len(g_keys)} Ready)</b>\n"
-                    f"━━━━━━━━━━━━━━━━━━\n"
                     f"🎬 <b>Roleplay:</b> {char_info['name']}\n"
-                    f"📜 <i>{char_info['desc']}</i>\n\n"
-                    f"🙋‍♀️ <b>Partner Name:</b> {g_info['name']}\n"
-                    f"💬 <b>Talking Style:</b> <i>{g_info['vibe']}</i>\n"
-                    f"💎 <b>Pack:</b> ₹{char_info['price']} (40 Chats)\n"
-                    f"━━━━━━━━━━━━━━━━━━\n"
-                    f"👇 <b>Is partner ko chunne ke liye niche click karein ya Next Girl dekhein:</b>"
+                    f"🙋‍♀️ <b>Girl ({g_idx + 1}/{len(g_keys)}):</b> {g_info['name']}  •  💎 <b>₹{char_info['price']} (40 Chats)</b>\n\n"
+                    f"👇 <b>Is Girl ko chunein ya 'Next Girl ➡️' दबाकर baaki {len(g_keys)} Girls dekhein:</b>"
                 )
                 card_kb = {"inline_keyboard": [
-                    [{"text": f"✅ Start with {g_info['name']} 💖", "callback_data": f"selgirl_{char_key}_{g_key}"}],
+                    [{"text": f"✅ Start Chat with {g_info['name']} 💖", "callback_data": f"selgirl_{char_key}_{g_key}"}],
                     [
-                        {"text": "⬅️ Prev Girl", "callback_data": f"girlcard_{char_key}_{prev_idx}"},
-                        {"text": "Next Girl ➡️", "callback_data": f"girlcard_{char_key}_{next_idx}"}
+                        {"text": f"⬅️ Prev ({g_idx + 1}/{len(g_keys)})", "callback_data": f"girlcard_{char_key}_{prev_idx}"},
+                        {"text": f"Next: {next_girl_name} ➡️", "callback_data": f"girlcard_{char_key}_{next_idx}"}
                     ],
                     [{"text": "🔙 Back to 200 Roleplays", "callback_data": "menu_roleplay_hub_1"}]
                 ]}
@@ -2109,11 +2104,9 @@ def webhook():
                         cid, mid,
                         get_live_bot_dp_url(g_info.get("bot"), fallback_banner=g_info.get("dp", START_BANNER_IMAGE)),
                         caption=(
-                            f"🔒 <b>[DIAMOND LOCKED]</b>\n"
-                            f"🎬 <b>Roleplay:</b> {char_info['name']}\n"
-                            f"🙋‍♀️ <b>Selected Girl:</b> {g_info['name']}\n"
-                            f"💎 <b>Price:</b> ₹{c_price} (Gets 40 Full Open Chats!)\n\n"
-                            f"👇 Niche button se pay karke 1 second mein {g_info['name']} ke bedroom mein jao:"
+                            f"🔒 <b>{g_info['name']} ({char_info['name']})</b>\n"
+                            f"💎 <b>Pack:</b> ₹{c_price} (40 Full Open Chats)\n\n"
+                            f"👇 Niche button dabakar unlock karein aur seedha bedroom mein jayein:"
                         ),
                         reply_markup={"inline_keyboard": [[btn], [{"text": "🔙 Back to Girls", "callback_data": f"girlcard_{char_key}_0"}]]}
                     )
@@ -2136,7 +2129,7 @@ def webhook():
                     "bot_rp_map": rp_map,
                     "history": []
                 })
-                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"✅ {g_info['name']} Updated in 1 Sec! 🔥"})
+                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"✅ {g_info['name']} Ready! 🔥"})
 
                 go_kb = {"inline_keyboard": [
                     [{"text": f"🛏️ Enter {g_info['name']}'s Bedroom 💬", "url": f"https://t.me/{target_bot}?start=rp_{char_key}_{g_key}"}],
@@ -2147,7 +2140,7 @@ def webhook():
                     get_live_bot_dp_url(g_info.get("bot"), fallback_banner=g_info.get("dp", START_BANNER_IMAGE)),
                     caption=(
                         f"🔥 <b>Devar ji, aapki {g_info['name']} ({char_info['name']}) bilkul taiyaar hai!</b>\n\n"
-                        f"1 second mein uska dimaag, bolne ka style aur memory is roleplay par lock ho chuki hai! Niche button dabakar seedha uske bedroom (Bot) mein jao: 😘🥵👇"
+                        f"👇 Niche button dabakar seedha uske bedroom mein jao: 😘🥵"
                     ),
                     reply_markup=go_kb
                 )
@@ -2540,18 +2533,18 @@ def webhook():
                 send_stk(cid, get_hot_sticker(force=True))
                 return jsonify({"status": "ok"}), 200
 
-         if cb_data == "menu_support":
-             tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
-             fb_update_user(uid, {"awaiting_support": True, "awaiting_feedback": False, "awaiting_broadcast": False})
-             edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption="🆘 <b>Help & Support Center</b>\n\nAapko kya problem aa rahi hai? Apna message ya payment screenshot abhi yahan bhejo — seedha Owner ke paas jayega aur woh aapko yahin reply denge! 👇", reply_markup={"inline_keyboard": [[{"text": "⬅️ Back", "callback_data": "menu_about"}]]})
-             return jsonify({"status": "ok"}), 200
+            if cb_data == "menu_support":
+                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
+                fb_update_user(uid, {"awaiting_support": True, "awaiting_feedback": False, "awaiting_broadcast": False})
+                edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption="🆘 <b>Help & Support Center</b>\n\nAapko kya problem aa rahi hai? Apna message ya payment screenshot abhi yahan bhejo — seedha Owner ke paas jayega aur woh aapko yahin reply denge! 👇", reply_markup={"inline_keyboard": [[{"text": "⬅️ Back", "callback_data": "menu_about"}]]})
+                return jsonify({"status": "ok"}), 200
 
-         if cb_data == "owner_broadcast":
-             if not is_own: return jsonify({"status": "ok"}), 200
-             tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
-             fb_update_user(uid, {"awaiting_broadcast": True, "awaiting_support": False, "awaiting_feedback": False})
-             edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption="👑 <b>Owner Broadcast Mode Active!</b>\n\nAb aap jo bhi Text, Photo, ya Video bhejoge, woh bot ke saare joined Groups, Channels aur Users ko automatic send ho jayega! (Cancel karne ke liye /cancel likhein) 👇", reply_markup={"inline_keyboard": [[{"text": "🔙 Back to Owner Panel", "callback_data": "menu_owner_customize"}]]})
-             return jsonify({"status": "ok"}), 200
+            if cb_data == "owner_broadcast":
+                if not is_own: return jsonify({"status": "ok"}), 200
+                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
+                fb_update_user(uid, {"awaiting_broadcast": True, "awaiting_support": False, "awaiting_feedback": False})
+                edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption="👑 <b>Owner Broadcast Mode Active!</b>\n\nAb aap jo bhi Text, Photo, ya Video bhejoge, woh bot ke saare joined Groups, Channels aur Users ko automatic send ho jayega! (Cancel karne ke liye /cancel likhein) 👇", reply_markup={"inline_keyboard": [[{"text": "🔙 Back to Owner Panel", "callback_data": "menu_owner_customize"}]]})
+                return jsonify({"status": "ok"}), 200
 
             if cb_data.startswith("buy_"):
                 if is_own:
