@@ -99,6 +99,28 @@ FEEDBACK_CHANNEL_ID = "-1004290177402"
 FIREBASE_URL = os.environ.get("FIREBASE_URL", "").strip().rstrip("/")
 FIREBASE_SECRET = "8lTxEXOwEe5fjkh9zTHnBkzum6W0vrKcisbfqRf3"
 
+# ============================================================
+# 1. 8 GROQ KEYS + 5 GEMINI KEYS + 2 OPENROUTER KEYS (35954.jpg EXACT!)
+# ============================================================
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip().strip('"').strip("'")
+BOT_USERNAME = os.environ.get("BOT_USERNAME", "hot_bhabhi_bot").strip().lstrip("@")
+OWNER_ID = str(os.environ.get("OWNER_ID", "")).strip().strip('"').strip("'")
+
+CASHFREE_APP_ID = os.environ.get("CASHFREE_APP_ID", "").strip().strip('"').strip("'")
+CASHFREE_SECRET_KEY = os.environ.get("CASHFREE_SECRET_KEY", "").strip().strip('"').strip("'")
+
+GITHUB_BASE_URL = "https://raw.githubusercontent.com/edrtpyam-art/Siyaai/main/"
+START_BANNER_IMAGE = "bot.png"
+DEFAULT_PROMO_BANNER = "bot2.png"
+OFFICIAL_CHANNEL_URL = "https://t.me/edrolai"
+MORE_GROUPS_URL = "https://t.me/friendschatinggroup"
+OFFICIAL_CHANNEL_USERNAME = "@edrolai"
+CHAT_COST = 5  # 1 Chat = 5 Credits (User ko bada number dikhane ke liye!)
+FEEDBACK_CHANNEL_ID = "-1004290177402"
+
+FIREBASE_URL = os.environ.get("FIREBASE_URL", "").strip().rstrip("/")
+FIREBASE_SECRET = "8lTxEXOwEe5fjkh9zTHnBkzum6W0vrKcisbfqRf3"
+
 # --- 1. ALL 8 GROQ API KEYS (GROQ_API_KEY to GROQ_API_KEY8) ---
 GROQ_API_KEYS = [k for k in [
     os.environ.get("GROQ_API_KEY", "").strip().strip('"'),
@@ -112,6 +134,8 @@ GROQ_API_KEYS = [k for k in [
 ] if k]
 GROQ_MODEL = "llama-3.3-70b-versatile"
 GROQ_FALLBACK_MODELS = [
+    "qwen/qwen3.8-27b",
+    "openai/gpt-oss-120b",
     "llama-3.1-8b-instant"
 ]
 GROQ_VISION_MODELS = [
@@ -126,7 +150,9 @@ OPENROUTER_API_KEYS = [k for k in [
 ] if k]
 OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct:free"
 OPENROUTER_FALLBACK_MODELS = [
-    "nousresearch/hermes-3-llama-3.1-405b:free"
+    "nousresearch/hermes-3-llama-3.1-405b:free",
+    "qwen/qwen-2.5-72b-instruct:free",
+    "cognitivecomputations/dolphin3.0-r1-mistral-24b:free"
 ]
 
 # --- 3. ALL 5 GEMINI API KEYS (GEMINI_API_KEY to GEMINI_API_KEY5) ---
@@ -137,8 +163,11 @@ GEMINI_API_KEYS = [k for k in [
     os.environ.get("GEMINI_API_KEY4", "").strip().strip('"'),
     os.environ.get("GEMINI_API_KEY5", "").strip().strip('"')
 ] if k]
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-3.6-flash"
 GEMINI_FALLBACK_MODELS = [
+    "gemini-3.5-flash-lite",
+    "gemini-3.8-flash",
+    "gemini-2.5-flash",
     "gemini-2.0-flash"
 ]
 
