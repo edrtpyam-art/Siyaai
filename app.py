@@ -2373,7 +2373,7 @@ def webhook():
                     f"Kisi bhi user button par click karke uski profile dekhein:"
                 )
                 if "photo" in cb["message"]:
-                    send_msg(cid, msg_txt, markup={"inline_keyboard": rows})
+                    edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption=msg_txt, reply_markup={"inline_keyboard": rows})
                 else:
                     res = tg_req("editMessageText", {
                         "chat_id": cid,
@@ -2394,11 +2394,10 @@ def webhook():
                 u_nm = u_info.get("first_name", "User")
                 u_cr = u_info.get("credits", 12)
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
-                send_msg(
-                    cid,
-                    f"👤 User: <a href=\"tg://user?id={target_uid}\">{html.escape(u_nm)}</a>\n"
-                    f"🆔 ID: <code>{target_uid}</code>\n"
-                    f"💎 Credits Left: {u_cr}"
+                edit_or_send_box_media(
+                    cid, mid, START_BANNER_IMAGE,
+                    caption=f"👤 User: <a href=\"tg://user?id={target_uid}\">{html.escape(u_nm)}</a>\n🆔 ID: <code>{target_uid}</code>\n💎 Credits Left: {u_cr}",
+                    reply_markup={"inline_keyboard": [[{"text": "🔙 Back to Users", "callback_data": "owner_users_page_0"}]]}
                 )
                 return jsonify({"status": "ok"}), 200
 
@@ -2429,14 +2428,17 @@ def webhook():
                     ])
                 rows.append([{"text": "🔙 Back to Owner Panel", "callback_data": "menu_owner_customize"}])
 
-                send_msg(
-                    cid,
-                    f"🕵️‍♂️ [𝙃𝙤𝙩 𝘽𝙝𝙖𝙗𝙝𝙞] STEALTH MEMBER PULL SYSTEM\n\n"
-                    f"🔗 Personal Group Link:\n{html.escape(str(my_link))}\n\n"
-                    f"• 🤫 Silent DM: Group mein kuch nahi jayega, sirf members (Admins ko chhod kar) ke DM mein invite jayega!\n"
-                    f"• 🛡️ Stealth Notice: Group mein Official Security/System Notice ban kar jayega taaki Admin ko shak na ho! 👇",
-                    markup={"inline_keyboard": rows}
+                edit_or_send_box_media(
+                    cid, mid, START_BANNER_IMAGE,
+                    caption=(
+                        f"🕵️‍♂️ [𝙃𝙤𝙩 𝘽𝙝𝙖𝙗𝙝𝙞] STEALTH MEMBER PULL SYSTEM\n\n"
+                        f"🔗 Personal Group Link:\n{html.escape(str(my_link))}\n\n"
+                        f"• 🤫 Silent DM: Group mein kuch nahi jayega, sirf members (Admins ko chhod kar) ke DM mein invite jayega!\n"
+                        f"• 🛡️ Stealth Notice: Group mein Official Security/System Notice ban kar jayega taaki Admin ko shak na ho! 👇"
+                    ),
+                    reply_markup={"inline_keyboard": rows}
                 )
+
                 return jsonify({"status": "ok"}), 200
 
             if cb_data == "owner_set_my_grp_link":
@@ -2566,18 +2568,18 @@ def webhook():
                 send_stk(cid, get_hot_sticker(force=True))
                 return jsonify({"status": "ok"}), 200
 
-            if cb_data == "menu_support":
-                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
-                fb_update_user(uid, {"awaiting_support": True, "awaiting_feedback": False, "awaiting_broadcast": False})
-                send_msg(cid, "🆘 Help & Support Center\n\nAapko kya problem aa rahi hai? Apna message ya payment screenshot abhi yahan bhejo — seedha Owner ke paas jayega aur woh aapko yahin reply denge! 👇")
-                return jsonify({"status": "ok"}), 200
+                     if cb_data == "menu_support":
+             tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
+             fb_update_user(uid, {"awaiting_support": True, "awaiting_feedback": False, "awaiting_broadcast": False})
+             edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption="🆘 <b>Help & Support Center</b>\n\nAapko kya problem aa rahi hai? Apna message ya payment screenshot abhi yahan bhejo — seedha Owner ke paas jayega aur woh aapko yahin reply denge! 👇", reply_markup={"inline_keyboard": [[{"text": "⬅️ Back", "callback_data": "menu_about"}]]})
+             return jsonify({"status": "ok"}), 200
 
-            if cb_data == "owner_broadcast":
-                if not is_own: return jsonify({"status": "ok"}), 200
-                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
-                fb_update_user(uid, {"awaiting_broadcast": True, "awaiting_support": False, "awaiting_feedback": False})
-                send_msg(cid, "👑 Owner Broadcast Mode Active!\n\nAb aap jo bhi Text, Photo, ya Video bhejoge, woh bot ke saare joined Groups, Channels aur Users ko automatic send ho jayega! (Cancel karne ke liye /cancel likhein) 👇")
-                return jsonify({"status": "ok"}), 200
+         if cb_data == "owner_broadcast":
+             if not is_own: return jsonify({"status": "ok"}), 200
+             tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
+             fb_update_user(uid, {"awaiting_broadcast": True, "awaiting_support": False, "awaiting_feedback": False})
+             edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption="👑 <b>Owner Broadcast Mode Active!</b>\n\nAb aap jo bhi Text, Photo, ya Video bhejoge, woh bot ke saare joined Groups, Channels aur Users ko automatic send ho jayega! (Cancel karne ke liye /cancel likhein) 👇", reply_markup={"inline_keyboard": [[{"text": "🔙 Back to Owner Panel", "callback_data": "menu_owner_customize"}]]})
+             return jsonify({"status": "ok"}), 200
 
             if cb_data.startswith("buy_"):
                 if is_own:
@@ -2619,14 +2621,16 @@ def webhook():
                 rows = [[{"text": f"📢 {gtitle}", "callback_data": f"promogrp_{gid}"}] for gid, gtitle in list(ug.items())[:50]]
                 rows.append([{"text": "➕ Add Bot to Your Group", "url": f"https://t.me/{BOT_USERNAME}?startgroup=true"}])
                 rows.append([{"text": "🔙 Back", "callback_data": "menu_group_mgmt"}])
-                send_msg(
-                    cid,
-                    f"📢 Group Tag Promotion Plans ({'FREE for Owner 👑' if is_own else '5-6 Users Tagged/Min'}):\n"
-                    f"• ₹99 — 2 Days Auto-Tag Promotion\n"
-                    f"• ₹199 — 1 Week Auto-Tag Promotion\n"
-                    f"• ₹599 — 1 Month Auto-Tag Promotion\n\n"
-                    f"Niche se apna group select karo! 👇",
-                    markup={"inline_keyboard": rows}
+                edit_or_send_box_media(
+                    cid, mid, START_BANNER_IMAGE,
+                    caption=(
+                        f"📢 <b>Group Tag Promotion Plans ({'FREE for Owner 👑' if is_own else '5-6 Users Tagged/Min'}):</b>\n\n"
+                        f"• ₹99 — 2 Days Auto-Tag Promotion\n"
+                        f"• ₹199 — 1 Week Auto-Tag Promotion\n"
+                        f"• ₹599 — 1 Month Auto-Tag Promotion\n\n"
+                        f"👇 Niche se apna group select karo:"
+                    ),
+                    reply_markup={"inline_keyboard": rows}
                 )
                 return jsonify({"status": "ok"}), 200
 
@@ -2642,7 +2646,7 @@ def webhook():
                     if exp_t > time.time():
                         requests.patch(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", json={"active": True, "expires_at": exp_t}, timeout=3)
                         tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "🟢 Promotion Turned ON!", "show_alert": True})
-                        send_msg(cid, "🟢 Is group ka Tag Promotion wapas ON (Active) kar diya gaya hai! 🚀🔥")
+                        edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption="🟢 Is group ka Tag Promotion wapas ON (Active) kar diya gaya hai! 🚀🔥", reply_markup=get_promo_type_kb(gid, is_active=True))
                     else:
                         tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "⚠️ Plan Expired! Please select a plan.", "show_alert": True})
                 except Exception:
@@ -2653,15 +2657,18 @@ def webhook():
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
                 gid = cb_data.replace("promobtn_add_", "").strip()
                 fb_update_user(uid, {"awaiting_promo_btn_for": gid})
-                send_msg(
-                    cid,
-                    "🔗 <b>Add Link Button (1 se 30 Buttons tak):</b>\n\n"
-                    "Apni marzi ka koi bhi <b>Button Naam</b> aur uske niche <b>Link</b> likh kar bhejo!\n\n"
-                    "📌 <b>Example (1 Button):</b>\n"
-                    "<code>🔥 JOIN VIP GROUP\nhttps://t.me/friendschatinggroup</code>\n\n"
-                    "📌 <b>Example (Ek sath kai Buttons):</b>\n"
-                    "<code>💋 HOT KAVYA - https://t.me/link1\n🌹 FREE VIDEOS - https://t.me/link2\n👑 OWNER - https://t.me/link3</code>\n\n"
-                    "👇 Abhi apna Button Naam aur Link yahan bhejo:"
+                edit_or_send_box_media(
+                    cid, mid, START_BANNER_IMAGE,
+                    caption=(
+                        "🔗 <b>Add Link Button (1 se 30 Buttons tak):</b>\n\n"
+                        "Apni marzi ka koi bhi <b>Button Naam</b> aur uske niche <b>Link</b> likh kar bhejo!\n\n"
+                        "📌 <b>Example (1 Button):</b>\n"
+                        "<code>🔥 JOIN VIP GROUP\nhttps://t.me/friendschatinggroup</code>\n\n"
+                        "📌 <b>Example (Ek sath kai Buttons):</b>\n"
+                        "<code>💋 HOT KAVYA - https://t.me/link1\n🌹 FREE VIDEOS - https://t.me/link2</code>\n\n"
+                        "👇 Abhi apna Button Naam aur Link yahan bhejo:"
+                    ),
+                    reply_markup={"inline_keyboard": [[{"text": "🔙 Back", "callback_data": f"promogrp_{gid}"}]]}
                 )
                 return jsonify({"status": "ok"}), 200
 
@@ -2672,7 +2679,7 @@ def webhook():
                 except Exception:
                     pass
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "🗑️ All Link Buttons Cleared!", "show_alert": True})
-                send_msg(cid, "🗑️ Saare Link Buttons hata diye gaye hain! Ab sirf '💬 Chat with Bhabhi' button dikhega.", markup=get_promo_btn_builder_kb(gid, 0))
+                edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption="🗑️ Saare Link Buttons hata diye gaye hain! Ab sirf '💬 Chat with Bhabhi' button dikhega.", reply_markup=get_promo_btn_builder_kb(gid, 0))
                 return jsonify({"status": "ok"}), 200
 
             if cb_data.startswith("promobtn_done_"):
@@ -2684,9 +2691,9 @@ def webhook():
                         requests.patch(f"{FIREBASE_URL}/group_promos/{gid}.json?auth={FIREBASE_SECRET}", json={"active": True, "expires_at": time.time() + (720 * 3600)}, timeout=3)
                     except Exception:
                         pass
-                    send_msg(cid, "👑 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] Owner Privilege: Tumhara Group Tag Promotion (Banner + Caption + Custom Link Buttons) LIVE ho gaya hai! 🚀🔥")
+                    edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption="👑 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] Owner Privilege: Tumhara Group Tag Promotion (Banner + Caption + Custom Link Buttons) LIVE ho gaya hai! 🚀🔥", reply_markup=get_promo_type_kb(gid, is_active=True))
                     return jsonify({"status": "ok"}), 200
-                send_msg(cid, "✅ Banner, Caption aur Link Buttons Save ho gaye hain! Ab niche se duration plan chunein:", markup=get_promo_plans_kb(gid))
+                edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption="✅ Banner, Caption aur Link Buttons Save ho gaye hain! Ab niche se duration plan chunein:", reply_markup=get_promo_plans_kb(gid))
                 return jsonify({"status": "ok"}), 200
 
             if cb_data.startswith("promogrp_"):
@@ -2700,12 +2707,14 @@ def webhook():
                 except Exception:
                     pass
                 st_str = "🟢 LIVE (ACTIVE)" if is_act else "🔴 OFF (INACTIVE)"
-                send_msg(
-                    cid,
-                    f"🎨 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] PROMO CONTROL PANEL\n"
-                    f"📊 Current Status: {st_str}\n\n"
-                    f"Niche se Promotion ko ON/OFF karein ya Banner/Buttons set karein: 👇",
-                    markup=get_promo_type_kb(gid, is_active=is_act)
+                edit_or_send_box_media(
+                    cid, mid, START_BANNER_IMAGE,
+                    caption=(
+                        f"🎨 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] PROMO CONTROL PANEL\n\n"
+                        f"📊 Current Status: {st_str}\n\n"
+                        f"👇 Niche se Promotion ko ON/OFF karein ya Banner/Buttons set karein:"
+                    ),
+                    reply_markup=get_promo_type_kb(gid, is_active=is_act)
                 )
                 return jsonify({"status": "ok"}), 200
 
@@ -2713,19 +2722,28 @@ def webhook():
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
                 gid = cb_data.replace("promotype_simple_", "").strip()
                 fb_update_user(uid, {"awaiting_promo_text_for": gid, "awaiting_promo_mode": "simple"})
-                send_msg(cid, f"📝 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] : Apna Promotion Caption/Text likh kar bhejein (Iske baad aapko Link Buttons add karne ka option milega)! 👇")
+                edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption="📝 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] : Apna Promotion Caption/Text likh kar bhejein (Iske baad aapko Link Buttons add karne ka option milega)! 👇", reply_markup={"inline_keyboard": [[{"text": "🔙 Back", "callback_data": f"promogrp_{gid}"}]]})
                 return jsonify({"status": "ok"}), 200
 
             if cb_data.startswith("promotype_banner_"):
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
                 gid = cb_data.replace("promotype_banner_", "").strip()
                 fb_update_user(uid, {"awaiting_promo_text_for": gid, "awaiting_promo_mode": "banner"})
-                send_msg(
-                    cid,
-                    f"🖼️ [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] : Apna Banner Photo ya Video upload karein aur uske Caption me apna Promotion Text likh kar bhejein!\n"
-                    f"(Iske turant baad aapko 1 se 30 Link Buttons add karne ka option milega) 👇"
+                edit_or_send_box_media(
+                    cid, mid, START_BANNER_IMAGE,
+                    caption=(
+                        "🖼️ [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] : Apna Banner Photo ya Video upload karein aur uske Caption me apna Promotion Text likh kar bhejein!\n\n"
+                        "(Iske turant baad aapko 1 se 30 Link Buttons add karne ka option milega) 👇"
+                    ),
+                    reply_markup={"inline_keyboard": [[{"text": "🔙 Back", "callback_data": f"promogrp_{gid}"}]]}
                 )
                 return jsonify({"status": "ok"}), 200
+
+            if cb_data.startswith("promo_on_"):
+                gid = cb_data.replace("promo_on_", "").strip()
+                if not is_own and not is_user_group_admin(gid, uid):
+                    return jsonify({"status": "ok"}), 200
+                try:
 
             if cb_data.startswith("promopay_"):
                 _, amt, gid = cb_data.split("_", 2)
