@@ -3300,6 +3300,11 @@ def webhook():
 # ============================================================
 # 11. EDROL AI LANDING PAGE
 # ============================================================
+MAIN_BOT_TOKEN = BOT_TOKEN
+MAIN_BOT_USERNAME = BOT_USERNAME
+MAIN_BOT_ID = BOT_ID
+MAIN_API_URL = API_URL
+
 @app.route("/api/bot", methods=["POST"])
 def webhook_main():
     """Main Webhook for Hot Bhabhi Bot (Thread-Safe!)"""
@@ -3308,25 +3313,6 @@ def webhook_main():
     _bot_ctx.api_url = MAIN_API_URL
     _bot_ctx.bot_username = MAIN_BOT_USERNAME
     return webhook()
-
-@app.route("/api/bot/<bot_uname>", methods=["POST"])
-def webhook_char_bot(bot_uname):
-    """Webhook for Spoke Girl Bots (Thread-Safe — Never leaks replies to Main Bot!)"""
-    b_clean = str(bot_uname or "").lower().lstrip("@")
-    tok = CHAR_BOT_TOKENS.get(b_clean)
-    if not tok:
-        return jsonify({"status": "error", "message": f"Token not found for {b_clean}"}), 200
-    _bot_ctx.bot_token = tok
-    _bot_ctx.bot_id = tok.split(":")[0] if ":" in tok else ""
-    _bot_ctx.api_url = f"https://api.telegram.org/bot{tok}"
-    _bot_ctx.bot_username = b_clean
-    try:
-        return webhook()
-    finally:
-        _bot_ctx.bot_token = MAIN_BOT_TOKEN
-        _bot_ctx.bot_id = MAIN_BOT_ID
-        _bot_ctx.api_url = MAIN_API_URL
-        _bot_ctx.bot_username = MAIN_BOT_USERNAME
 
 @app.route("/", methods=["GET"])
 def health_check():
