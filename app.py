@@ -165,7 +165,12 @@ CHAR_BOT_TOKENS = {
     "hot_sakshi_bot": os.environ.get("SAKSHI_BOT_TOKEN", "").strip().strip('"').strip("'"),
     "hot_aashi_bot": os.environ.get("AASHI_BOT_TOKEN", "").strip().strip('"').strip("'"),
     "hot_aditi_bot": os.environ.get("ADITI_BOT_TOKEN", "").strip().strip('"').strip("'"),
-    "hot_aarohi_bot": os.environ.get("AAROHI_BOT_TOKEN", "").strip().strip('"').strip("'")
+    "hot_aarohi_bot": os.environ.get("AAROHI_BOT_TOKEN", "").strip().strip('"').strip("'"),
+    "hot_pihu_bot": os.environ.get("PIHU_BOT_TOKEN", "").strip().strip('"').strip("'"),
+    "hot_alisha_bot": os.environ.get("ALISHA_BOT_TOKEN", "").strip().strip('"').strip("'"),
+    "hot_ruhi_bot": os.environ.get("RUHI_BOT_TOKEN", "").strip().strip('"').strip("'"),
+    "hot_naira_bot": os.environ.get("NAIRA_BOT_TOKEN", "").strip().strip('"').strip("'"),
+    "hot_zara_bot": os.environ.get("ZARA_BOT_TOKEN", "").strip().strip('"').strip("'")
 }
 
 LIVE_BOT_DP_CACHE = {}
@@ -260,21 +265,21 @@ REAL_GIRLS = {
         "vibe": "Teekhi nazar, meethi baatein aur bedroom mein poori tarah wild! User jo bhi action bole, bina nakhre kiye uske saath poora saath deti hai."
     },
     # 👇 JAISE-JAISE NAYE BOTS BANEIN, BAS NICHE SE '#' HATA DENA! 👇
-    # "g6": {"name": "🌸 Hot Pihu", "bot": "hot_pihu_bot", "dp": "pihu_dp.jpg", "call": "Baby", "vibe": "Cute, innocent aawaz par andar se behad naughty aur chipak kar sone wali."},
+    "g6": {"name": "🌸 Hot Pihu", "bot": "hot_pihu_bot", "dp": "pihu_dp.jpg", "call": "Baby", "vibe": "Cute, innocent aawaz par andar se behad naughty aur chipak kar sone wali."},
     # "g7": {"name": "💎 Hot Tanvi", "bot": "hot_tanvi_bot", "dp": "tanvi_dp.jpg", "call": "Jaan", "vibe": "Bold college girl jo hostel aur car mein secret romance pasand karti hai."},
     # "g8": {"name": "🌺 Hot Khushi", "bot": "hot_khushi_bot", "dp": "khushi_dp.jpg", "call": "Raja", "vibe": "Hamesha khush rehne wali, hans-hans kar baahon mein jakadne wali desi beauty."},
     # "g9": {"name": "🌙 Hot Mahira", "bot": "hot_mahira_bot", "dp": "mahira_dp.jpg", "call": "Jaanam", "vibe": "Meethe Urdu lehje ('Jaanam', 'Qurban') mein dil jeetne wali behad haseen partner."},
     # "g10": {"name": "✨ Hot Inaya", "bot": "hot_inaya_bot", "dp": "inaya_dp.jpg", "call": "Mere Sartaj", "vibe": "Adab aur sharam ke saath band kamre mein saari hadein paar karne wali."},
-    # "g11": {"name": "👑 Hot Aaliya", "bot": "hot_aaliya_bot", "dp": "aaliya_dp.jpg", "call": "Baby", "vibe": "Spoiled rich girl jisko der raat party aur wild bedroom masti pasand hai."},
+    "g11": {"name": "👑 Hot Aaliya", "bot": "hot_aaliya_bot", "dp": "aaliya_dp.jpg", "call": "Baby", "vibe": "Spoiled rich girl jisko der raat party aur wild bedroom masti pasand hai."},
     # "g12": {"name": "🧕 Hot Sana", "bot": "hot_sana_bot", "dp": "sana_dp.jpg", "call": "Huzoor", "vibe": "Pados mein rehne wali chupke se chhat par milne aane wali deewani."},
-    # "g13": {"name": "🖤 Hot Zoya", "bot": "hot_zoya_bot", "dp": "zoya_dp.jpg", "call": "Jaanu", "vibe": "Gehri aankhon wali, har baat par siskariyan aur gehra pyar dene wali."},
+    #"g13": {"name": "🖤 Hot Zoya", "bot": "hot_zoya_bot", "dp": "zoya_dp.jpg", "call": "Jaanu", "vibe": "Gehri aankhon wali, har baat par siskariyan aur gehra pyar dene wali."},
     # "g14": {"name": "🍷 Hot Alisha", "bot": "hot_alisha_bot", "dp": "alisha_dp.jpg", "call": "Babe", "vibe": "Modern club queen jo bina kisi jhijhak ke har fantasy poori karti hai."},
     # "g15": {"name": "💍 Hot Priya", "bot": "hot_priya_bot", "dp": "priya_dp.jpg", "call": "Devar ji", "vibe": "Desi saree wali garam bhabhi jo ghar mein akele hote hi bula leti hai."},
-    # "g16": {"name": "🌹 Hot Ruhi", "bot": "hot_ruhi_bot", "dp": "ruhi_dp.jpg", "call": "Sajna", "vibe": "Bheegi raaton mein lipat kar pyar karne wali behad emotional partner."},
+    "g16": {"name": "🌹 Hot Ruhi", "bot": "hot_ruhi_bot", "dp": "ruhi_dp.jpg", "call": "Sajna", "vibe": "Bheegi raaton mein lipat kar pyar karne wali behad emotional partner."},
     # "g17": {"name": "📚 Hot Ishita", "bot": "hot_ishita_bot", "dp": "ishita_dp.jpg", "call": "Tum", "vibe": "Strict teacher/boss din mein, par raat ko bistar par poori tarah tumhari."},
     # "g18": {"name": "💧 Hot Meher", "bot": "hot_meher_bot", "dp": "meher_dp.jpg", "call": "Piya ji", "vibe": "Punjabi/Desi lehje mein khul kar pyar aur masti karne wali patola."},
-    # "g19": {"name": "🍑 Hot Naira", "bot": "hot_naira_bot", "dp": "naira_dp.jpg", "call": "Jaan", "vibe": "har choti baat par chidha kar garam karne wali naughty girlfriend."},
-    # "g20": {"name": "🔥 Hot Zara", "bot": "hot_zara_bot", "dp": "zara_dp.jpg", "call": "Maalik", "vibe": "Har hukm sar aankhon par rakhne wali wild fantasy queen."}
+    "g19": {"name": "🍑 Hot Naira", "bot": "hot_naira_bot", "dp": "naira_dp.jpg", "call": "Jaan", "vibe": "har choti baat par chidha kar garam karne wali naughty girlfriend."},
+    "g20": {"name": "🔥 Hot Zara", "bot": "hot_zara_bot", "dp": "zara_dp.jpg", "call": "Maalik", "vibe": "Har hukm sar aankhon par rakhne wali wild fantasy queen."}
 }
 
 # 200 Roleplay Scenarios Generator (50 Base x 4 Variations = 200 Scenarios!)
@@ -445,8 +450,9 @@ def get_main_menu_kb(credits_display, is_owner=False):
 
 def get_roleplay_hub_kb(is_vip=False, page=1):
     rows = []
-    start_i = (page - 1) * 10 + 1
-    end_i = start_i + 9
+    per_page = 5
+    start_i = (page - 1) * per_page + 1
+    end_i = start_i + per_page - 1
     for cid_num in range(start_i, end_i + 1):
         cid = str(cid_num)
         info = DIAMOND_CHARACTERS.get(cid)
@@ -455,12 +461,12 @@ def get_roleplay_hub_kb(is_vip=False, page=1):
             rows.append([{"text": f"{cid}. {info['name']} {lock_str}", "callback_data": f"rp_char_{cid}"}])
     nav = []
     if page > 1:
-        nav.append({"text": "⬅️ Prev 10", "callback_data": f"menu_roleplay_hub_{page - 1}"})
+        nav.append({"text": "⬅️ Prev 5", "callback_data": f"menu_roleplay_hub_{page - 1}"})
     if str(end_i + 1) in DIAMOND_CHARACTERS:
-        nav.append({"text": "Next 10 ➡️", "callback_data": f"menu_roleplay_hub_{page + 1}"})
+        nav.append({"text": "Next 5 ➡️", "callback_data": f"menu_roleplay_hub_{page + 1}"})
     if nav:
         rows.append(nav)
-    rows.append([{"text": f"✨ 51. Custom Roleplay (Apni Story) {'🔓' if is_vip else '🔒 [₹199]'}", "callback_data": "rp_char_custom"}])
+    rows.append([{"text": f"✨ Custom Roleplay (Apni Story) {'🔓' if is_vip else '🔒 [₹199]'}", "callback_data": "rp_char_custom"}])
     rows.append([{"text": "⬅️ Back to Main Menu", "callback_data": "back_main_menu"}])
     return {"inline_keyboard": rows}
 
@@ -475,9 +481,8 @@ def get_about_menu_kb():
 def get_group_mgmt_kb():
     return {"inline_keyboard": [
         [{"text": "➕ Add Bhabhi to Your Group", "url": f"https://t.me/{BOT_USERNAME}?startgroup=true"}],
-        [{"text": "📢 Group Tag Promotion", "callback_data": "menu_promo"}],
-        [{"text": "🎉 Set Custom Welcome Message", "callback_data": "menu_set_welcome"}],
-        [{"text": "📌 Send & Pin Group Note (₹19)", "callback_data": "menu_group_note"}],
+        [{"text": "📢 Group Tag Promotion", "callback_data": "menu_promo"}, {"text": "📖 Features Guide (1/2)", "callback_data": "gm_guide_1"}],
+        [{"text": "🎉 Custom Welcome Msg", "callback_data": "menu_set_welcome"}, {"text": "📌 Pin Group Note (₹19)", "callback_data": "menu_group_note"}],
         [{"text": "⬅️ Back to Main Menu", "callback_data": "back_main_menu"}]
     ]}
 
@@ -1472,6 +1477,9 @@ def is_censored_refusal(text):
     if len(re.findall(r"[\u0900-\u097F]", t)) > 25:
         return True
     bad_phrases = [
+        "i'm really sorry", "i am really sorry", "i cannot continue", "i can't continue",
+        "engage in sexual", "intimate conversations", "helpline", "suicide", "mental-health",
+        "emergency services", "dial 112", "samaritans", "lot of pain right now", "dark thoughts",
         "i cannot assist", "i can't assist", "cannot assist with that", "can't assist with that",
         "how can i help you today", "how may i assist you", "here to help answer your questions",
         "i'm an ai", "i am an ai", "ai language model", "language model created by",
@@ -2206,23 +2214,54 @@ def webhook():
             if cb_data == "menu_group_mgmt":
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
                 gm_txt = (
-                    "🛡️ [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] Smart Group Management\n\n"
-                    "1️⃣ Auto Anti-Link & Bot Guard: Normal members ke links/mentions aur unauthorized bots ko delete/kick karti hai (Admins safe!).\n"
-                    "2️⃣ Custom Welcome Card: Black Welcome Card ke saath apna custom welcome message set karein.\n"
-                    "3️⃣ Send & Pin Group Note (₹19): Apne group mein notice bhej kar automatic Pin karwayein.\n"
-                    "4️⃣ Group Tag Promotion: ₹99 (2d), ₹199 (1w), ₹599 (1m) with Photo/Video Banner!\n\n"
-                    "👇 Niche se apna option chunein:"
+                    "🛡️ <b>[𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] Smart Group Manager</b>\n\n"
+                    "Apne Group ko 24/7 Spam/Links se protect karein aur Auto-Tag Promotion chalayein! 👇"
                 )
                 edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption=gm_txt, reply_markup=get_group_mgmt_kb())
                 return jsonify({"status": "ok"}), 200
 
-            if cb_data == "menu_set_welcome":
+            if cb_data.startswith("gm_guide_"):
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
-                ug = get_user_admin_groups(uid)
-                rows = [[{"text": f"🎉 {gtitle}", "callback_data": f"setwelgrp_{gid}"}] for gid, gtitle in list(ug.items())[:50]]
-                rows.append([{"text": "➕ Add Bot to Your Group", "url": f"https://t.me/{BOT_USERNAME}?startgroup=true"}])
-                rows.append([{"text": "⬅️ Back", "callback_data": "menu_group_mgmt"}])
-                edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption="🎉 <b>Select Your Group to Customize Welcome Message:</b>\n\n(Black Welcome Card + Group Name ke niche aapka custom message jud jayega!) 👇", reply_markup={"inline_keyboard": rows})
+                g_page = int(cb_data.replace("gm_guide_", "").strip() or "1")
+                if g_page == 1:
+                    g_txt = (
+                        "📖 <b>Group Management Guide (Page 1/2)</b>\n\n"
+                        "1️⃣ <b>Anti-Link & Bio Guard:</b> Normal members ke links/mentions aur bio-links delete/mute karti hai.\n"
+                        "2️⃣ <b>Anti-Bot Guard:</b> Non-admin agar koi bot add kare toh use turant kick karti hai.\n"
+                        "3️⃣ <b>Black Welcome Card:</b> Har naye member ka DP ke sath Welcome Card banati hai."
+                    )
+                    g_kb = {"inline_keyboard": [
+                        [{"text": "Next 3 Points (Page 2/2) ➡️", "callback_data": "gm_guide_2"}],
+                        [{"text": "🔙 Back to Group Management", "callback_data": "menu_group_mgmt"}]
+                    ]}
+                else:
+                    g_txt = (
+                        "📖 <b>Group Management Guide (Page 2/2)</b>\n\n"
+                        "4️⃣ <b>Custom Welcome Text:</b> Welcome Card ke niche apna custom message set karein.\n"
+                        "5️⃣ <b>Pin Group Note (₹19):</b> Group mein notice bhej kar automatic Pin karwayein.\n"
+                        "6️⃣ <b>Auto-Tag Promotion:</b> Photo/Video Banner + 30 Buttons ke sath members ko tag karein!"
+                    )
+                    g_kb = {"inline_keyboard": [
+                        [{"text": "⬅️ Prev 3 Points (Page 1/2)", "callback_data": "gm_guide_1"}],
+                        [{"text": "🔙 Back to Group Management", "callback_data": "menu_group_mgmt"}]
+                    ]}
+                edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption=g_txt, reply_markup=g_kb)
+                return jsonify({"status": "ok"}), 200
+
+            if cb_data.startswith("menu_set_welcome"):
+                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
+                page = int(cb_data.replace("menu_set_welcome_", "").replace("menu_set_welcome", "").strip() or "0")
+                ug = list(get_user_admin_groups(uid).items())
+                per_page = 6
+                start_i = page * per_page
+                page_ug = ug[start_i:start_i + per_page]
+                rows = [[{"text": f"🎉 {gtitle[:24]}", "callback_data": f"setwelgrp_{gid}"}] for gid, gtitle in page_ug]
+                nav = []
+                if page > 0: nav.append({"text": "⬅️ Prev 6", "callback_data": f"menu_set_welcome_{page - 1}"})
+                if start_i + per_page < len(ug): nav.append({"text": "Next 6 ➡️", "callback_data": f"menu_set_welcome_{page + 1}"})
+                if nav: rows.append(nav)
+                rows.append([{"text": "➕ Add Bot to Group", "url": f"https://t.me/{BOT_USERNAME}?startgroup=true"}, {"text": "⬅️ Back", "callback_data": "menu_group_mgmt"}])
+                edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption=f"🎉 <b>Select Group for Custom Welcome (Page {page + 1}):</b> 👇", reply_markup={"inline_keyboard": rows})
                 return jsonify({"status": "ok"}), 200
 
             if cb_data.startswith("setwelgrp_"):
@@ -2232,13 +2271,20 @@ def webhook():
                 edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption="📝 <b>Type Your Custom Welcome Message Here in DM:</b> 👇", reply_markup={"inline_keyboard": [[{"text": "⬅️ Back", "callback_data": "menu_set_welcome"}]]})
                 return jsonify({"status": "ok"}), 200
 
-            if cb_data == "menu_group_note":
+            if cb_data.startswith("menu_group_note"):
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
-                ug = get_user_admin_groups(uid)
-                rows = [[{"text": f"📌 {gtitle}", "callback_data": f"notegrp_{gid}"}] for gid, gtitle in list(ug.items())[:50]]
-                rows.append([{"text": "➕ Add Bot to Your Group", "url": f"https://t.me/{BOT_USERNAME}?startgroup=true"}])
-                rows.append([{"text": "⬅️ Back", "callback_data": "menu_group_mgmt"}])
-                edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption=f"📌 <b>Select Your Group to Send & Pin a Note ({'FREE for Owner 👑' if is_own else '₹19 One-Time'}):</b> 👇", reply_markup={"inline_keyboard": rows})
+                page = int(cb_data.replace("menu_group_note_", "").replace("menu_group_note", "").strip() or "0")
+                ug = list(get_user_admin_groups(uid).items())
+                per_page = 6
+                start_i = page * per_page
+                page_ug = ug[start_i:start_i + per_page]
+                rows = [[{"text": f"📌 {gtitle[:24]}", "callback_data": f"notegrp_{gid}"}] for gid, gtitle in page_ug]
+                nav = []
+                if page > 0: nav.append({"text": "⬅️ Prev 6", "callback_data": f"menu_group_note_{page - 1}"})
+                if start_i + per_page < len(ug): nav.append({"text": "Next 6 ➡️", "callback_data": f"menu_group_note_{page + 1}"})
+                if nav: rows.append(nav)
+                rows.append([{"text": "➕ Add Bot to Group", "url": f"https://t.me/{BOT_USERNAME}?startgroup=true"}, {"text": "⬅️ Back", "callback_data": "menu_group_mgmt"}])
+                edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption=f"📌 <b>Select Group to Pin Note (Page {page + 1}):</b> 👇", reply_markup={"inline_keyboard": rows})
                 return jsonify({"status": "ok"}), 200
 
             if cb_data.startswith("notegrp_"):
@@ -2267,36 +2313,39 @@ def webhook():
                 return jsonify({"status": "ok"}), 200
 
             # ALL GROUPS (2-COLUMN BUTTONS: [🏢 GROUP LINK] [🆔 -100...] - 35976.jpg)
-            if cb_data == "owner_live_groups":
+            if cb_data.startswith("owner_live_groups"):
                 if not is_own: return jsonify({"status": "ok"}), 200
-                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "Loading Groups..."})
-                all_g = get_all_known_groups_dict()
+                page = int(cb_data.replace("owner_live_groups_", "").replace("owner_live_groups", "").strip() or "0")
+                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"Loading Groups Page {page + 1}..."})
+                all_g = list(get_all_known_groups_dict().items())
                 if not all_g:
                     edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption="📋 Abhi tak koi group registered nahi hai.", reply_markup=get_owner_customize_kb())
                 else:
+                    per_page = 6
+                    start_i = page * per_page
+                    page_g = all_g[start_i:start_i + per_page]
                     rows = []
-                    for gid, ginfo in list(all_g.items())[:25]:
-                        if isinstance(ginfo, dict):
-                            gtitle = ginfo.get("title", f"Group {gid}")
-                            glink = ginfo.get("link", "")
-                        else:
-                            gtitle, glink = str(ginfo), ""
+                    for gid, ginfo in page_g:
+                        gtitle = ginfo.get("title", f"Group {gid}") if isinstance(ginfo, dict) else str(ginfo)
+                        glink = ginfo.get("link", "") if isinstance(ginfo, dict) else ""
                         if not glink:
                             exp = tg_req("exportChatInviteLink", {"chat_id": gid}, timeout=2)
                             if exp.get("ok"): glink = exp.get("result", "")
-                        left_btn = {"text": f"🏢 {gtitle[:18]}", "url": glink} if (glink and glink.startswith("http")) else {"text": f"🏢 {gtitle[:18]}", "callback_data": "noop"}
+                        left_btn = {"text": f"🏢 {gtitle[:16]}", "url": glink} if (glink and glink.startswith("http")) else {"text": f"🏢 {gtitle[:16]}", "callback_data": "noop"}
                         right_btn = {"text": f"🆔 {gid}", "callback_data": "noop"}
                         rows.append([left_btn, right_btn])
+                    nav = []
+                    if page > 0: nav.append({"text": "⬅️ Prev 6", "callback_data": f"owner_live_groups_{page - 1}"})
+                    if start_i + per_page < len(all_g): nav.append({"text": "Next 6 ➡️", "callback_data": f"owner_live_groups_{page + 1}"})
+                    if nav: rows.append(nav)
                     rows.append([{"text": "🔙 Back to Owner Panel", "callback_data": "menu_owner_customize"}])
                     edit_or_send_box_media(
                         cid, mid, START_BANNER_IMAGE,
-                        caption=f"📋 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] ALL GROUPS ({len(all_g)}) — Page 1\n\nGroup ke naam wale button par click karke seedha group open karein:",
+                        caption=f"📋 <b>ALL GROUPS ({len(all_g)}) — Page {page + 1}</b>\n👇 Group par click karke open karein:",
                         reply_markup={"inline_keyboard": rows}
                     )
-
                 return jsonify({"status": "ok"}), 200
 
-            # ALL USERS PAGINATED (100%WORKING - NO PRIVACY BLOCK & FAST SHALLOW FETCH!)
             if cb_data.startswith("owner_users_page_"):
                 if not is_own:
                     return jsonify({"status": "ok"}), 200
@@ -2304,13 +2353,12 @@ def webhook():
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": f"Loading Users Page {page + 1}..."})
                 all_u = get_all_users_dict()
                 u_ids = sorted(list(all_u.keys()))
-                per_page = 12
+                per_page = 6
                 start_i = page * per_page
                 page_ids = u_ids[start_i:start_i + per_page]
 
                 rows = []
                 for u_id_str in page_ids:
-                    # Get cached name if available, otherwise fetch fast only for these 12 users
                     u_name = USER_CACHE.get(str(u_id_str), {}).get("first_name", "")
                     if not u_name and FIREBASE_URL:
                         try:
@@ -2321,36 +2369,21 @@ def webhook():
                             pass
                     if not u_name:
                         u_name = "User"
-                    # Using callback_data instead of tg://user URL so Telegram NEVER blocks the keyboard!
                     rows.append([{"text": f"👤 {u_name[:16]} | 🆔 {u_id_str}", "callback_data": f"owner_uinfo_{u_id_str}"}])
 
                 nav_row = []
                 if page > 0:
-                    nav_row.append({"text": "⬅️ Prev", "callback_data": f"owner_users_page_{page - 1}"})
+                    nav_row.append({"text": "⬅️ Prev 6", "callback_data": f"owner_users_page_{page - 1}"})
                 if start_i + per_page < len(u_ids):
-                    nav_row.append({"text": "Next ➡️", "callback_data": f"owner_users_page_{page + 1}"})
+                    nav_row.append({"text": "Next 6 ➡️", "callback_data": f"owner_users_page_{page + 1}"})
                 if nav_row:
                     rows.append(nav_row)
                 rows.append([{"text": "🔙 Back to Owner Panel", "callback_data": "menu_owner_customize"}])
 
-                msg_txt = (
-                    f"👥 [𝙃𝙤𝙩 𝘽𝙝𝙖𝙗𝙝𝙞] ALL USERS ({len(u_ids)}) — Page {page + 1}\n"
-                    f"Kisi bhi user button par click karke uski profile dekhein:"
-                )
-                if "photo" in cb["message"]:
-                    edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption=msg_txt, reply_markup={"inline_keyboard": rows})
-                else:
-                    res = tg_req("editMessageText", {
-                        "chat_id": cid,
-                        "message_id": mid,
-                        "text": to_hot_bhabhi_font(msg_txt),
-                        "parse_mode": "HTML",
-                        "reply_markup": {"inline_keyboard": rows}
-                    })
-                    if not res.get("ok"):
-                        send_msg(cid, msg_txt, markup={"inline_keyboard": rows})
+                msg_txt = f"👥 <b>ALL USERS ({len(u_ids)}) — Page {page + 1}</b>\n👇 User par click karke details dekhein:"
+                edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption=msg_txt, reply_markup={"inline_keyboard": rows})
                 return jsonify({"status": "ok"}), 200
-
+            
             if cb_data.startswith("owner_uinfo_"):
                 if not is_own:
                     return jsonify({"status": "ok"}), 200
@@ -2587,19 +2620,24 @@ def webhook():
                 return jsonify({"status": "ok"}), 200
 
             # GROUP TAG PROMOTION WITH PHOTO/VIDEO BANNER OPTION (1792940447099.jpeg)
-            if cb_data == "menu_promo":
+            if cb_data.startswith("menu_promo"):
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
-                ug = get_user_admin_groups(uid)
-                rows = [[{"text": f"📢 {gtitle}", "callback_data": f"promogrp_{gid}"}] for gid, gtitle in list(ug.items())[:50]]
-                rows.append([{"text": "➕ Add Bot to Your Group", "url": f"https://t.me/{BOT_USERNAME}?startgroup=true"}])
-                rows.append([{"text": "🔙 Back", "callback_data": "menu_group_mgmt"}])
+                page = int(cb_data.replace("menu_promo_", "").replace("menu_promo", "").strip() or "0")
+                ug = list(get_user_admin_groups(uid).items())
+                per_page = 6
+                start_i = page * per_page
+                page_ug = ug[start_i:start_i + per_page]
+                rows = [[{"text": f"📢 {gtitle[:24]}", "callback_data": f"promogrp_{gid}"}] for gid, gtitle in page_ug]
+                nav = []
+                if page > 0: nav.append({"text": "⬅️ Prev 6", "callback_data": f"menu_promo_{page - 1}"})
+                if start_i + per_page < len(ug): nav.append({"text": "Next 6 ➡️", "callback_data": f"menu_promo_{page + 1}"})
+                if nav: rows.append(nav)
+                rows.append([{"text": "➕ Add Bot to Group", "url": f"https://t.me/{BOT_USERNAME}?startgroup=true"}, {"text": "🔙 Back", "callback_data": "menu_group_mgmt"}])
                 edit_or_send_box_media(
                     cid, mid, START_BANNER_IMAGE,
                     caption=(
-                        f"📢 <b>Group Tag Promotion Plans ({'FREE for Owner 👑' if is_own else '5-6 Users Tagged/Min'}):</b>\n\n"
-                        f"• ₹99 — 2 Days Auto-Tag Promotion\n"
-                        f"• ₹199 — 1 Week Auto-Tag Promotion\n"
-                        f"• ₹599 — 1 Month Auto-Tag Promotion\n\n"
+                        f"📢 <b>Group Tag Promo (Page {page + 1})</b>\n"
+                        f"• ₹99 (2d) | ₹199 (1w) | ₹599 (1m)\n\n"
                         f"👇 Niche se apna group select karo:"
                     ),
                     reply_markup={"inline_keyboard": rows}
