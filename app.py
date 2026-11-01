@@ -733,7 +733,7 @@ def get_telegram_file_base64(file_id):
             # Video/Animated stickers (.webm / .tgs) ke raw bytes image nahi hote
             if f_path.endswith((".webm", ".tgs", ".mp4")):
                 return None
-            r = requests.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{f_path}", timeout=6)
+            r = requests.get(f"https://api.telegram.org/file/bot{get_active_bot_token()}/{f_path}", timeout=6)
             if r.ok and r.content:
                 try:
                     img = Image.open(BytesIO(r.content))
