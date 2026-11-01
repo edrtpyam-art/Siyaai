@@ -2257,14 +2257,14 @@ def webhook():
                 rows = [[{"text": f"🎉 {gtitle}", "callback_data": f"setwelgrp_{gid}"}] for gid, gtitle in list(ug.items())[:50]]
                 rows.append([{"text": "➕ Add Bot to Your Group", "url": f"https://t.me/{BOT_USERNAME}?startgroup=true"}])
                 rows.append([{"text": "⬅️ Back", "callback_data": "menu_group_mgmt"}])
-                send_msg(cid, "🎉 Select Your Group to Customize Welcome Message:\n(Black Welcome Card + Group Name ke niche aapka custom message jud jayega!) 👇", markup={"inline_keyboard": rows})
+                edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption="🎉 <b>Select Your Group to Customize Welcome Message:</b>\n\n(Black Welcome Card + Group Name ke niche aapka custom message jud jayega!) 👇", reply_markup={"inline_keyboard": rows})
                 return jsonify({"status": "ok"}), 200
 
             if cb_data.startswith("setwelgrp_"):
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
                 gid = cb_data.replace("setwelgrp_", "").strip()
                 fb_update_user(uid, {"awaiting_welcome_for": gid})
-                send_msg(cid, "📝 Type Your Custom Welcome Message Here in DM: 👇")
+                edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption="📝 <b>Type Your Custom Welcome Message Here in DM:</b> 👇", reply_markup={"inline_keyboard": [[{"text": "⬅️ Back", "callback_data": "menu_set_welcome"}]]})
                 return jsonify({"status": "ok"}), 200
 
             if cb_data == "menu_group_note":
@@ -2273,14 +2273,14 @@ def webhook():
                 rows = [[{"text": f"📌 {gtitle}", "callback_data": f"notegrp_{gid}"}] for gid, gtitle in list(ug.items())[:50]]
                 rows.append([{"text": "➕ Add Bot to Your Group", "url": f"https://t.me/{BOT_USERNAME}?startgroup=true"}])
                 rows.append([{"text": "⬅️ Back", "callback_data": "menu_group_mgmt"}])
-                send_msg(cid, f"📌 Select Your Group to Send & Pin a Note ({'FREE for Owner 👑' if is_own else '₹19 One-Time'}): 👇", markup={"inline_keyboard": rows})
+                edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption=f"📌 <b>Select Your Group to Send & Pin a Note ({'FREE for Owner 👑' if is_own else '₹19 One-Time'}):</b> 👇", reply_markup={"inline_keyboard": rows})
                 return jsonify({"status": "ok"}), 200
 
             if cb_data.startswith("notegrp_"):
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
                 gid = cb_data.replace("notegrp_", "").strip()
                 fb_update_user(uid, {"awaiting_note_for": gid})
-                send_msg(cid, "📌 Type the Note/Announcement You Want to Send & Pin in Your Group: 👇")
+                edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption="📌 <b>Type the Note/Announcement You Want to Send & Pin in Your Group:</b> 👇", reply_markup={"inline_keyboard": [[{"text": "⬅️ Back", "callback_data": "menu_group_note"}]]})
                 return jsonify({"status": "ok"}), 200
 
             # ==========================================================
@@ -2307,7 +2307,7 @@ def webhook():
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "Loading Groups..."})
                 all_g = get_all_known_groups_dict()
                 if not all_g:
-                    send_msg(cid, "📋 Abhi tak koi group registered nahi hai.", markup=get_owner_customize_kb())
+                    edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption="📋 Abhi tak koi group registered nahi hai.", reply_markup=get_owner_customize_kb())
                 else:
                     rows = []
                     for gid, ginfo in list(all_g.items())[:25]:
@@ -2323,12 +2323,12 @@ def webhook():
                         right_btn = {"text": f"🆔 {gid}", "callback_data": "noop"}
                         rows.append([left_btn, right_btn])
                     rows.append([{"text": "🔙 Back to Owner Panel", "callback_data": "menu_owner_customize"}])
-                    send_msg(
-                        cid,
-                        f"📋 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] ALL GROUPS ({len(all_g)}) — Page 1\n"
-                        f"Group ke naam wale button par click karke seedha group open karein:",
-                        markup={"inline_keyboard": rows}
+                    edit_or_send_box_media(
+                        cid, mid, START_BANNER_IMAGE,
+                        caption=f"📋 [𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] ALL GROUPS ({len(all_g)}) — Page 1\n\nGroup ke naam wale button par click karke seedha group open karein:",
+                        reply_markup={"inline_keyboard": rows}
                     )
+
                 return jsonify({"status": "ok"}), 200
 
                 # ALL USERS PAGINATED (100%WORKING - NO PRIVACY BLOCK & FAST SHALLOW FETCH!)
