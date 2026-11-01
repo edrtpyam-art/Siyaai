@@ -2303,7 +2303,7 @@ def webhook():
 
                 return jsonify({"status": "ok"}), 200
 
-                # ALL USERS PAGINATED (100%WORKING - NO PRIVACY BLOCK & FAST SHALLOW FETCH!)
+            # ALL USERS PAGINATED (100%WORKING - NO PRIVACY BLOCK & FAST SHALLOW FETCH!)
             if cb_data.startswith("owner_users_page_"):
                 if not is_own:
                     return jsonify({"status": "ok"}), 200
@@ -2540,7 +2540,7 @@ def webhook():
                 send_stk(cid, get_hot_sticker(force=True))
                 return jsonify({"status": "ok"}), 200
 
-        if cb_data == "menu_support":
+         if cb_data == "menu_support":
              tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
              fb_update_user(uid, {"awaiting_support": True, "awaiting_feedback": False, "awaiting_broadcast": False})
              edit_or_send_box_media(cid, mid, START_BANNER_IMAGE, caption="🆘 <b>Help & Support Center</b>\n\nAapko kya problem aa rahi hai? Apna message ya payment screenshot abhi yahan bhejo — seedha Owner ke paas jayega aur woh aapko yahin reply denge! 👇", reply_markup={"inline_keyboard": [[{"text": "⬅️ Back", "callback_data": "menu_about"}]]})
