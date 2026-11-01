@@ -112,8 +112,6 @@ GROQ_API_KEYS = [k for k in [
 ] if k]
 GROQ_MODEL = "llama-3.3-70b-versatile"
 GROQ_FALLBACK_MODELS = [
-    "qwen/qwen3.8-27b",
-    "openai/gpt-oss-120b",
     "llama-3.1-8b-instant"
 ]
 GROQ_VISION_MODELS = [
@@ -128,9 +126,7 @@ OPENROUTER_API_KEYS = [k for k in [
 ] if k]
 OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct:free"
 OPENROUTER_FALLBACK_MODELS = [
-    "nousresearch/hermes-3-llama-3.1-405b:free",
-    "qwen/qwen-2.5-72b-instruct:free",
-    "cognitivecomputations/dolphin3.0-r1-mistral-24b:free"
+    "nousresearch/hermes-3-llama-3.1-405b:free"
 ]
 
 # --- 3. ALL 5 GEMINI API KEYS (GEMINI_API_KEY to GEMINI_API_KEY5) ---
@@ -141,11 +137,8 @@ GEMINI_API_KEYS = [k for k in [
     os.environ.get("GEMINI_API_KEY4", "").strip().strip('"'),
     os.environ.get("GEMINI_API_KEY5", "").strip().strip('"')
 ] if k]
-GEMINI_MODEL = "gemini-3.6-flash"
+GEMINI_MODEL = "gemini-2.5-flash"
 GEMINI_FALLBACK_MODELS = [
-    "gemini-3.5-flash-lite",
-    "gemini-3.8-flash",
-    "gemini-2.5-flash",
     "gemini-2.0-flash"
 ]
 
