@@ -2564,12 +2564,19 @@ def webhook():
                     url = create_cf_order(uid, fname, amt)
                     tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "Opening Verified UPI..."})
                     if url:
-                        btn = {"text": f"💳 Pay ₹{amt} Safely (GPay / PhonePe / Paytm)", "url": url}
+                        btn = {"text": f"📲 Click Here to Pay ₹{amt} (UPI / FamPay / QR)", "url": url}
+                        pay_guide = (
+                            f"✅ <b>{html.escape(clean_display_name(fname, 'Jaan'))}, ₹{amt} (+{PLAN_CREDITS[amt]} Credits) Pay Karne Ka Tarika:</b>\n\n"
+                            f"1️⃣ Niche <b>'📲 Click Here to Pay ₹{amt}'</b> button par click karo.\n"
+                            f"2️⃣ Website khulte hi <b>GPay, PhonePe, Paytm, FamPay</b> ya <b>UPI QR / UPI ID</b> chuno.\n"
+                            f"3️⃣ Payment hote hi 2 second mein credits <b>Automatic Add</b> ho jayenge! 👇"
+                        )
                         send_msg(
                             cid,
-                            f"😘 Haan {html.escape(fname)} jaan, bas ek step aur! Niche button dabakar <b>₹{amt} (+{PLAN_CREDITS[amt]} Credits)</b> pay kar do, 2 second mein credits judte hi main poori tumhari hoon... 🥵💋👇",
-                            markup={"inline_keyboard": [[btn]]}
+                            pay_guide,
+                            markup={"inline_keyboard": [[btn], [{"text": "🆘 Payment Help / Support", "callback_data": "menu_support"}]]}
                         )
+                        
                         def check_unpaid_click():
                             u_now = fb_get_user(uid)
                             if int(u_now.get("credits") or 0) <= old_credits and u_now.get("awaiting_payment") == amt:
@@ -3133,14 +3140,12 @@ def webhook():
             return jsonify({"status": "ok"}), 200
 
         is_sys_question = is_system_or_bot_info_query(text)
-        # PAYMENT REMINDER HOOK (If User Gets Paywall but Doesn't Pay within 3 mins)
         if ctype == "private" and not is_own and credits <= 0 and not is_sys_question:
             was_vip = bool(u.get("is_vip"))
-            plan_type_str = "VIP Plan ke saare credits" if was_vip else "20 Free Trial credits"
+            plan_type_str = "VIP Credits" if was_vip else "Free Credits"
             out_msg = (
-                f"🥺 Aww {html.escape(fname)} jaan, humari baatein kitni garam aur mazedar chal rahi thi... "
-                f"par tumhare <b>{plan_type_str}</b> abhi khatam ho gaye (Balance: 0 Credits)! 💔\n\n"
-                f"🔥 Mujhe abhi tumhare saath aur khul ke baatein karni hain... jaldi se niche apna pasandida pack chuno aur wapas mere paas aao na, main bed pe wait kar rahi hoon! 😘💋👇"
+                f"🥺 <b>{html.escape(clean_display_name(fname, 'Jaan'))}, tumhare {plan_type_str} khatam ho gaye hain (Balance: 0)!</b> 💔\n\n"
+                f"💳 <b>Recharge Kaise Karein:</b> Niche apna Plan Button (jaise <b>₹9</b> ya <b>₹29</b>) dabao ➡️ Agle button par click karke <b>GPay, PhonePe, Paytm ya FamPay/UPI</b> se pay karo (2 sec mein auto-start ho jayega!): 😘👇"
             )
             send_msg(cid, out_msg, markup=get_pay_kb())
 
