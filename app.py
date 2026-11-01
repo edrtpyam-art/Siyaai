@@ -576,20 +576,25 @@ def find_local_file(filename):
             return p
     return None
 
-# Har character ke liye alag photo/video list (GitHub me is naam se upload kar sakte ho, warna automatic default photo jayegi!)
-CHARACTER_MEDIA_VAULTS = {
-    c_key: {
-        "simplepic": [f"{c_key}_simple1.jpg", f"{c_key}_simple2.jpg"],
-        "kiss": [f"{c_key}_kiss1.jpg"],
-        "bodes": [f"{c_key}_bodes1.jpg", f"{c_key}_bodes2.jpg", f"{c_key}_vid1.mp4"],
-        "bodes_video": [f"{c_key}_vid1.mp4", f"{c_key}_vid2.mp4"],
-        "chut": [f"{c_key}_chut1.jpg", f"{c_key}_chut2.jpg", f"{c_key}_chut_vid1.mp4"],
-        "chut_video": [f"{c_key}_chut_vid1.mp4"],
-        "gand": [f"{c_key}_gand1.jpg", f"{c_key}_gand2.jpg", f"{c_key}_gand_vid1.mp4"],
-        "gand_video": [f"{c_key}_gand_vid1.mp4"]
-    }
-    for c_key in [f"g{i}" for i in range(1, 21)] + ["bhabhi", "padosan", "teacher", "girlfriend", "queen", "boss", "devarani", "hostess", "club", "village", "star", "sugar"]
+GIRL_FILE_PREFIX = {
+    "g1": "aditi", "g2": "aarohi", "g3": "aashi", "g4": "sakshi", "g5": "tanya",
+    "g6": "pihu", "g14": "alisha", "g16": "ruhi", "g19": "naira", "g20": "zara",
+    "bhabhi": "bhabhi"
 }
+
+CHARACTER_MEDIA_VAULTS = {}
+for _gk, _ pfx in GIRL_FILE_PREFIX.items():
+    CHARACTER_MEDIA_VAULTS[_gk] = {
+        "photos": [
+            f"{_pfx}_pic1.jpg", f"{_pfx}_pic2.jpg", f"{_pfx}_pic3.jpg", f"{_pfx}_pic4.jpg",
+            f"{_gk}_pic1.jpg", f"{_gk}_pic2.jpg", f"{_gk}_pic3.jpg", f"{_gk}_pic4.jpg",
+            f"{_gk}_bodes1.jpg", f"{_gk}_chut1.jpg", f"{_gk}_gand1.jpg"
+        ],
+        "videos": [
+            f"{_pfx}_vid1.mp4", f"{_pfx}_vid2.mp4", f"{_pfx}_vid3.mp4",
+            f"{_gk}_vid1.mp4", f"{_gk}_vid2.mp4", f"{_gk}_vid3.mp4"
+        ]
+    }
 
 def get_media_item(vault, tag, prefer_video=False, char_vault=""):
     if not tag: tag = "bodes"
@@ -598,15 +603,26 @@ def get_media_item(vault, tag, prefer_video=False, char_vault=""):
     elif tag in ["private", "privatepic", "body", "bodes"]: tag = "bodes"
     elif tag in ["open", "opan", "front", "chut", "pusy", "pussy"]: tag = "chut"
 
-    # 1. Agar 12 Diamond Character active hai, toh pehle us character ki local file check karo
+    # 1. Check Character-Specific 4 Photos & 3 Videos first!
     if char_vault and char_vault in CHARACTER_MEDIA_VAULTS:
         c_dict = CHARACTER_MEDIA_VAULTS[char_vault]
-        c_cands = c_dict.get(f"{tag}_video", []) if prefer_video and f"{tag}_video" in c_dict else c_dict.get(tag, [])
+        pfx = GIRL_FILE_PREFIX.get(char_vault, char_vault)
+        c_cands = c_dict["videos"] if prefer_video else c_dict["photos"]
         c_existing = [f for f in c_cands if find_local_file(f) is not None]
         if c_existing:
             return random.choice(c_existing)
+        # If uploaded directly to GitHub repo with prefix (e.g. aditi_pic1.jpg..aditi_pic4.jpg / aditi_vid1.mp4..aditi_vid3.mp4)
+        if pfx != "bhabhi":
+            gh_list = [f"{pfx}_vid{i}.mp4" for i in range(1, 4)] if prefer_video else [f"{pfx}_pic{i}.jpg" for i in range(1, 5)]
+            for gh_f in random.sample(gh_list, len(gh_list)):
+                try:
+                    r_chk = requests.head(GITHUB_BASE_URL + gh_f, timeout=2)
+                    if r_chk.status_code == 200:
+                        return gh_f
+                except Exception:
+                    pass
 
-    # 2. Default Fallback (Normal Chat, 13th Custom Roleplay, ya agar character photo abhi upload nahi hui hai)
+    # 2. Default Fallback Vault (open1-4.jpg, private1-5.jpg, bom1-3.jpg, video1-7.mp4)
     candidates = vault.get(f"{tag}_video", []) if prefer_video and f"{tag}_video" in vault else vault.get(tag, vault.get("bodes", []))
     if not candidates: return None
     existing = [f for f in candidates if find_local_file(f) is not None]
