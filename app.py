@@ -111,13 +111,12 @@ GROQ_API_KEYS = [k for k in [
     os.environ.get("GROQ_API_KEY8", "").strip().strip('"')
 ] if k]
 GROQ_MODEL = "llama-3.3-70b-versatile"
-GROQ_FALLBACK_MODELS = [
-    "qwen/qwen3.8-27b",
+GROQ_FALLBACK_MODELS = [9
     "openai/gpt-oss-120b",
-    "llama-3.1-8b-instant"
-]
+    "llama-3.3-70b-versatile"
+    
 GROQ_VISION_MODELS = [
-    "meta-llama/llama-4-scout-17b-16e-instruct",
+    "qwen/qwen3.8-27b"
     "meta-llama/llama-4-maverick-17b-128e-instruct"
 ]
 
