@@ -111,9 +111,10 @@ GROQ_API_KEYS = [k for k in [
     os.environ.get("GROQ_API_KEY8", "").strip().strip('"')
 ] if k]
 GROQ_MODEL = "llama-3.3-70b-versatile"
-GROQ_FALLBACK_MODELS = [9
+GROQ_FALLBACK_MODELS = [
     "openai/gpt-oss-120b",
     "llama-3.3-70b-versatile"
+]
     
 GROQ_VISION_MODELS = [
     "qwen/qwen3.8-27b"
@@ -581,51 +582,86 @@ GIRL_FILE_PREFIX = {
     "bhabhi": "bhabhi"
 }
 
-CHARACTER_MEDIA_VAULTS = {}
-for _gk, _ pfx in GIRL_FILE_PREFIX.items():
-    CHARACTER_MEDIA_VAULTS[_gk] = {
-        "photos": [
-            f"{_pfx}_pic1.jpg", f"{_pfx}_pic2.jpg", f"{_pfx}_pic3.jpg", f"{_pfx}_pic4.jpg",
-            f"{_gk}_pic1.jpg", f"{_gk}_pic2.jpg", f"{_gk}_pic3.jpg", f"{_gk}_pic4.jpg",
-            f"{_gk}_bodes1.jpg", f"{_gk}_chut1.jpg", f"{_gk}_gand1.jpg"
-        ],
-        "videos": [
-            f"{_pfx}_vid1.mp4", f"{_pfx}_vid2.mp4", f"{_pfx}_vid3.mp4",
-            f"{_gk}_vid1.mp4", f"{_gk}_vid2.mp4", f"{_gk}_vid3.mp4"
-        ]
-    }
+def get_ ordered_girl_candidates(pfx, tag, prefer_video=False):
+    """Builds exact 1 -> 2 -> 3 -> 4 -> 5 file list matching GitHub uploads (c=chut, b=bodes, g=gand)."""
+    short_map = {"chut": "c", "bodes": "b", "gand": "g", "kiss": "b", "simplepic": "b"}
+    sc = short_map.get(tag, "b")
+    other_scs = [x for x in ("b", "c", "g") if x != sc]
 
-def get_media_item(vault, tag, prefer_video=False, char_vault=""):
+    cands = []
+    if prefer_video:
+        # 1. Exact category videos in 1, 2, 3, 4, 5 order (supports both aditic1.mp4 & aditi1c.mp4)
+        for i in range(1, 6):
+            cands.append(f"{pfx}{sc}{i}.mp4")
+            cands.append(f"{pfx}{i}{sc}.mp4")
+        # 2. General videos without c/b/g (e.g. ruhi.mp4, ruhifull.mp4, bhabhivideo.mp4)
+        cands.extend([f"{pfx}.mp4", f"{pfx}video.mp4", f"{pfx}full.mp4", f"{pfx}1.mp4", f"{pfx}2.mp4"])
+        # 3. Other category videos of the SAME girl so another girl's media is never sent
+        for osc in other_scs:
+            for i in range(1, 6):
+                cands.append(f"{pfx}{osc}{i}.mp4")
+                cands.append(f"{pfx}{i}{osc}.mp4")
+    else:
+        # 1. Exact category photos in 1, 2, 3, 4, 5 order (.jpg and .png like alishac1.png / ruhic1.png)
+        for i in range(1, 6):
+            cands.append(f"{pfx}{sc}{i}.jpg")
+            cands.append(f"{pfx}{sc}{i}.png")
+            cands.append(f"{pfx}{i}{sc}.jpg")
+        if pfx == "bhabhi" and sc == "b":
+            cands.append("bhabhibra.jpg")
+        # 2. Other category photos of the SAME girl
+        for osc in other_scs:
+            for i in range(1, 6):
+                cands.append(f"{pfx}{osc}{i}.jpg")
+                cands.append(f"{pfx}{osc}{i}.png")
+        # 3. If this girl only has videos for this category (e.g. aarohic1.mp4), include her videos too!
+        for i in range(1, 6):
+            cands.append(f"{pfx}{sc}{i}.mp4")
+            cands.append(f"{pfx}{i}{sc}.mp4")
+
+    # Remove duplicates while preserving 1 -> 2 -> 3 order
+    seen = set()
+    out = []
+    for f in cands:
+        if f not in seen:
+            seen.add(f)
+            out.append(f)
+    return out
+
+def get_media_item(vault, tag, prefer_video=False, char_vault="", uid=""):
     if not tag: tag = "bodes"
     tag = str(tag).lower().strip()
     if tag in ["boom", "bom", "back", "gand"]: tag = "gand"
     elif tag in ["private", "privatepic", "body", "bodes"]: tag = "bodes"
     elif tag in ["open", "opan", "front", "chut", "pusy", "pussy"]: tag = "chut"
 
-    # 1. Check Character-Specific 4 Photos & 3 Videos first!
-    if char_vault and char_vault in CHARACTER_MEDIA_VAULTS:
-        c_dict = CHARACTER_MEDIA_VAULTS[char_vault]
-        pfx = GIRL_FILE_PREFIX.get(char_vault, char_vault)
-        c_cands = c_dict["videos"] if prefer_video else c_dict["photos"]
-        c_existing = [f for f in c_cands if find_local_file(f) is not None]
-        if c_existing:
-            return random.choice(c_existing)
-        # If uploaded directly to GitHub repo with prefix (e.g. aditi_pic1.jpg..aditi_pic4.jpg / aditi_vid1.mp4..aditi_vid3.mp4)
-        if pfx != "bhabhi":
-            gh_list = [f"{pfx}_vid{i}.mp4" for i in range(1, 4)] if prefer_video else [f"{pfx}_pic{i}.jpg" for i in range(1, 5)]
-            for gh_f in random.sample(gh_list, len(gh_list)):
-                try:
-                    r_chk = requests.head(GITHUB_BASE_URL + gh_f, timeout=2)
-                    if r_chk.status_code == 200:
-                        return gh_f
-                except Exception:
-                    pass
+    v_key = char_vault if (char_vault and char_vault in GIRL_FILE_PREFIX) else "bhabhi"
+    pfx = GIRL_FILE_PREFIX.get(v_key, "bhabhi")
 
-    # 2. Default Fallback Vault (open1-4.jpg, private1-5.jpg, bom1-3.jpg, video1-7.mp4)
-    candidates = vault.get(f"{tag}_video", []) if prefer_video and f"{tag}_video" in vault else vault.get(tag, vault.get("bodes", []))
-    if not candidates: return None
-    existing = [f for f in candidates if find_local_file(f) is not None]
-    return random.choice(existing) if existing else random.choice(candidates)
+    # 1. Find all existing local files for this specific girl in 1 -> 2 -> 3 order
+    girl_cands = get_ordered_girl_candidates(pfx, tag, prefer_video=prefer_video)
+    existing = [f for f in girl_cands if find_local_file(f) is not None]
+
+    # 2. If main Bhabhi bot, also append standard vault files in order (private1..5, open1..4, bom1..3, video1..7)
+    if v_key == "bhabhi":
+        std_cands = vault.get(f"{tag}_video", []) if prefer_video and f"{tag}_video" in vault else vault.get(tag, vault.get("bodes", []))
+        for sf in std_cands:
+            if find_local_file(sf) is not None and sf not in existing:
+                existing.append(sf)
+
+    if not existing:
+        std_cands = vault.get(f"{tag}_video", []) if prefer_video and f"{tag}_video" in vault else vault.get(tag, vault.get("bodes", []))
+        existing = [f for f in std_cands if find_local_file(f) is not None] or list(std_cands)
+
+    if not existing:
+        return None
+
+    # 3. Sequential 1 -> 2 -> 3 Counter per User + Girl + Tag + MediaType!
+    seq_key = f"mseq:{uid}:{v_key}:{tag}:{'v' if prefer_video else 'p'}"
+    idx = int(USER_CACHE.get(seq_key, 0))
+    chosen = existing[idx % len(existing)]
+    USER_CACHE[seq_key] = idx + 1
+    return chosen
 
 def detect_python_media_tag(message_text):
     m_low = str(message_text or "").lower()
@@ -1050,8 +1086,17 @@ def check_user_joined_official(uid):
     return True
 
 def send_blurred_locked_preview(chat_id, filename, caption="", reply_markup=None):
-    """Heavily blurs photo for Free Users so they MUST pay ₹9 to see clear media & voice!"""
-    local_p = find_local_file(filename) or find_local_file(START_BANNER_IMAGE)
+    """Heavily blurs photo (or girl's DP if filename is .mp4) so 2-Button Unblur Box ALWAYS shows an image!"""
+    is_vid = str(filename).lower().endswith(".mp4")
+    preview_src = START_BANNER_IMAGE if is_vid else filename
+    if is_vid:
+        cur_b = get_active_bot_username().lower()
+        for gk_id, gk_val in REAL_GIRLS.items():
+            if gk_val.get("bot", "").lower() == cur_b:
+                preview_src = get_live_bot_dp_url(cur_b, fallback_banner=gk_val.get("dp", START_BANNER_IMAGE))
+                break
+    local_p = find_local_file(preview_src) or (preview_src if str(preview_src).startswith("/tmp/") and os.path.exists(preview_src) else None) or find_local_file(START_BANNER_IMAGE)
+
     try:
         from PIL import ImageFilter
         if local_p:
