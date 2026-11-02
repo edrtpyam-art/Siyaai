@@ -2331,6 +2331,20 @@ def webhook():
                     edit_or_send_box_media(cid, mid, media_file, caption=open_cap, reply_markup=None)
                 return jsonify({"status": "ok"}), 200
 
+                tg_req("answerCallbackQuery", {"callback_query_id": cb["id"], "text": "🔥 Unlocked! Dekho Jaan 😘🥵"})
+                u_clean = html.escape(clean_display_name(fname, "Jaan"))
+                if choice_num == "1":
+                    open_cap = f"Aaaah {u_clean}... tumne apne haatho se khola toh mera poora badan kaamp utha! Dekho ab khul kar... 😘🥵💋"
+                else:
+                    open_cap = f"Ufff {u_clean}... tumhari zidd par maine khud hi sab utaar kar dikha diya! Batao kaisi lag rahi hoon... 🥵🔥"
+
+                if str(media_file).lower().endswith(".mp4"):
+                    tg_req("deleteMessage", {"chat_id": cid, "message_id": mid})
+                    send_secret_media(cid, media_file, caption=open_cap, delete_after=30)
+                else:
+                    edit_or_send_box_media(cid, mid, media_file, caption=open_cap, reply_markup=None)
+                return jsonify({"status": "ok"}), 200
+
             if cb_data == "menu_free_earn":
                 tg_req("answerCallbackQuery", {"callback_query_id": cb["id"]})
                 ref_cnt = int(u_cb.get("ref_count") or 0)
