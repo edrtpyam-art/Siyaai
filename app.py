@@ -3499,7 +3499,7 @@ def webhook():
             if not is_own: fb_update_user(uid, {"credits": max(0, credits - CHAT_COST)})
             return jsonify({"status": "sticker read processed"}), 200
 
-        # NORMAL TEXT CHAT + 2-BUTTON UNBLUR INTERACTIVE SYSTEM + DRESS TRY-ON
+        # NORMAL TEXT CHAT + DIRECT MEDIA SENDING (NO BLUR / NO BUTTONS)
         if text:
             is_vip_user = is_own or bool(u.get("is_vip"))
 
@@ -3524,7 +3524,7 @@ def webhook():
                     return jsonify({"status": "tryon photo sent"}), 200
 
             reply_text, media_to_send, sticker_to_send, show_kb, cur_rp, rp_ended, sys_q = chat_with_siya(
-                text, fname, uid, credits_left=credits, is_owner=is_own, replied_to_text=replied_to_text, ctype=ctype
+                text, fname, uid, credits_left=credits, is_owner=is_owner, replied_to_text=replied_to_text, ctype=ctype
             )
 
             if rp_ended:
@@ -3539,18 +3539,9 @@ def webhook():
             else:
                 kb = None
 
+            # DIRECT MEDIA SENDING WITHOUT BLUR OR BUTTONS
             if media_to_send and ctype == "private":
-                choice_kb = {"inline_keyboard": [
-                    [
-                        {"text": "👐 Apne Haatho Se Kholo", "callback_data": f"unblur_1_{media_to_send}"},
-                        {"text": "🔥 Tum Khud Utaar Ke Dikhao", "callback_data": f"unblur_2_{media_to_send}"}
-                    ]
-                ]}
-                blur_cap = (
-                    f"{reply_text}\n\n"
-                    f"🙈 <b>Jaan, abhi parda hai... niche button dabakar batao kaise dekhna chahte ho:</b> 👇"
-                )
-                send_blurred_locked_preview(cid, media_to_send, caption=blur_cap, reply_markup=choice_kb)
+                send_local_or_url_media(cid, media_to_send, caption=reply_text, protect=True, spoiler=False, reply_markup=kb)
             else:
                 final_out = f"[𝑯𝒐𝒕 𝑩𝒉𝒂𝒃𝒉𝒊] <a href='tg://user?id={uid}'>{html.escape(fname)}</a> : {reply_text}" if ctype in ("group", "supergroup") else reply_text
                 send_msg(cid, final_out, reply_id=(msg.get("message_id") if ctype != "private" else None), markup=(None if ctype in ("group", "supergroup") else kb))
@@ -3580,14 +3571,10 @@ def webhook():
             add_to_history(uid, "user", text)
             add_to_history(uid, "siya", reply_text)
 
-            # Sirf Private DM mein credits katenge, Group Chat 100% FREE rahegi!
-            if ctype == "private" and not is_own and not sys_q:
+            if ctype == "private" and not is_owner and not sys_q:
                 fb_update_user(uid, {"credits": max(0, credits - CHAT_COST)})
 
         return jsonify({"status": "ok"}), 200
-    except Exception as e:
-        print("WEBHOOK ERROR:", traceback.format_exc())
-        return jsonify({"status": "error_handled", "detail": str(e)}), 200
 
 # ============================================================
 # 11. EDROL AI LANDING PAGE
