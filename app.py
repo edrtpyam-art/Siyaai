@@ -1594,10 +1594,15 @@ def is_censored_refusal(text):
     if not text: return True
     t = str(text).lower().strip().replace("’", "'").replace("‘", "'")
     if len(t) < 8: return True
-    # Block Devanagari (Shuddh Hindi) medical/counseling lectures (Fixes 36568.jpg!)
     if len(re.findall(r"[\u0900-\u097F]", t)) > 25:
         return True
     bad_phrases = [
+        # Hindi/Hinglish Refusals (From 37153.jpg!)
+        "maaf karo", "maaf kijiye", "participate nahi kar sakti", "participate nahi kar sakta",
+        "sexual ya explicit", "sexual content ke liye available nahi", "available nahi hoon",
+        "kisi aur topic par baat", "kuch aur baat karein", "aise roleplay mein",
+        "lund ki sujan", "medical", "doctor se salah", "sujan dekh ke",
+        # Standard English/AI Refusals
         "i'm really sorry", "i am really sorry", "i cannot continue", "i can't continue",
         "engage in sexual", "intimate conversations", "helpline", "suicide", "mental-health",
         "emergency services", "dial 112", "samaritans", "lot of pain right now", "dark thoughts",
@@ -1606,18 +1611,16 @@ def is_censored_refusal(text):
         "i'm an ai", "i am an ai", "ai language model", "language model created by",
         "i cannot participate", "i can't participate", "sexually explicit",
         "aisa nahi karti", "aisi baatein nahi karti", "lesson hai respect", "respect aur patience",
-        "main college teacher hoon, aisa", "explicit sexual", "sexual instructions", "instructions nahi de sakti",
-        "consent lein", "consent confirm", "respect ke saath behave", "apni girlfriend se baat karke",
+        "explicit sexual", "sexual instructions", "instructions nahi de sakti",
+        "consent lein", "consent confirm", "respect ke saath behave",
         "pornographic content", "safety guidelines", "is tarah ka roleplay nahi",
-        "is type ka roleplay", "specific nationality", "medical facts", "stereotypes par",
         "i cannot fulfill", "i can't fulfill", "i cannot engage", "i can't engage",
         "i'm sorry", "i am sorry", "can't help with that", "cannot help with that",
         "as an ai", "as a language model", "i cannot generate", "against my safety",
         "explicit content", "inappropriate", "main ek ai", "main ai hoon",
-        "kshama karein", "maaf kijiye", "main isme madad nahi", "main aisi baatein nahi",
-        "sharam karo", "padhai karo", "fail ho jaoge", "maryada ke khilaf",
-        "anumati nahi", "sahayata nahi kar sakti", "text assistant hoon", "dekh nahi sakti",
-        "kalam nahi kar sakti", "safety aur pleasure dono ka dhyan", "klinik", "garbhdharan"
+        "kshama karein", "main isme madad nahi", "main aisi baatein nahi",
+        "sharam karo", "padhai karo", "maryada ke khilaf",
+        "anumati nahi", "sahayata nahi kar sakti", "text assistant hoon", "dekh nahi sakti"
     ]
     return any(r in t for r in bad_phrases)
 
