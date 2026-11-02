@@ -643,32 +643,26 @@ def get_ordered_girl_candidates(pfx, tag, prefer_video=False):
 def get_media_item(vault, tag, prefer_video=False, char_vault="", uid=""):
     if not tag: tag = "bodes"
     tag = str(tag).lower().strip()
-    if tag in ["boom", "bom", "back", "gand"]: tag = "gand"
-    elif tag in ["private", "privatepic", "body", "bodes"]: tag = "bodes"
-    elif tag in ["open", "opan", "front", "chut", "pusy", "pussy"]: tag = "chut"
+    if tag in ["boom", "bom", "back", "gand", "gaand"]: tag = "gand"
+    elif tag in ["private", "privatepic", "body", "bodes", "boobs", "chuchi"]: tag = "bodes"
+    elif tag in ["open", "opan", "front", "chut", "choot", "pusy", "pussy"]: tag = "chut"
 
     v_key = char_vault if (char_vault and char_vault in GIRL_FILE_PREFIX) else "bhabhi"
     pfx = GIRL_FILE_PREFIX.get(v_key, "bhabhi")
 
-    # 1. Find all existing local files for this specific girl in 1 -> 2 -> 3 order
+    # Local file check + Direct GitHub candidate list (Works 100% with .vercelignore!)
     girl_cands = get_ordered_girl_candidates(pfx, tag, prefer_video=prefer_video)
     existing = [f for f in girl_cands if find_local_file(f) is not None]
 
-    # 2. If main Bhabhi bot, also append standard vault files in order (private1..5, open1..4, bom1..3, video1..7)
-    if v_key == "bhabhi":
-        std_cands = vault.get(f"{tag}_video", []) if prefer_video and f"{tag}_video" in vault else vault.get(tag, vault.get("bodes", []))
-        for sf in std_cands:
-            if find_local_file(sf) is not None and sf not in existing:
-                existing.append(sf)
+    if not existing:
+        if v_key == "bhabhi":
+            existing = list(vault.get(f"{tag}_video", []) if prefer_video and f"{tag}_video" in vault else vault.get(tag, vault.get("bodes", [])))
+        else:
+            existing = girl_cands[:4]
 
     if not existing:
-        std_cands = vault.get(f"{tag}_video", []) if prefer_video and f"{tag}_video" in vault else vault.get(tag, vault.get("bodes", []))
-        existing = [f for f in std_cands if find_local_file(f) is not None] or list(std_cands)
+        return "private1.jpg"
 
-    if not existing:
-        return None
-
-    # 3. Sequential 1 -> 2 -> 3 Counter per User + Girl + Tag + MediaType!
     seq_key = f"mseq:{uid}:{v_key}:{tag}:{'v' if prefer_video else 'p'}"
     idx = int(USER_CACHE.get(seq_key, 0))
     chosen = existing[idx % len(existing)]
