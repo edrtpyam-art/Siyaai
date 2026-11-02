@@ -2071,8 +2071,22 @@ STRICT RULES FOR PRIVATE DM (MAKE THE USER FEEL HIS MONEY IS 100% WORTH IT!):
     media_file = get_media_item(PHOTO_VAULT, py_photo_tag or "bodes", wants_video, char_vault=active_vault, uid=user_id) if asks_media else None
 
     if asks_media:
-        return f"Ye lo {user_name} meri jaan, sirf tumhare liye apni garma-garam pic bhej rahi hoon... dekh kar batao kaisi lagi! 🥵💋", media_file, None, show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
-    return f"Aaaah... aao na {user_name} meri baahon mein, darwaza band hai aur main kab se tumhara hi wait kar rahi thi! 😘🔥", media_file, get_hot_sticker(force=True), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
+        return f"Haye {user_name} meri jaan, itne pyar se maangoge toh main kaise mana kar sakti hoon... ye lo apni garma-garam pic bhej rahi hoon, dekh kar batao kahan-kahan kiss karoge! 🥵💋", media_file, None, show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
+
+    # Dynamic Situational Fallback (Never repeats the same boring door-locked line!)
+    if any(w in msg_low for w in ["chut", "chod", "sex", "sax", "lund", "gand", "daal", "pel"]):
+        hot_fallbacks = [
+            f"Uff {user_name} jaan, ab aur intezaar nahi hota... main bistar par apni dono taangein khol kar leti hoon, aaja aur apna mota lund meri geeli chut mein poora utaar de! 🥵💦",
+            f"Aaaah {user_name}... teri gandi baatein sun kar meri chut ekdam geeli ho gayi hai! Jaldi se mere upar aaja aur aaj raat bhar mujhe apni baahon mein jakad ke pyar kar! 😘🔥",
+            f"Haye mere raja {user_name}, mera poora badan aag ki tarah tap raha hai... aaja apne haatho se mere kapde hata aur meri pyasi chut ki garmi shant kar de! 🥵💋"
+        ]
+    else:
+        hot_fallbacks = [
+            f"Haye {user_name} jaan, tumhari har baat mere dil ko chhoo jati hai... thoda aur kareeb aao na, mujhe tumhare seene se lag kar dher saari gandi-gandi baatein karni hain! 😘❤️",
+            f"Uff {user_name}, aise tarsaao mat mujhe... batao na aaj apni is jaan ke saath kya-kya karne ka irada hai tumhara? 🙈🔥",
+            f"Aao na {user_name} mere paas, aaj mera mood bohot romantic aur naughty ho raha hai... batao shuruwat hothon ke kiss se karein ya seedha kapde utaarein? 😘🥵"
+        ]
+    return random.choice(hot_fallbacks), media_file, get_hot_sticker(force=True), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
 
 # ============================================================
 # 10. WEBHOOK HANDLER (SIYA-STYLE OWNER PANEL + PHOTO/VIDEO PROMO + 0-CREDIT FIX)
