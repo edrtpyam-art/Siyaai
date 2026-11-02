@@ -2110,6 +2110,7 @@ def webhook():
                 if not t_user.get("is_bot"):
                     t_id = t_user.get("id")
                     t_name = f"{t_user.get('first_name', 'User')} {t_user.get('last_name', '')}".strip()
+                    if mark_seen(f"cm_wel:{chat['id']}:{t_id}:{int(time.time() // 5)}"): return jsonify({"status": "ok"}), 200
                     send_welcome_photo(chat["id"], t_id, t_name, chat.get("title", "Group"))
             return jsonify({"status": "ok"}), 200
 
