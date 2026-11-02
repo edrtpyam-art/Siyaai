@@ -359,60 +359,6 @@ PHOTO_REQUEST_WORDS = [
     "degi", "dega", "dedo", "de do", "utaro", "utaaro", "kholo", "khol ke", "nangi", "nude", "boobs", "chuchi", "figure"
 ]
 
-def get_media_item(vault, tag, prefer_video=False, char_vault="", uid=""):
-    if not tag: tag = "bodes"
-    tag = str(tag).lower().strip()
-    if tag in ["boom", "bom", "back", "gand", "gaand", "ass"]: tag = "gand"
-    elif tag in ["private", "privatepic", "body", "bodes", "boobs", "chuchi", "bra"]: tag = "bodes"
-    elif tag in ["open", "opan", "front", "chut", "choo", "choot", "pusy", "pussy"]: tag = "chut"
-
-    v_key = char_vault if (char_vault and char_vault in GIRL_FILE_PREFIX) else "bhabhi"
-    pfx = GIRL_FILE_PREFIX.get(v_key, "bhabhi")
-
-    # 1. Local files check
-    girl_cands = get_ordered_girl_candidates(pfx, tag, prefer_video=prefer_video)
-    existing = [f for f in girl_cands if find_local_file(f) is not None]
-
-    # 2. Standard vault fallback + GitHub direct filename fallback (NEVER returns None!)
-    std_cands = vault.get(f"{tag}_video", []) if prefer_video and f"{tag}_video" in vault else vault.get(tag, vault.get("bodes", []))
-    if v_key == "bhabhi" or not existing:
-        for sf in std_cands:
-            if sf not in existing:
-                existing.append(sf)
-
-    if not existing:
-        existing = girl_cands[:3] or ["private1.jpg", "open1.jpg", "bom1.jpg"]
-
-    seq_key = f"mseq:{uid}:{v_key}:{tag}:{'v' if prefer_video else 'p'}"
-    idx = int(USER_CACHE.get(seq_key, 0))
-    chosen = existing[idx % len(existing)]
-    USER_CACHE[seq_key] = idx + 1
-    return chosen
-
-def detect_python_media_tag(message_text):
-    m_low = str(message_text or "").lower()
-    # Direct body-part demand check (e.g. "chut degi apnaa", "gand dikha", "boobs bhejo")
-    asks_media = any(re.search(rf"\b{re.escape(w)}\b", m_low) or w in m_low for w in PHOTO_REQUEST_WORDS)
-    if not asks_media and any(x in m_low for x in ["chut", "choot", "gand", "gaand", "boobs", "chuchi", "bra", "body"]):
-        if any(v in m_low for v in ["de", "do", "degi", "dikha", "dekha", "khol", "bhej", "apna", "apni", "teri"]):
-            asks_media = True
-
-    if not asks_media:
-        return False, None, False
-
-    wants_vid = any(w in m_low for w in ["video", "vido", "vid", "clip", "mp4"])
-    if any(w in m_low for w in ["open", "opan", "chut", "choot", "pusy", "pussy", "front"]):
-        tag = "chut"
-    elif any(w in m_low for w in ["bom", "boom", "gand", "gaand", "back", "piche"]):
-        tag = "gand"
-    elif any(w in m_low for w in ["kiss", "chumma", "lip"]):
-        tag = "kiss"
-    elif any(w in m_low for w in ["simple", "normal", "selfie", "face"]):
-        tag = "simplepic"
-    else:
-        tag = "bodes"
-    return True, tag, wants_vid
-
 DETAIL_QUERY_WORDS = [
     "kya kya", "kesy", "kaise", "kese", "kitna time", "serves", "service", "detail",
     "story", "khush kesy", "kya karogi", "kya kro", "btao sab", "batao sab", "explain"
