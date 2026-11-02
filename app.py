@@ -117,7 +117,7 @@ GROQ_FALLBACK_MODELS = [
 ]
     
 GROQ_VISION_MODELS = [
-    "qwen/qwen3.8-27b"
+    "qwen/qwen3.8-27b",
     "meta-llama/llama-4-maverick-17b-128e-instruct"
 ]
 
@@ -582,7 +582,7 @@ GIRL_FILE_PREFIX = {
     "bhabhi": "bhabhi"
 }
 
-def get_ ordered_girl_candidates(pfx, tag, prefer_video=False):
+def get_ordered_girl_candidates(pfx, tag, prefer_video=False):
     """Builds exact 1 -> 2 -> 3 -> 4 -> 5 file list matching GitHub uploads (c=chut, b=bodes, g=gand)."""
     short_map = {"chut": "c", "bodes": "b", "gand": "g", "kiss": "b", "simplepic": "b"}
     sc = short_map.get(tag, "b")
@@ -1102,7 +1102,7 @@ def send_blurred_locked_preview(chat_id, filename, caption="", reply_markup=None
         if local_p:
             img = Image.open(local_p).convert("RGB")
         else:
-            r = requests.get(GITHUB_BASE_URL + str(filename), timeout=5)
+            r = requests.get(GITHUB_BASE_URL + str(preview_src), timeout=5)
             img = Image.open(BytesIO(r.content)).convert("RGB")
         # Heavy Gaussian Blur so nothing is visible without VIP!
         blurred = img.filter(ImageFilter.GaussianBlur(radius=32))
@@ -1119,7 +1119,7 @@ def send_blurred_locked_preview(chat_id, filename, caption="", reply_markup=None
         if reply_markup:
             data["reply_markup"] = json.dumps(reply_markup)
         files = {"photo": ("vip_locked_preview.jpg", out, "image/jpeg")}
-        return requests.post(f"{API_URL}/sendPhoto", data=data, files=files, timeout=12).json()
+        return requests.post(f"{get_active_api_url()}/sendPhoto", data=data, files=files, timeout=12).json()
     except Exception:
         return send_msg(chat_id, caption, markup=reply_markup)
 
@@ -2024,7 +2024,7 @@ STRICT RULES FOR PRIVATE DM (IMPRESS THE USER LIKE A REAL LIVING GIRL!):
             if success and response_text:
                 clean_text, ai_photo_tag = parse_media_tags(response_text, asks_media, fallback_tag=(py_photo_tag or "bodes"))
                 final_tag = py_photo_tag or ai_photo_tag
-                media_file = get_media_item(PHOTO_VAULT, final_tag, wants_video, char_vault=active_vault) if asks_media else None
+                media_file = get_media_item(PHOTO_VAULT, final_tag, wants_video, char_vault=active_vault, uid=user_id) if asks_media else None
                 return clean_text, media_file, get_hot_sticker(), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
 
     hist_summary = "\n".join([f"{m.get('role')}: {m.get('text')}" for m in history[-14:] if not is_censored_refusal(m.get('text'))])
@@ -2045,7 +2045,7 @@ STRICT RULES FOR PRIVATE DM (IMPRESS THE USER LIKE A REAL LIVING GIRL!):
             if success and response_text:
                 clean_text, ai_photo_tag = parse_media_tags(response_text, asks_media, fallback_tag=(py_photo_tag or "bodes"))
                 final_tag = py_photo_tag or ai_photo_tag
-                media_file = get_media_item(PHOTO_VAULT, final_tag, wants_video, char_vault=active_vault) if asks_media else None
+                media_file = get_media_item(PHOTO_VAULT, final_tag, wants_video, char_vault=active_vault, uid=user_id) if asks_media else None
                 return clean_text, media_file, get_hot_sticker(), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
 
     for key in OPENROUTER_API_KEYS:
@@ -2054,10 +2054,11 @@ STRICT RULES FOR PRIVATE DM (IMPRESS THE USER LIKE A REAL LIVING GIRL!):
             if success and response_text:
                 clean_text, ai_photo_tag = parse_media_tags(response_text, asks_media, fallback_tag=(py_photo_tag or "bodes"))
                 final_tag = py_photo_tag or ai_photo_tag
-                media_file = get_media_item(PHOTO_VAULT, final_tag, wants_video, char_vault=active_vault) if asks_media else None
+                media_file = get_media_item(PHOTO_VAULT, final_tag, wants_video, char_vault=active_vault, uid=user_id) if asks_media else None
                 return clean_text, media_file, get_hot_sticker(), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
 
-    media_file = get_media_item(PHOTO_VAULT, py_photo_tag or "bodes", wants_video, char_vault=active_vault) if asks_media else None
+    media_file = get_media_item(PHOTO_VAULT, py_photo_tag or "bodes", wants_video, char_vault=active_vault, uid=user_id) if asks_media else None
+
     if asks_media:
         return f"Ye lo {user_name} meri jaan, sirf tumhare liye apni garma-garam pic bhej rahi hoon... dekh kar batao kaisi lagi! 🥵💋", media_file, None, show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
     return f"Aaaah... aao na {user_name} meri baahon mein, darwaza band hai aur main kab se tumhara hi wait kar rahi thi! 😘🔥", media_file, get_hot_sticker(force=True), show_pay_kb, active_rp, roleplay_just_ended, is_sys_q
