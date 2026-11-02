@@ -25,27 +25,7 @@ DEFAULT_VOICE_TRIGGERS = [
     "bol ke", "bolke", "audio", "sunao",
     "voice bejo", "voice bhejo", "voice doo", "voice do", "moan", "siskari"
 ]
-DEFAULT_PHOTO_VAULT = {
-    "simplepic": ["simplepic.jpg", "simplepic2.jpg"],
-    "kiss": ["kiss.jpg"],
-    "bodes": [
-        "private1.jpg", "private2.jpg", "private3.jpg", "private4.jpg", "private5.jpg",
-        "video.mp4", "video1.mp4", "video2.mp4", "video3.mp4"
-    ],
-    "bodes_video": ["video.mp4", "video1.mp4", "video2.mp4", "video3.mp4"],
-    "showhard": ["showhard.jpg", "showhard2.jpg"],
-    "chut": [
-        "open1.jpg", "open2.jpg", "opan3.jpg", "open3.jpg", "open4.jpg", "opan4.jpg",
-        "video4.mp4", "video5.mp4"
-    ],
-    "chut_video": ["video4.mp4", "video5.mp4"],
-    "endshow": ["endshow.jpg"],
-    "gand": [
-        "bom1.jpg", "bom2.jpg", "bom3.jpg",
-        "video6.mp4", "video7.mp4"
-    ],
-    "gand_video": ["video6.mp4", "video7.mp4"]
-}
+
 DEFAULT_STICKER_PACKS = {
     "NORMAL": ["PeachGomaPack11", "Pavelads", "HANGSEED_Mood"],
     "ROMANTIC": ["sticker_BM8g_by_stickerskibot", "Yornseyha077", "Love9_Wallgif", "mmm_by_hhujhybot"],
@@ -374,9 +354,65 @@ WHITE = "#FFFFFF"
 
 PHOTO_REQUEST_WORDS = [
     "photo", "phto", "phooto", "pic", "pics", "image", "img", "selfie",
-    "video", "vido", "vid", "clip", "dikhao", "dikha", "dikhaoo", "dikhana",
-    "bhejo", "bhej", "bejo", "bej", "beja", "bjao", "send", "dekhna hai", "dekhau", "pic do", "photo do"
+    "video", "vido", "vid", "clip", "dikhao", "dikha", "dikhaoo", "dikhana", "dekha", "dekhao",
+    "bhejo", "bhej", "bejo", "bej", "beja", "bjao", "send", "dekhna hai", "dekhau", "pic do", "photo do",
+    "degi", "dega", "dedo", "de do", "utaro", "utaaro", "kholo", "khol ke", "nangi", "nude", "boobs", "chuchi", "figure"
 ]
+
+def get_media_item(vault, tag, prefer_video=False, char_vault="", uid=""):
+    if not tag: tag = "bodes"
+    tag = str(tag).lower().strip()
+    if tag in ["boom", "bom", "back", "gand", "gaand", "ass"]: tag = "gand"
+    elif tag in ["private", "privatepic", "body", "bodes", "boobs", "chuchi", "bra"]: tag = "bodes"
+    elif tag in ["open", "opan", "front", "chut", "choo", "choot", "pusy", "pussy"]: tag = "chut"
+
+    v_key = char_vault if (char_vault and char_vault in GIRL_FILE_PREFIX) else "bhabhi"
+    pfx = GIRL_FILE_PREFIX.get(v_key, "bhabhi")
+
+    # 1. Local files check
+    girl_cands = get_ordered_girl_candidates(pfx, tag, prefer_video=prefer_video)
+    existing = [f for f in girl_cands if find_local_file(f) is not None]
+
+    # 2. Standard vault fallback + GitHub direct filename fallback (NEVER returns None!)
+    std_cands = vault.get(f"{tag}_video", []) if prefer_video and f"{tag}_video" in vault else vault.get(tag, vault.get("bodes", []))
+    if v_key == "bhabhi" or not existing:
+        for sf in std_cands:
+            if sf not in existing:
+                existing.append(sf)
+
+    if not existing:
+        existing = girl_cands[:3] or ["private1.jpg", "open1.jpg", "bom1.jpg"]
+
+    seq_key = f"mseq:{uid}:{v_key}:{tag}:{'v' if prefer_video else 'p'}"
+    idx = int(USER_CACHE.get(seq_key, 0))
+    chosen = existing[idx % len(existing)]
+    USER_CACHE[seq_key] = idx + 1
+    return chosen
+
+def detect_python_media_tag(message_text):
+    m_low = str(message_text or "").lower()
+    # Direct body-part demand check (e.g. "chut degi apnaa", "gand dikha", "boobs bhejo")
+    asks_media = any(re.search(rf"\b{re.escape(w)}\b", m_low) or w in m_low for w in PHOTO_REQUEST_WORDS)
+    if not asks_media and any(x in m_low for x in ["chut", "choot", "gand", "gaand", "boobs", "chuchi", "bra", "body"]):
+        if any(v in m_low for v in ["de", "do", "degi", "dikha", "dekha", "khol", "bhej", "apna", "apni", "teri"]):
+            asks_media = True
+
+    if not asks_media:
+        return False, None, False
+
+    wants_vid = any(w in m_low for w in ["video", "vido", "vid", "clip", "mp4"])
+    if any(w in m_low for w in ["open", "opan", "chut", "choot", "pusy", "pussy", "front"]):
+        tag = "chut"
+    elif any(w in m_low for w in ["bom", "boom", "gand", "gaand", "back", "piche"]):
+        tag = "gand"
+    elif any(w in m_low for w in ["kiss", "chumma", "lip"]):
+        tag = "kiss"
+    elif any(w in m_low for w in ["simple", "normal", "selfie", "face"]):
+        tag = "simplepic"
+    else:
+        tag = "bodes"
+    return True, tag, wants_vid
+
 DETAIL_QUERY_WORDS = [
     "kya kya", "kesy", "kaise", "kese", "kitna time", "serves", "service", "detail",
     "story", "khush kesy", "kya karogi", "kya kro", "btao sab", "batao sab", "explain"
