@@ -527,13 +527,21 @@ def send_msg(cid, text, reply_id=None, markup=None):
 def send_stk(cid, sid, reply_id=None):
     return tg_req("sendSticker", {"chat_id": cid, "sticker": sid, "reply_to_message_id": reply_id}) if sid else {"ok": False}
 
+ADMIN_STATUS_CACHE = {}
+
 def is_user_group_admin(chat_id, user_id):
     if str(user_id) == OWNER_ID:
         return True
-    res = tg_req("getChatMember", {"chat_id": chat_id, "user_id": int(user_id)}, timeout=3)
+    ck = f"{chat_id}:{user_id}"
+    now = time.time()
+    if ck in ADMIN_STATUS_CACHE and (now - ADMIN_STATUS_CACHE[ck][1] < 180):
+        return ADMIN_STATUS_CACHE[ck][0]
+    res = tg_req("getChatMember", {"chat_id": chat_id, "user_id": int(user_id)}, timeout=2.5)
     if res.get("ok"):
         status = res.get("result", {}).get("status", "")
-        return status in ("creator", "administrator")
+        is_adm = status in ("creator", "administrator")
+        ADMIN_STATUS_CACHE[ck] = (is_adm, now)
+        return is_adm
     return False
 
 def check_bot_permissions_and_warn(chat_id, inviter_id, inviter_name):
@@ -1019,24 +1027,28 @@ def get_group_3_buttons_kb(start_param="welcome"):
     ]}
 
 def send_welcome_photo(chat_id, user_id, user_name, group_name, reply_to_message_id=None):
+    custom_w = get_custom_group_welcome(chat_id)
+    cap_raw = f"🎉 Welcome to 🎬 <b>{html.escape(group_name)}</b>, <a href=\"tg://user?id={user_id}\">{html.escape(user_name)}</a>! ❤️"
+    if custom_w:
+        cap_raw += f"\n\n{html.escape(custom_w)}"
+    kb = get_group_3_buttons_kb("welcome")
     try:
         image_file = create_welcome_card(user_id, user_name)
-        custom_w = get_custom_group_welcome(chat_id)
-        cap_raw = f"Welcome to 🎬 {html.escape(group_name)}"
-        if custom_w:
-            cap_raw += f"\n\n{html.escape(custom_w)}"
-        kb = get_group_3_buttons_kb("welcome")
         data = {
             "chat_id": str(chat_id),
             "caption": to_hot_bhabhi_font(cap_raw),
             "parse_mode": "HTML",
             "reply_markup": json.dumps(kb)
         }
-        if reply_to_message_id: data["reply_to_message_id"] = str(reply_to_message_id)
+        if reply_to_message_id:
+            data["reply_to_message_id"] = str(reply_to_message_id)
         files = {"photo": ("welcome.jpg", image_file, "image/jpeg")}
-        return requests.post(f"{API_URL}/sendPhoto", data=data, files=files, timeout=8).json()
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
+        res = requests.post(f"{get_active_api_url()}/sendPhoto", data=data, files=files, timeout=6).json()
+        if res.get("ok"):
+            return res
+    except Exception:
+        pass
+    return send_msg(chat_id, cap_raw, reply_id=reply_to_message_id, markup=kb)
 
 # ============================================================
 # 6. FIREBASE MEMORY, OWNER USER/GROUP LISTS & PHOTO/VIDEO TAG PROMO
@@ -2935,8 +2947,9 @@ def webhook():
         if ctype in ("group", "supergroup"):
             group_title = chat.get("title", "Group")
             three_btns_kb = get_group_3_buttons_kb("group")
+            active_b_id = getattr(_bot_ctx, "bot_id", None) or BOT_ID
 
-            # 1. INSTANT WELCOME CARD FOR EVERY JOIN & RE-JOIN (NO PERMANENT BLOCK!)
+            # 1. INSTANT WELCOME CARD FOR EVERY JOIN & RE-JOIN
             new_members = msg.get("new_chat_members", [])
             if new_members:
                 sender_is_admin = is_user_group_admin(cid, uid)
@@ -2944,7 +2957,7 @@ def webhook():
                     t_id = target_user.get("id")
                     t_name = f"{target_user.get('first_name', 'User')} {target_user.get('last_name', '')}".strip()
 
-                    if str(t_id) == str(BOT_ID):
+                    if str(t_id) == str(active_b_id):
                         register_group_chat(cid, group_title, chat.get("username", ""))
                         ug = fb_get_user(uid, first_name=fname).get("user_groups") or {}
                         ug[str(cid)] = group_title
@@ -2964,25 +2977,27 @@ def webhook():
                             )
                         continue
 
-                    # 10-second window so if user leaves and joins again, Welcome Card ALWAYS sends!
-                    if mark_seen(f"cm_wel:{cid}:{t_id}:{int(time.time() // 3)}"): continue
-                    w_res = send_welcome_photo(cid, t_id, t_name, group_title)
-                    if not w_res.get("ok"):
-                        send_msg(cid, f"Welcome to 🎬 {html.escape(group_title)}, <a href='tg://user?id={t_id}'>{html.escape(t_name)}</a>! 🎉", markup=three_btns_kb)
+                    register_group_member(cid, t_id, t_name)
+                    if mark_seen(f"cm_wel:{cid}:{t_id}:{int(time.time() // 5)}"):
+                        continue
+                    send_welcome_photo(cid, t_id, t_name, group_title)
                 return jsonify({"status": "welcome processed"}), 200
 
-            # 2. SHORT, CLEAN ENGLISH ANTI-LINK & BIO-LINK DETECTOR (LIGHT SPEED)
+            # 2. LIGHT-SPEED ANTI-LINK, @MENTION, CHANNEL FORWARD & BIO-LINK DETECTOR
             raw_content = f"{text} {msg.get('caption') or ''}".lower()
             ents = (msg.get("entities") or []) + (msg.get("caption_entities") or [])
-            has_raw_link = bool(re.search(r"(?:https?://|t\.me/|telegram\.me/|www\.|[a-z0-9-]+\.(?:com|in|org|net|me|io|co|xyz|info|link|click|app|club|store|online|site|top|pro|vip|fun)\b)", raw_content))
-            has_entity_link = any(e.get("type") in ("url", "text_link", "mention", "text_mention") for e in ents)
+            has_raw_link = bool(re.search(r"(?:https?://|t\.me/|telegram\.me/|www\.|@[a-z0-9_]{3,}|[a-z0-9-]+\.(?:com|in|org|net|me|io|co|xyz|info|link|click|app|club|store|online|site|top|pro|vip|fun|live|apk)\b)", raw_content))
+            has_entity_link = any(e.get("type") in ("url", "text_link", "mention", "text_mention", "bot_command") and not text.lower().startswith(("/start", "/help", "/promo")) for e in ents)
+            is_forwarded_spam = bool(msg.get("forward_from_chat") or msg.get("forward_origin") or msg.get("external_reply"))
 
             if not is_user_group_admin(cid, uid):
-                if has_raw_link or has_entity_link:
+                register_group_member(cid, uid, fname)
+                if has_raw_link or has_entity_link or is_forwarded_spam:
+                    # Delete FIRST at light speed (0.1s), then send warning!
                     tg_req("deleteMessage", {"chat_id": cid, "message_id": msg.get("message_id")}, timeout=2)
                     send_msg(
                         cid,
-                        f"🚫 <a href='tg://user?id={uid}'>{html.escape(fname)}</a>, <b>Link or mention not allowed!</b> 🚫",
+                        f"🚫 <a href='tg://user?id={uid}'>{html.escape(fname)}</a>, <b>Links, @mentions or forwards are not allowed in this group!</b> 🛡️",
                         markup=three_btns_kb
                     )
                     return jsonify({"status": "link_deleted"}), 200
@@ -3733,25 +3748,26 @@ def health_check():
 def setup_webhook():
     host = request.host_url.rstrip("/")
     results = {}
-    
-    # Setup Main Bot
+    all_upd = ["message", "edited_message", "callback_query", "chat_member", "my_chat_member"]
+
+    # Setup Main Bot with FULL Group Join & Admin Updates!
     results["main_bot"] = requests.post(
         f"https://api.telegram.org/bot{MAIN_BOT_TOKEN}/setWebhook",
-        json={"url": f"{host}/api/bot", "allowed_updates": ["message", "callback_query"]}
+        json={"url": f"{host}/api/bot", "allowed_updates": all_upd}
     ).json()
-    
+
     # Setup Character Bots
     for b_uname, b_tok in CHAR_BOT_TOKENS.items():
         if b_tok:
             try:
                 results[b_uname] = requests.post(
                     f"https://api.telegram.org/bot{b_tok}/setWebhook",
-                    json={"url": f"{host}/api/bot/{b_uname}", "allowed_updates": ["message", "callback_query"]},
+                    json={"url": f"{host}/api/bot/{b_uname}", "allowed_updates": all_upd},
                     timeout=6
                 ).json()
             except Exception as e:
                 results[b_uname] = {"ok": False, "error": str(e)}
-                
+
     return jsonify(results)
 
 if __name__ == "__main__":
