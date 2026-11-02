@@ -3523,8 +3523,9 @@ def webhook():
                     )
                     return jsonify({"status": "tryon photo sent"}), 200
 
+            # FIXED: is_owner=is_own (pehle is_owner=is_owner tha jisse NameError aa raha tha!)
             reply_text, media_to_send, sticker_to_send, show_kb, cur_rp, rp_ended, sys_q = chat_with_siya(
-                text, fname, uid, credits_left=credits, is_owner=is_owner, replied_to_text=replied_to_text, ctype=ctype
+                text, fname, uid, credits_left=credits, is_owner=is_own, replied_to_text=replied_to_text, ctype=ctype
             )
 
             if rp_ended:
@@ -3571,10 +3572,14 @@ def webhook():
             add_to_history(uid, "user", text)
             add_to_history(uid, "siya", reply_text)
 
-            if ctype == "private" and not is_owner and not sys_q:
+            # FIXED: not is_own (pehle not is_owner tha!)
+            if ctype == "private" and not is_own and not sys_q:
                 fb_update_user(uid, {"credits": max(0, credits - CHAT_COST)})
 
         return jsonify({"status": "ok"}), 200
+    except Exception as e:
+        print("WEBHOOK ERROR:", traceback.format_exc())
+        return jsonify({"status": "error_handled", "detail": str(e)}), 200
 
 # ============================================================
 # 11. EDROL AI LANDING PAGE
