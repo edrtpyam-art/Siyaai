@@ -1944,7 +1944,7 @@ def chat_with_siya(message_text, user_name, user_id, credits_left=12, is_owner=F
             f"Do NOT pretend that girl is you, and NEVER write broken sentences like 'Bata,!'! Praise her figure/look naughtily and tease {user_name} about what he wants to do with her in 2 complete sentences!"
         )
 
-        if user_gender == "female":
+    if user_gender == "female":
         sys_prompt = f"""[NAUGHTY DESI SAHELI / SAVAGE ROAST MODE]
 You are a bold, street-smart Desi woman talking to a GIRL named {user_name}.
 1. Both you and {user_name} are WOMEN! Never call her 'Devar ji' and never act like a man.
