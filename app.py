@@ -143,10 +143,9 @@ GEMINI_API_KEYS = [k for k in [
     os.environ.get("GEMINI_API_KEY4", "").strip().strip('"'),
     os.environ.get("GEMINI_API_KEY5", "").strip().strip('"')
 ] if k]
-GEMINI_MODEL = "gemini-3.8-flash"
+GEMINI_MODEL = "gemini-3.5-flash-lite"
 GEMINI_FALLBACK_MODELS = [
-    "gemini-3.5-flash-lite",
-    "gemini-3.6-flash",
+    "gemini-2.5-flash-lite",
     "gemini-2.5-flash",
     "gemini-2.0-flash"
 ]
@@ -271,8 +270,6 @@ REAL_GIRLS = {
         "name": "🔥 Hot Zara", "bot": "hot_zara_bot", "dp": "zara_dp.jpg", "call": "Maalik",
         "vibe": "Devoted, wild fantasy partner who loves pleasing her man completely, obeying his wildest commands, and begging for more."
     }
-}
-
     # 👇 JAISE-JAISE NAYE BOTS BANEIN, BAS NICHE SE '#' HATA DENA! 👇
     #"g6": {"name": "🌸 Hot Pihu", "bot": "hot_pihu_bot", "dp": "pihu_dp.jpg", "call": "Baby", "vibe": "Cute, innocent aawaz par andar se behad naughty aur chipak kar sone wali."},
     # "g7": {"name": "💎 Hot Tanvi", "bot": "hot_tanvi_bot", "dp": "tanvi_dp.jpg", "call": "Jaan", "vibe": "Bold college girl jo hostel aur car mein secret romance pasand karti hai."},
@@ -289,7 +286,6 @@ REAL_GIRLS = {
     # "g18": {"name": "💧 Hot Meher", "bot": "hot_meher_bot", "dp": "meher_dp.jpg", "call": "Piya ji", "vibe": "Punjabi/Desi lehje mein khul kar pyar aur masti karne wali patola."},
     #"g19": {"name": "🍑 Hot Naira", "bot": "hot_naira_bot", "dp": "naira_dp.jpg", "call": "Jaan", "vibe": "har choti baat par chidha kar garam karne wali naughty girlfriend."},
    # "g20": {"name": "🔥 Hot Zara", "bot": "hot_zara_bot", "dp": "zara_dp.jpg", "call": "Maalik", "vibe": "Har hukm sar aankhon par rakhne wali wild fantasy queen."}
-}
 
 # 200 Roleplay Scenarios Generator (50 Base x 4 Variations = 200 Scenarios!)
 _BASE_50_ROLES = [
@@ -382,10 +378,13 @@ PINK = "#FF1493"
 WHITE = "#FFFFFF"
 
 PHOTO_REQUEST_WORDS = [
-    "photo", "phto", "phooto", "pic", "pics", "image", "img", "selfie",
-    "video", "vido", "vid", "clip", "dikhao", "dikha", "dikhaoo", "dikhana", "dekha", "dekhao",
-    "bhejo", "bhej", "bejo", "bej", "beja", "bjao", "send", "dekhna hai", "dekhau", "pic do", "photo do",
-    "degi", "dega", "dedo", "de do", "utaro", "utaaro", "kholo", "khol ke", "nangi", "nude", "boobs", "chuchi", "figure"
+    "photo", "phto", "phooto", "pic", "pics", "image", "img", "selfie", "dp", "tasveer", "photu",
+    "video", "vido", "vid", "clip", "mms", "reel", "dikhao", "dikha", "dikhaoo", "dikhana", "dekha", "dekhao",
+    "bhejo", "bhej", "bejo", "bej", "beja", "bjao", "send", "show", "dekhna hai", "dekhau", "pic do", "photo do",
+    "degi", "dega", "dedo", "de do", "utaro", "utaaro", "kholo", "khol ke", "nangi", "nude", "naked",
+    "boobs", "bobs", "bodes", "body", "chuchi", "chuchiyan", "mamme", "doodh", "bra", "blouse", "cleavage", "chest", "figure",
+    "chut", "choot", "pusy", "pussy", "vagina", "opan", "open", "front", "pant", "panty",
+    "gand", "gaand", "ass", "booty", "butt", "hips", "back", "piche", "bom", "boom"
 ]
 
 DETAIL_QUERY_WORDS = [
@@ -602,43 +601,65 @@ GIRL_FILE_PREFIX = {
 }
 
 def get_ordered_girl_candidates(pfx, tag, prefer_video=False):
-    """Builds exact 1 -> 2 -> 3 -> 4 -> 5 file list matching GitHub uploads (c=chut, b=bodes, g=gand)."""
+    """
+    Exact GitHub File Matcher (37213.jpg):
+    - Photos: Always girl-specific (aditib1.jpg, aarohib1.jpg, ruhic1.png, etc.)
+    - Videos:
+      * Bhabhi -> ONLY bhabhi videos (bhabhib1.mp4, bhabhic1.mp4, bhabhig.mp4, bhabhivideo.mp4)
+      * Aditi -> ONLY aditi videos (aditi1b.mp4, aditic1.mp4, aditi1g.mp4, aditi2g.mp4)
+      * Other 9 Girls -> ONLY 'all' shared videos (allb1..3.mp4, allbra.mp4, allc1..2.mp4, allg.mp4)
+    """
     short_map = {"chut": "c", "bodes": "b", "gand": "g", "kiss": "b", "simplepic": "b"}
     sc = short_map.get(tag, "b")
     other_scs = [x for x in ("b", "c", "g") if x != sc]
 
     cands = []
     if prefer_video:
-        # 1. Exact category videos in 1, 2, 3, 4, 5 order (supports both aditic1.mp4 & aditi1c.mp4)
-        for i in range(1, 6):
-            cands.append(f"{pfx}{sc}{i}.mp4")
-            cands.append(f"{pfx}{i}{sc}.mp4")
-        # 2. General videos without c/b/g (e.g. ruhi.mp4, ruhifull.mp4, bhabhivideo.mp4)
-        cands.extend([f"{pfx}.mp4", f"{pfx}video.mp4", f"{pfx}full.mp4", f"{pfx}1.mp4", f"{pfx}2.mp4"])
-        # 3. Other category videos of the SAME girl so another girl's media is never sent
-        for osc in other_scs:
-            for i in range(1, 6):
-                cands.append(f"{pfx}{osc}{i}.mp4")
-                cands.append(f"{pfx}{i}{osc}.mp4")
+        if pfx == "bhabhi":
+            if sc == "b":
+                cands.extend(["bhabhib1.mp4", "bhabhivideo.mp4", "bhabhic1.mp4", "bhabhig.mp4"])
+            elif sc == "c":
+                cands.extend(["bhabhic1.mp4", "bhabhib1.mp4", "bhabhivideo.mp4", "bhabhig.mp4"])
+            else:  # gand ('g')
+                cands.extend(["bhabhig.mp4", "bhabhib1.mp4", "bhabhic1.mp4", "bhabhivideo.mp4"])
+
+        elif pfx == "aditi":
+            if sc == "b":
+                cands.extend(["aditi1b.mp4", "aditic1.mp4", "aditi1g.mp4", "aditi2g.mp4"])
+            elif sc == "c":
+                cands.extend(["aditic1.mp4", "aditi1b.mp4", "aditi1g.mp4", "aditi2g.mp4"])
+            else:  # gand ('g')
+                cands.extend(["aditi1g.mp4", "aditi2g.mp4", "aditi1b.mp4", "aditic1.mp4"])
+
+        else:
+            # Baaki 9 Girls (Aarohi, Aashi, Sakshi, Tanya, Pihu, Alisha, Ruhi, Naira, Zara) -> 'all' videos ONLY!
+            if sc == "b":
+                cands.extend(["allb1.mp4", "allb2.mp4", "allb3.mp4", "allbra.mp4", "allc1.mp4", "allc2.mp4", "allg.mp4"])
+            elif sc == "c":
+                cands.extend(["allc1.mp4", "allc2.mp4", "allb1.mp4", "allb2.mp4", "allb3.mp4", "allbra.mp4", "allg.mp4"])
+            else:  # gand ('g')
+                cands.extend(["allg.mp4", "allb1.mp4", "allb2.mp4", "allc1.mp4", "allc2.mp4", "allbra.mp4"])
+
     else:
-        # 1. Exact category photos in 1, 2, 3, 4, 5 order (.jpg and .png like alishac1.png / ruhic1.png)
+        # PHOTOS: Har ladki ki apni alag photo (.jpg / .png)
         for i in range(1, 6):
             cands.append(f"{pfx}{sc}{i}.jpg")
             cands.append(f"{pfx}{sc}{i}.png")
             cands.append(f"{pfx}{i}{sc}.jpg")
+            cands.append(f"{pfx}{i}{sc}.png")
         if pfx == "bhabhi" and sc == "b":
-            cands.append("bhabhibra.jpg")
-        # 2. Other category photos of the SAME girl
+            cands.extend(["bhabhibra.jpg", "private1.jpg", "private2.jpg", "private3.jpg", "private4.jpg", "private5.jpg"])
+        elif pfx == "bhabhi" and sc == "c":
+            cands.extend(["open1.jpg", "open2.jpg", "opan3.jpg", "open3.jpg", "open4.jpg", "opan4.jpg"])
+        elif pfx == "bhabhi" and sc == "g":
+            cands.extend(["bom1.jpg", "bom2.jpg", "bom3.jpg"])
+
+        # Same girl ke dusre category photos fallback me rakho taaki kisi aur ladki ki photo na jaye
         for osc in other_scs:
             for i in range(1, 6):
                 cands.append(f"{pfx}{osc}{i}.jpg")
                 cands.append(f"{pfx}{osc}{i}.png")
-        # 3. If this girl only has videos for this category (e.g. aarohic1.mp4), include her videos too!
-        for i in range(1, 6):
-            cands.append(f"{pfx}{sc}{i}.mp4")
-            cands.append(f"{pfx}{i}{sc}.mp4")
 
-    # Remove duplicates while preserving 1 -> 2 -> 3 order
     seen = set()
     out = []
     for f in cands:
@@ -650,25 +671,27 @@ def get_ordered_girl_candidates(pfx, tag, prefer_video=False):
 def get_media_item(vault, tag, prefer_video=False, char_vault="", uid=""):
     if not tag: tag = "bodes"
     tag = str(tag).lower().strip()
-    if tag in ["boom", "bom", "back", "gand", "gaand"]: tag = "gand"
-    elif tag in ["private", "privatepic", "body", "bodes", "boobs", "chuchi"]: tag = "bodes"
-    elif tag in ["open", "opan", "front", "chut", "choot", "pusy", "pussy"]: tag = "chut"
+    if tag in ["boom", "bom", "back", "gand", "gaand", "ass", "booty", "butt", "piche", "hips"]:
+        tag = "gand"
+    elif tag in ["private", "privatepic", "body", "bodes", "boobs", "bobs", "chuchi", "mamme", "doodh", "bra", "figure", "chest"]:
+        tag = "bodes"
+    elif tag in ["open", "opan", "front", "chut", "choot", "pusy", "pussy", "vagina", "panty"]:
+        tag = "chut"
 
     v_key = char_vault if (char_vault and char_vault in GIRL_FILE_PREFIX) else "bhabhi"
     pfx = GIRL_FILE_PREFIX.get(v_key, "bhabhi")
 
-    # Local file check + Direct GitHub candidate list (Works 100% with .vercelignore!)
+    # Kyunki .vercelignore delete ho chuka hai, saari local files server par maujood hain!
     girl_cands = get_ordered_girl_candidates(pfx, tag, prefer_video=prefer_video)
     existing = [f for f in girl_cands if find_local_file(f) is not None]
 
-    if not existing:
-        if v_key == "bhabhi":
-            existing = list(vault.get(f"{tag}_video", []) if prefer_video and f"{tag}_video" in vault else vault.get(tag, vault.get("bodes", [])))
-        else:
-            existing = girl_cands[:4]
+    # Agar kisi girl ki photo na mile (jaise alisha ki sirf alishac1.png hai), toh usi girl ki existing photo ya video uthao
+    if not existing and not prefer_video:
+        vid_cands = get_ordered_girl_candidates(pfx, tag, prefer_video=True)
+        existing = [f for f in vid_cands if find_local_file(f) is not None]
 
     if not existing:
-        return "private1.jpg"
+        existing = girl_cands[:3]
 
     seq_key = f"mseq:{uid}:{v_key}:{tag}:{'v' if prefer_video else 'p'}"
     idx = int(USER_CACHE.get(seq_key, 0))
@@ -678,20 +701,32 @@ def get_media_item(vault, tag, prefer_video=False, char_vault="", uid=""):
 
 def detect_python_media_tag(message_text):
     m_low = str(message_text or "").lower()
-    asks_media = any(re.search(rf"\b{re.escape(w)}\b", m_low) or w in m_low for w in PHOTO_REQUEST_WORDS)
+
+    # Check if user is asking for photo/video or body part in Hindi/Hinglish/English
+    action_verbs = [
+        "photo", "phto", "pic", "pics", "image", "img", "selfie", "video", "vido", "vid", "clip", "mms",
+        "dikhao", "dikha", "dikhana", "dekha", "dekhao", "dekhna", "bhejo", "bhej", "bejo", "bej", "send", "show",
+        "degi", "dega", "dedo", "de do", "do na", "utaro", "utaaro", "kholo", "khol ke", "nangi", "nude", "naked"
+    ]
+    asks_media = any(re.search(rf"\b{re.escape(w)}\b", m_low) or w in m_low for w in action_verbs)
+
     if not asks_media:
         return False, None, False
-    wants_vid = any(w in m_low for w in ["video", "vido", "vid", "clip", "mp4"])
-    if any(w in m_low for w in ["open", "opan", "chut", "pusy", "pussy", "front"]):
+
+    wants_vid = any(w in m_low for w in ["video", "vido", "vid", "clip", "mms", "mp4", "chalta hua", "live"])
+
+    if any(w in m_low for w in ["open", "opan", "chut", "choot", "pusy", "pussy", "vagina", "front", "panty", "niche ka"]):
         tag = "chut"
-    elif any(w in m_low for w in ["bom", "boom", "gand", "back", "piche"]):
+    elif any(w in m_low for w in ["bom", "boom", "gand", "gaand", "ass", "booty", "butt", "hips", "back", "piche"]):
         tag = "gand"
-    elif any(w in m_low for w in ["kiss", "chumma", "lip"]):
+    elif any(w in m_low for w in ["kiss", "chumma", "lip", "hoth"]):
         tag = "kiss"
-    elif any(w in m_low for w in ["simple", "normal", "selfie"]):
+    elif any(w in m_low for w in ["simple", "normal", "selfie", "face", "chehra"]):
         tag = "simplepic"
     else:
+        # Default for boobs/body/bra/chuchi/doodh/mamme/figure/general photo or video request
         tag = "bodes"
+
     return True, tag, wants_vid
 
 def send_local_or_url_media(chat_id, filename, caption="", protect=True, spoiler=True, reply_to_message_id=None, reply_markup=None, media_type_override=""):
