@@ -270,7 +270,7 @@ REAL_GIRLS = {
         "name": "🔥 Hot Zara", "bot": "hot_zara_bot", "dp": "zara_dp.jpg", "call": "Maalik",
         "vibe": "Devoted, wild fantasy partner who loves pleasing her man completely, obeying his wildest commands, and begging for more."
     }
-} 
+ } 
     # 👇 JAISE-JAISE NAYE BOTS BANEIN, BAS NICHE SE '#' HATA DENA! 👇
     #"g6": {"name": "🌸 Hot Pihu", "bot": "hot_pihu_bot", "dp": "pihu_dp.jpg", "call": "Baby", "vibe": "Cute, innocent aawaz par andar se behad naughty aur chipak kar sone wali."},
     # "g7": {"name": "💎 Hot Tanvi", "bot": "hot_tanvi_bot", "dp": "tanvi_dp.jpg", "call": "Jaan", "vibe": "Bold college girl jo hostel aur car mein secret romance pasand karti hai."},
